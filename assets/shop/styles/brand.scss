@@ -1,0 +1,93 @@
+// USISCS brand override
+//
+// Applied on top of the core Sylius/Bootstrap 5 shop CSS. Scoped to
+// [data-bs-theme="dark"], which is set on <html> in the overridden
+// templates/bundles/SyliusShopBundle/shared/layout/base.html.twig.
+// This rides Bootstrap 5.3's built-in dark-mode CSS (already compiled in via
+// the core `@import "bootstrap/scss/bootstrap"` in main.scss) rather than
+// hand-overriding every component, so form controls, cards, dropdowns, etc.
+// inherit correct dark-mode contrast automatically.
+//
+// !important is used deliberately: this file is compiled into a separate
+// webpack entry (app-shop-entry) from the core shop CSS (shop-entry), and
+// both are wired into the same '#stylesheets' hook, so load order between
+// them isn't guaranteed. !important makes these values win regardless.
+//
+// Source: PROJECT-INSTRUCTIONS.md "Brand" section.
+// Two picks below are NOT literal brand tokens, just my interpretation —
+// flagged inline — check them against the mockups before treating as final.
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
+:root[data-bs-theme='dark'] {
+  --bs-body-bg: #0D1117 !important;
+  --bs-body-bg-rgb: 13, 17, 23 !important;
+  --bs-body-color: #F5F5F5 !important;
+  --bs-body-color-rgb: 245, 245, 245 !important;
+  --bs-emphasis-color: #F5F5F5 !important;
+  --bs-secondary-color: #8A9BB0 !important; // muted nav token
+
+  // Not in the brand spec — a panel/card background one step lighter than
+  // body bg, and a matching border color, derived from #0D1117 so cards
+  // don't render flush-black-on-black. Adjust against the design canvas.
+  --bs-tertiary-bg: #161B22 !important;
+  --bs-border-color: #262C36 !important;
+
+  // Primary = the CTA red (buttons). Accent = the lighter red-orange
+  // (links, focus states) — kept distinct per the brand's two red values.
+  --bs-primary: #8B1A1A !important;
+  --bs-primary-rgb: 139, 26, 26 !important;
+
+  --bs-link-color: #C0392B !important;
+  --bs-link-color-rgb: 192, 57, 43 !important;
+  --bs-link-hover-color: #d9503f !important; // not in brand spec — lightened accent for hover
+  --bs-link-hover-color-rgb: 217, 80, 63 !important;
+
+  // Sharp corners, brand-wide.
+  --bs-border-radius: 0 !important;
+  --bs-border-radius-sm: 0 !important;
+  --bs-border-radius-lg: 0 !important;
+  --bs-border-radius-xl: 0 !important;
+  --bs-border-radius-xxl: 0 !important;
+  --bs-border-radius-pill: 0 !important;
+
+  --bs-font-sans-serif: 'InterVariable', 'Inter', Arial, sans-serif !important;
+}
+
+// Display font (Bebas Neue) for large headlines and the nav brand only —
+// it's a tall condensed face, not meant for body copy or small headings.
+// Everything else keeps Inter from the core theme.
+h1, h2,
+.navbar-brand {
+  font-family: 'Bebas Neue', 'InterVariable', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.font-display {
+  font-family: 'Bebas Neue', 'InterVariable', sans-serif;
+}
+
+// Navbar link/brand colors are baked in from Sylius's own SCSS variables
+// ($navbar-light-color etc. in _variables.scss) at compile time, in the
+// CORE shop-entry.css — not exposed as --bs-* runtime variables, so the
+// :root[data-bs-theme='dark'] block above can't reach them. Overriding
+// directly here instead. Covers both .navbar-light-scoped and bare
+// .navbar selectors as a safety net against markup I can't inspect directly.
+.navbar-light .navbar-brand,
+.navbar .navbar-brand {
+  color: #F5F5F5 !important;
+}
+
+.navbar-light .navbar-nav .nav-link,
+.navbar .navbar-nav .nav-link {
+  color: #8A9BB0 !important; // muted nav token
+}
+
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .nav-link:focus,
+.navbar-light .navbar-nav .nav-link.active,
+.navbar .navbar-nav .nav-link:hover,
+.navbar .navbar-nav .nav-link:focus,
+.navbar .navbar-nav .nav-link.active {
+  color: #C0392B !important;
+}

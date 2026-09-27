@@ -1,0 +1,25 @@
+New RFQ submitted via /quote
+
+Customer type: {{ rfq.customerType }}
+Name: {{ rfq.fullName }}
+Company: {{ rfq.company }}
+Email: {{ rfq.email }}
+Phone: {{ rfq.phone }}
+{% if rfq.jobSite %}Job site / facility: {{ rfq.jobSite }}
+{% endif %}
+{% if rfq.requiredByDate %}Required by: {{ rfq.requiredByDate|date('Y-m-d') }}
+{% endif %}
+Urgency: {{ rfq.urgencyLevel }}
+{% if rfq.deliveryAddress %}Delivery address: {{ rfq.deliveryAddress }}
+{% endif %}
+
+Items needed:
+{% for item in rfq.lineItems %}
+- Qty {{ item.quantity }}{% if item.partNumber %} | Part# {{ item.partNumber }}{% endif %} | {{ item.description }}{% if item.unitOfMeasure %} | UOM {{ item.unitOfMeasure }}{% endif %}
+{% endfor %}
+
+{% if rfq.additionalNotes %}Additional notes:
+{{ rfq.additionalNotes }}
+{% endif %}
+
+View and manage this request in the admin: /backoffice/rfq-request/{{ rfq.id }}

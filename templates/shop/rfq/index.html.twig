@@ -1,0 +1,85 @@
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% macro line_item_row(lineItem) %}
+    <div class="row align-items-start mb-2" data-rfq-line-items-target="row">
+        <div class="col-2">{{ form_row(lineItem.quantity) }}</div>
+        <div class="col-3">{{ form_row(lineItem.partNumber) }}</div>
+        <div class="col-4">{{ form_row(lineItem.description) }}</div>
+        <div class="col-2">{{ form_row(lineItem.unitOfMeasure) }}</div>
+        <div class="col-1 pt-4">
+            <button type="button" class="btn btn-link text-danger p-0" data-action="rfq-line-items#removeItem">Remove</button>
+        </div>
+    </div>
+{% endmacro %}
+
+{% form_theme form '@SyliusShop/form/theme.html.twig' %}
+
+{% block title %}Request a Quote | {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-2">Request a Quote</h1>
+            <p class="text-secondary mb-4">
+                Can't find what you need in the catalog? Our catalog is a fraction of what we can
+                source — tell us what you're looking for and we'll follow up within 24 hours.
+            </p>
+
+            {{ form_start(form) }}
+
+                <h2 class="h4 mt-4 mb-3">Customer info</h2>
+                <div class="row">
+                    <div class="col-md-6 mb-3">{{ form_row(form.customerType) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">{{ form_row(form.fullName) }}</div>
+                    <div class="col-md-6 mb-3">{{ form_row(form.company) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">{{ form_row(form.email) }}</div>
+                    <div class="col-md-6 mb-3">{{ form_row(form.phone) }}</div>
+                </div>
+
+                <h2 class="h4 mt-4 mb-3">Project details</h2>
+                <div class="row">
+                    <div class="col-md-6 mb-3">{{ form_row(form.jobSite) }}</div>
+                    <div class="col-md-6 mb-3">{{ form_row(form.requiredByDate) }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">{{ form_row(form.urgencyLevel) }}</div>
+                    <div class="col-md-6 mb-3">{{ form_row(form.deliveryAddress) }}</div>
+                </div>
+
+                {% import _self as rfq %}
+
+                <h2 class="h4 mt-4 mb-3">Items needed</h2>
+                <div data-controller="rfq-line-items">
+                    <div
+                        data-rfq-line-items-target="container"
+                        data-prototype="{{ rfq.line_item_row(form.lineItems.vars.prototype)|e('html_attr') }}"
+                    >
+                        {% for lineItem in form.lineItems %}
+                            {{ rfq.line_item_row(lineItem) }}
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-action="rfq-line-items#addItem">
+                        + Add Another Line
+                    </button>
+                    {% if form.lineItems.vars.errors|length > 0 %}
+                        <div class="text-danger small mt-2">{{ form_errors(form.lineItems) }}</div>
+                    {% endif %}
+                </div>
+
+                <h2 class="h4 mt-4 mb-3">Additional info</h2>
+                <div class="row">
+                    <div class="col-12 mb-3">{{ form_row(form.additionalNotes) }}</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3">Submit RFQ</button>
+
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}
