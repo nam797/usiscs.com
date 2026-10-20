@@ -93,13 +93,13 @@ These are what CI runs (`.github/workflows/`):
 php -d memory_limit=-1 bin/console lint:twig src
 php -d memory_limit=-1 bin/console lint:yaml src
 php -d memory_limit=-1 bin/console lint:container
-cp phpstan.dist.neon phpstan.neon && php -d memory_limit=-1 vendor/bin/phpstan analyse
+php -d memory_limit=-1 vendor/bin/phpstan analyse
 php -d memory_limit=-1 vendor/bin/phpunit
 ```
 
-PHPStan runs at **level 9** and is currently clean. `phpstan.neon` is gitignored;
-copy it from `phpstan.dist.neon` as shown (PHPStan does not read the `.dist`
-file automatically).
+PHPStan runs at **level 9** and is currently clean. It picks up
+`phpstan.dist.neon` automatically; create a gitignored `phpstan.neon` only if
+you want to override something locally.
 
 Behat inherits Sylius's entire upstream suite from
 `vendor/sylius/sylius/src/Sylius/Behat/Resources/config/suites.yml` —

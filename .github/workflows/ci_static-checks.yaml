@@ -72,12 +72,6 @@ jobs:
                     tools: symfony, composer-require-checker
                     coverage: none
 
-            -   name: "Restrict packages' versions"
-                run: |
-                    composer global config --no-plugins allow-plugins.symfony/flex true
-                    composer global require --no-progress --no-scripts --no-plugins "symfony/flex:^2.4"
-                    composer config extra.symfony.require "${{ matrix.symfony }}"
-
             -   name: "Get Composer cache directory"
                 id: composer-cache
                 run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
@@ -90,8 +84,12 @@ jobs:
                     restore-keys: |
                         ${{ runner.os }}-php-${{ matrix.php }}-symfony-${{ matrix.symfony }}-composer-
 
+            # composer install, not update: this project commits composer.lock, and
+            # letting Composer re-resolve pulls in DBAL 4, doctrine-bundle 3 and
+            # API Platform 5, which Sylius 2.2 does not support. That broke the
+            # kernel and failed the first step that boots it (lint:twig).
             -   name: "Install dependencies"
-                run: composer update --no-interaction --no-scripts
+                run: composer install --no-interaction --no-scripts
 
 #            -   name: "Validate composer.json"
 #                run: composer validate --strict --no-check-version
@@ -111,3 +109,6 @@ jobs:
 
             -   name: Run PHPStan
                 run: vendor/bin/phpstan analyse
+
+            -   name: Run PHPUnit
+                run: vendor/bin/phpunit --colors=always

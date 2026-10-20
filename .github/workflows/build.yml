@@ -22,19 +22,30 @@ permissions:
     contents: read
 
 jobs:
+    # Runs on every push and PR: lint, PHPStan (level 9) and PHPUnit.
     static-checks:
         name: Static checks
         uses: ./.github/workflows/ci_static-checks.yaml
         with:
             type: minimal
+
+    # The Behat jobs below are Sylius's own upstream suites, inherited from the
+    # Sylius-Standard skeleton: features/ in this repo is empty and behat.yml.dist
+    # imports them from vendor/. They take ~45 minutes per job across six jobs and
+    # exercise upstream Sylius rather than anything written here, so they run
+    # nightly and on demand instead of on every push. Re-enable per-push by
+    # removing the `if:` once the suites are known green and we have our own
+    # features worth gating merges on.
     ci:
         name: Tests
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         needs: static-checks
         uses: ./.github/workflows/ci.yaml
         with:
             type: minimal
     ci-js:
         name: Javascript Tests
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         needs: static-checks
         uses: ./.github/workflows/ci_js.yaml
         with:
