@@ -1,3 +1,12 @@
+includes:
+    # composer.json disables phpstan/extension-installer in allow-plugins, so the
+    # installed extensions have to be included by hand. Without phpstan-doctrine
+    # PHPStan does not know Doctrine assigns entity #[ORM\Id] properties by
+    # reflection and reports them as never written.
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-doctrine/rules.neon
+    - vendor/phpstan/phpstan-webmozart-assert/extension.neon
+
 parameters:
     level: 9
     paths:
@@ -6,3 +15,5 @@ parameters:
         - public/
         - src/
         - tests/
+    doctrine:
+        objectManagerLoader: tests/object-manager.php

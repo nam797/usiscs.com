@@ -12,6 +12,20 @@
 
 <p align="center">This is Sylius Standard Edition repository for starting new projects.</p>
 
+---
+
+## usiscs.com
+
+This repository is the storefront for usiscs.com (industrial and construction
+supply), built on Sylius 2.2 / Symfony 7.
+
+**To get it running locally, follow [`docs/local-setup.md`](docs/local-setup.md)** —
+verified prerequisites, setup commands, URLs, admin credentials and known
+gotchas. The generic upstream Sylius instructions below do not match this
+project (it is MySQL-only and needs a raised PHP `memory_limit`).
+
+---
+
 ## About
 
 Sylius is the first decoupled eCommerce framework based on [**Symfony**](http://symfony.com) and [**Doctrine**](http://doctrine-project.org). 

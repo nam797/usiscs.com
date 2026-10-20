@@ -1,4 +1,5 @@
 {
+  "name": "usiscs",
   "license": "MIT",
   "scripts": {
     "build": "encore dev",
