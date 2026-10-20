@@ -66,8 +66,13 @@ php -d memory_limit=-1 bin/console sylius:install --no-interaction
 There is no `symfony` CLI requirement; PHP's built-in server is enough:
 
 ```bash
-PHP_CLI_SERVER_WORKERS=4 php -d memory_limit=-1 -S 127.0.0.1:8000 -t public public/index.php
+PHP_CLI_SERVER_WORKERS=4 php -d memory_limit=-1 -S 127.0.0.1:8000 -t public bin/dev-router.php
 ```
+
+`bin/dev-router.php` lets the built-in server deliver real files (CSS, JS, images)
+itself and sends everything else to Symfony. Don't pass `public/index.php` as the
+router: Symfony then serves the CSS as `text/html` and the browser ignores it, so
+the storefront renders unstyled.
 
 | URL | What it is |
 | --- | --- |
