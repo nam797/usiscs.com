@@ -1,0 +1,8 @@
+{#
+    Override: point at our own /contact page (app_shop_contact) instead
+    of Sylius's built-in sylius_shop_contact_request, which we never
+    mounted at a dedicated path -- it only exists at the bare "/" route
+    from the bundle's own routing.yml import, so left as-is this link
+    would quietly point at the homepage instead of a contact form.
+#}
+<a class="nav-link" href="{{ path('app_shop_contact') }}">Contact us</a>

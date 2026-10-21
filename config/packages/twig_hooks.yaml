@@ -1,0 +1,23 @@
+# App-level Twig Hooks additions. Sylius's own hooks are defined in
+# vendor/sylius/sylius/.../Resources/config/app/twig_hooks/base.yaml --
+# this file only ADDS sibling items to those hook groups, it never
+# overrides an existing item's template (that's done by overriding the
+# template file itself under templates/bundles/SyliusShopBundle/...).
+sylius_twig_hooks:
+    hooks:
+        # Static Contact / Request a Quote links, shown above the
+        # taxon-driven navbar (which is empty/hidden until there are
+        # taxons). Priority 50 is above the taxon menu's priority 0, so
+        # these show up first while the catalog is still empty.
+        'sylius_shop.base.header.navbar':
+            quick_links:
+                template: 'shop/nav/quick_links.html.twig'
+                priority: 50
+
+        # Request a Quote alongside the existing informational footer
+        # links (About / Terms / Privacy / Contact us). Priority 400 is
+        # above "about" (300), so it's the first link in the list.
+        'sylius_shop.base.footer.content.menu.informational_links':
+            request_a_quote:
+                template: 'shop/footer/request_a_quote_link.html.twig'
+                priority: 400

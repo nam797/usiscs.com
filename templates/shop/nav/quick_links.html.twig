@@ -1,0 +1,14 @@
+{#
+    Static quick-links row added above the (currently empty, since there
+    are no taxons yet) taxon navbar. Hooked in via
+    config/packages/twig_hooks.yaml rather than overriding
+    navbar/menu.html.twig, so it doesn't fork Sylius's taxon-menu logic.
+#}
+<div class="w-100 border-bottom">
+    <nav class="navbar p-0 justify-content-center" aria-label="Quick links">
+        <div class="navbar-nav flex-row gap-3 py-2">
+            <a class="nav-link" href="{{ path('app_shop_contact') }}">Contact</a>
+            <a class="btn btn-primary btn-sm" href="{{ path('app_shop_rfq') }}">Request a Quote</a>
+        </div>
+    </nav>
+</div>
