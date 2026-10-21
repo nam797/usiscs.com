@@ -1,0 +1,164 @@
+{#
+    Hero image: the live page's asset path (airo-assets/images/pages/
+    about/hero) has no file extension and isn't fetchable from here --
+    using a plain panel instead of a photo until a real asset file is
+    supplied.
+#}
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% block title %}About Us | {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+    {# Hero #}
+    <div class="row mb-5">
+        <div class="col-lg-9 mx-auto text-center">
+            <span class="eyebrow">About Us</span>
+            <h1 class="display-6 mb-3">Built to Keep Operations Running.</h1>
+            <p class="text-secondary fs-5 mb-0">
+                We were founded on the idea that industrial contractors and facilities deserve a
+                supply partner that takes their uptime as seriously as they do.
+            </p>
+        </div>
+    </div>
+
+    {# Our Mission #}
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <span class="eyebrow text-center d-block">Our Mission</span>
+            <h2 class="text-center mb-4">Your Supply Chain Problem Is Our Job.</h2>
+            <p class="text-secondary">
+                We were created to fill a gap in the market: a supply partner that moves quickly
+                and doesn't leave customers stranded when a standard supplier says no.
+            </p>
+            <p class="text-secondary mb-0">
+                Our model centers on uptime -- just-in-time delivery, sourcing across 500+ vendor
+                partners, dedicated account support, and end-to-end ownership of every supply
+                problem.
+            </p>
+        </div>
+    </div>
+
+    {# What Drives Us #}
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">What Drives Us</span>
+            <h2 class="mb-0">Three Principles. Every Decision.</h2>
+        </div>
+    </div>
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="content-card">
+                <h3 class="h5">Protect Uptime</h3>
+                <p class="text-secondary small mb-0">Every decision is judged by whether it keeps your operation running.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="content-card">
+                <h3 class="h5">Solve the Problem</h3>
+                <p class="text-secondary small mb-0">Instead of declining requests, we look for alternate sources, approved substitutes, and emergency delivery.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="content-card">
+                <h3 class="h5">Own the Outcome</h3>
+                <p class="text-secondary small mb-0">We own problems from first call to final delivery -- tickets stay open until you're back up and running.</p>
+            </div>
+        </div>
+    </div>
+
+    {# How We Work -- Operating Model #}
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">How We Work</span>
+            <h2 class="mb-0">The USISCS Operating Model.</h2>
+        </div>
+    </div>
+    <div class="row g-4 mb-5">
+        {% for step in [
+            { n: '01', title: 'You Call. We Listen.', body: 'A dedicated account rep who knows your specs, approval process, and urgency. No call centers, no scripts.' },
+            { n: '02', title: 'We Source Across 500+ Vendors', body: 'Sourcing across hundreds of suppliers, including approved substitutes and hard-to-find specialty items.' },
+            { n: '03', title: 'We Coordinate Everything', body: 'Vendor management, delivery, documentation, and billing support, handled for you.' },
+            { n: '04', title: 'You Stay Running', body: "Just-in-time delivery to your job site or facility -- the problem isn't solved until you're at full capacity." },
+        ] %}
+            <div class="col-md-6">
+                <div class="content-card">
+                    <div class="eyebrow mb-1">Step {{ step.n }}</div>
+                    <h3 class="h5">{{ step.title }}</h3>
+                    <p class="text-secondary small mb-0">{{ step.body }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# Who We Serve #}
+    <div class="row mb-3">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">Who We Serve</span>
+            <h2 class="mb-3">Built for Industrial Contractors.</h2>
+            <p class="text-secondary">
+                We focus on construction contractors, industrial facilities, and maintenance
+                operations -- not retail customers.
+            </p>
+        </div>
+    </div>
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <ul class="list-unstyled text-secondary text-center">
+                {% for audience in [
+                    'General & Specialty Contractors',
+                    'Industrial Facilities & Plants',
+                    'Maintenance, Repair & Operations (MRO)',
+                    'Construction Project Managers',
+                    'Procurement & Supply Chain Teams',
+                ] %}
+                    <li class="mb-1">{{ audience }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    {# How We Show Up -- Standards #}
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">How We Show Up</span>
+            <h2 class="mb-0">The Standards We Hold Ourselves To.</h2>
+        </div>
+    </div>
+    <div class="row g-3 mb-5">
+        {% for standard in [
+            'We answer the phone -- every time',
+            "We never say \"that's not our problem\"",
+            "We treat urgency like it's our own operation on the line",
+            'We build relationships, not transactions',
+            'We measure success by your uptime, not our order volume',
+            'We own mistakes and fix them fast',
+        ] %}
+            <div class="col-md-6">
+                <div class="content-card">
+                    <span class="eyebrow mb-0">{{ '%02d'|format(loop.index) }}</span>
+                    <span class="d-block">{{ standard }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# Closing CTA #}
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">Ready to Work Together?</span>
+            <h2 class="mb-3">Let's Solve Your Supply Problem.</h2>
+            <p class="text-secondary mb-4">
+                Tell us what you need -- we'll source it, get it delivered, and make sure it
+                doesn't happen again.
+            </p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="{{ path('app_shop_rfq') }}" class="btn btn-primary">Request a Quote</a>
+                <a href="{{ path('app_shop_contact') }}" class="btn btn-outline-secondary">Contact Us</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,12 +1,21 @@
 {#
-    Static quick-links row added above the (currently empty, since there
+    Static top-level nav, added above the (currently empty, since there
     are no taxons yet) taxon navbar. Hooked in via
     config/packages/twig_hooks.yaml rather than overriding
     navbar/menu.html.twig, so it doesn't fork Sylius's taxon-menu logic.
+
+    Matches the live site's nav (Home, Services, Shop, About, Contact,
+    Request a Quote) MINUS "Shop" -- there's no real catalog page to
+    link to yet (0 products/taxons; the live site's own /shop is just a
+    "Loading catalog..." placeholder). Add it once a catalog listing
+    page exists.
 #}
 <div class="w-100 border-bottom">
-    <nav class="navbar p-0 justify-content-center" aria-label="Quick links">
-        <div class="navbar-nav flex-row gap-3 py-2">
+    <nav class="navbar p-0 justify-content-center" aria-label="Main navigation">
+        <div class="navbar-nav flex-row gap-3 py-2 align-items-center">
+            <a class="nav-link" href="{{ path('sylius_shop_homepage') }}">Home</a>
+            <a class="nav-link" href="{{ path('app_shop_services') }}">Services</a>
+            <a class="nav-link" href="{{ path('app_shop_about') }}">About</a>
             <a class="nav-link" href="{{ path('app_shop_contact') }}">Contact</a>
             <a class="btn btn-primary btn-sm" href="{{ path('app_shop_rfq') }}">Request a Quote</a>
         </div>

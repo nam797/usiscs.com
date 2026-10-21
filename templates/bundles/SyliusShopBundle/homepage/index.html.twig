@@ -1,0 +1,169 @@
+{#
+    Full override of Sylius's own homepage/index.html.twig. The vendor
+    version is a thin hook wrapper around catalog widgets (banner.html.twig,
+    new_collection.html.twig) that don't apply here -- this is a fully
+    custom marketing homepage, carried over from the live usiscs.com
+    homepage, so it's simplest as a plain template like /quote and
+    /contact rather than fighting the hook system for content that isn't
+    catalog-related.
+
+    Copy is carried over from the live site. Two things flagged as
+    NOT reliably captured from the live page and needing confirmation:
+    - Hero / value-banner background images: the live page's image paths
+      (airo-assets/images/pages/home/...) have no file extension and
+      aren't fetchable from here -- sections below use a plain dark
+      panel instead of a photo until real asset files are supplied.
+    - Stats bar: the live page renders these via a JS count-up that
+      starts at 0, so the crawl only captured the unanimated "0" state,
+      not the real target numbers. "500+" vendor partners is confirmed
+      elsewhere in the copy; "1 Call" matches the "ONE CALL. ANY
+      PROBLEM. SOLVED." tagline used elsewhere. The other two are
+      genuinely unknown -- ask the client for real figures.
+#}
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% block content %}
+<div class="container py-5">
+
+    {# Hero #}
+    <div class="row mb-5">
+        <div class="col-lg-9 mx-auto text-center">
+            <span class="eyebrow">US Industrial Supply Chain Solutions</span>
+            <h1 class="display-5 mb-3">Your Supply Chain Problem Is Our Job.</h1>
+            <p class="text-secondary mb-4 fs-5">
+                We deliver the industrial supplies you need, on time, every time -- and we solve
+                supply failures before they cost you uptime.
+            </p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="{{ path('app_shop_rfq') }}" class="btn btn-primary">Request a Quote</a>
+                <a href="{{ path('app_shop_services') }}" class="btn btn-outline-secondary">Our Services</a>
+            </div>
+        </div>
+    </div>
+
+    {# Stats bar -- see template-level comment above re: unverified figures #}
+    <div class="row text-center mb-5 py-4" style="border-top: 1px solid var(--bs-border-color); border-bottom: 1px solid var(--bs-border-color);">
+        <div class="col-6 col-md-3 mb-3 mb-md-0">
+            <div class="h2 font-display mb-0">500+</div>
+            <div class="text-secondary small">Vendor Partners</div>
+        </div>
+        <div class="col-6 col-md-3 mb-3 mb-md-0">
+            {# "48hr" inferred from the Services page's "48-hour emergency
+               sourcing" line -- not the stats bar's own (unanimated) figure. #}
+            <div class="h2 font-display mb-0">48hr</div>
+            <div class="text-secondary small">Emergency Sourcing</div>
+        </div>
+        <div class="col-6 col-md-3">
+            {# Genuinely unknown -- confirm real number with the client. #}
+            <div class="h2 font-display mb-0">&mdash;</div>
+            <div class="text-secondary small">Uptime Focus</div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="h2 font-display mb-0">1 Call</div>
+            <div class="text-secondary small">Any Problem Solved</div>
+        </div>
+    </div>
+
+    {# What We Do #}
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">What We Do</span>
+            <h2 class="mb-0">Built to Keep You Running.</h2>
+        </div>
+    </div>
+    <div class="row g-4 mb-3">
+        {% for item in [
+            { title: 'Just-in-Time Industrial Supply', body: 'MRO materials, consumables, tools, safety products, and replacement parts delivered when needed.' },
+            { title: 'Supply Problem Solving', body: 'Sourcing hard-to-find items and approved substitutes through our vendor network.' },
+            { title: 'Dedicated Account Support', body: 'A named team for quoting, communication, escalation, and billing.' },
+            { title: 'Supply Chain Ecosystem Support', body: 'Vendor coordination, delivery, substitutions, documentation, and billing.' },
+            { title: 'Small Engine Repair', body: 'Generators, compressors, pumps, and power tools.' },
+            { title: 'Heavy Equipment Repair', body: 'Hydraulics, drivetrain, electrical, and structural work, on-site or in-shop.' },
+            { title: 'Preventative Maintenance', body: 'Custom PM schedules, parts pre-staging, and technician dispatch.' },
+            { title: 'Supply Chain Consulting', body: 'Vulnerability analysis, cost reduction, vendor consolidation, and inventory optimization.' },
+        ] %}
+            <div class="col-md-6 col-lg-3">
+                <div class="content-card">
+                    <h3 class="h6">{{ item.title }}</h3>
+                    <p class="text-secondary small mb-0">{{ item.body }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <a href="{{ path('app_shop_services') }}" class="btn btn-link">View All Services &rarr;</a>
+        </div>
+    </div>
+
+    {# Value banner -- no photo yet, see template-level comment #}
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="content-banner">
+                <h2 class="h3 mb-0">When your supply chain fails, we're already solving it.</h2>
+            </div>
+        </div>
+    </div>
+
+    {# Why US Industrial #}
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">Why US Industrial</span>
+            <h2 class="mb-0">We Solve Problems Others Can't.</h2>
+        </div>
+    </div>
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <ul class="list-unstyled text-secondary">
+                {% for point in [
+                    'Protect Your Uptime, Not Just Fill Orders',
+                    'Flexible Sourcing From 500+ Vendor Partners',
+                    'One Call Solves Any Supply Problem',
+                    'A Team That Knows Your Operation',
+                    'Built for Construction & Industrial Contractors',
+                ] %}
+                    <li class="mb-2">&mdash; {{ point }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    {# The USISCS Difference #}
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="content-card">
+                <h3 class="h5">Protect Uptime</h3>
+                <p class="text-secondary small mb-0">Every decision is judged by whether it keeps you running.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="content-card">
+                <h3 class="h5">Solve the Problem</h3>
+                <p class="text-secondary small mb-0">Alternate sources, approved substitutes, or emergency delivery.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="content-card">
+                <h3 class="h5">Own the Outcome</h3>
+                <p class="text-secondary small mb-0">We own issues from first call through delivery.</p>
+            </div>
+        </div>
+    </div>
+
+    {# Closing CTA #}
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <h2 class="mb-3">One Call. Any Supply Problem. Solved.</h2>
+            <p class="text-secondary mb-4">
+                Tell us what you need -- we'll source it, get it delivered, and make sure it
+                doesn't happen again.
+            </p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="{{ path('app_shop_rfq') }}" class="btn btn-primary">Request a Quote</a>
+                <a href="{{ path('app_shop_contact') }}" class="btn btn-outline-secondary">Contact Us</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
