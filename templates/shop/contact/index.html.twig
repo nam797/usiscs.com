@@ -1,0 +1,86 @@
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% form_theme form '@SyliusShop/form/theme.html.twig' %}
+
+{% block title %}Contact Us | {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <h1 class="mb-2">Get In Touch</h1>
+            <p class="h4 font-display mb-2">ONE CALL. ANY PROBLEM. SOLVED.</p>
+            <p class="text-secondary mb-5">
+                Reach our dedicated account support team. We respond fast — because your uptime
+                depends on it.
+            </p>
+
+            <div class="row g-5">
+                <div class="col-lg-7">
+                    {{ form_start(form) }}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.fullName) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.company) }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">{{ form_row(form.email) }}</div>
+                            <div class="col-md-6 mb-3">{{ form_row(form.phone) }}</div>
+                        </div>
+                        <div class="mb-3">{{ form_row(form.howCanWeHelp) }}</div>
+                        <div class="mb-3">{{ form_row(form.message) }}</div>
+
+                        <button type="submit" class="btn btn-primary mt-2">Send Message</button>
+                    {{ form_end(form) }}
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="p-4 mb-4" style="border: 1px solid var(--bs-border-color);">
+                        <h2 class="h5 mb-3">Need an Immediate Solution?</h2>
+                        <p class="mb-2 fw-bold">CALL US DIRECTLY — WE PICK UP.</p>
+                        <p class="mb-3">
+                            <a href="tel:+19126657257" class="h5 text-decoration-none">1-912-665-7257</a><br>
+                            <span class="text-secondary small">For urgent supply needs, call directly.</span>
+                        </p>
+                        <hr>
+                        <p class="mb-1"><strong>Business Hours</strong></p>
+                        <p class="text-secondary small mb-3">
+                            Mon – Fri, 6AM – 6PM EST<br>
+                            Emergency sourcing available after hours.
+                        </p>
+                        <p class="mb-1"><strong>Service Area</strong></p>
+                        <p class="text-secondary small mb-0">
+                            Nationwide — serving industrial contractors across the US.
+                        </p>
+                    </div>
+
+                    <div class="p-4 mb-4" style="border: 1px solid var(--bs-border-color);">
+                        <h2 class="h5 mb-3">What to Expect</h2>
+                        <ul class="text-secondary small mb-0 ps-3">
+                            <li>Response within 2 business hours</li>
+                            <li>Dedicated account rep assigned</li>
+                            <li>Fast quote turnaround</li>
+                            <li>No runaround — we own the problem</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-4" style="border: 1px solid var(--bs-border-color);">
+                        <h2 class="h5 mb-2">Book a Strategy Consultation</h2>
+                        <p class="text-secondary small mb-3">
+                            A free, no-commitment 30-minute session to talk through your supply
+                            chain needs.
+                        </p>
+                        <a
+                            href="https://usindustrialsupplychainsolutions.zohobookings.com/portal-embed#/usindustrialsupplychainsolutions"
+                            class="btn btn-outline-secondary btn-sm"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            Schedule Your Session
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

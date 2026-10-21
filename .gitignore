@@ -61,3 +61,6 @@ phpstan.neon
 /public/media/cache/
 ###< liip/imagine-bundle ###
 
+
+# Local Claude Code settings (not project source)
+/.claude/
