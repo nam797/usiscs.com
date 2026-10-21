@@ -21,9 +21,14 @@ class RfqLineItem
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
+    /**
+     * Not nullable: a line item only exists as part of a request, and the join
+     * column is NOT NULL. Set by RfqRequest::addLineItem() or by the controller
+     * before persisting.
+     */
     #[ORM\ManyToOne(targetEntity: RfqRequest::class, inversedBy: 'lineItems')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private ?RfqRequest $rfqRequest = null;
+    private RfqRequest $rfqRequest;
 
     #[ORM\Column(type: 'integer')]
     #[Assert\Positive(message: 'Quantity must be at least 1.')]
@@ -44,12 +49,12 @@ class RfqLineItem
         return $this->id;
     }
 
-    public function getRfqRequest(): ?RfqRequest
+    public function getRfqRequest(): RfqRequest
     {
         return $this->rfqRequest;
     }
 
-    public function setRfqRequest(?RfqRequest $rfqRequest): void
+    public function setRfqRequest(RfqRequest $rfqRequest): void
     {
         $this->rfqRequest = $rfqRequest;
     }

@@ -16,7 +16,11 @@ security:
         admin:
             switch_user: true
             context: admin
-            pattern: "%sylius.security.admin_regex%"
+            # Covers both Sylius's own admin (/admin) and the EasyAdmin
+            # dashboard App\Controller\Admin\DashboardController mounts at
+            # /backoffice. Without /backoffice here it falls through to the
+            # shop firewall, which permits anonymous access.
+            pattern: "^/(%env(resolve:SYLIUS_ADMIN_ROUTING_PATH_NAME)%|backoffice)"
             provider: sylius_admin_user_provider
             user_checker: security.user_checker.chain.admin
             form_login:
@@ -118,6 +122,8 @@ security:
         - { path: "%sylius.security.shop_regex%/register", role: PUBLIC_ACCESS }
         - { path: "%sylius.security.shop_regex%/verify", role: PUBLIC_ACCESS }
         - { path: "%sylius.security.admin_regex%", role: ROLE_ADMINISTRATION_ACCESS }
+        # Must stay above the shop rules: shop_regex also matches /backoffice.
+        - { path: "^/backoffice", role: ROLE_ADMINISTRATION_ACCESS }
         - { path: "%sylius.security.shop_regex%/account", role: ROLE_USER }
 
         - { path: "%sylius.security.api_admin_route%/administrators/reset-password", role: PUBLIC_ACCESS }

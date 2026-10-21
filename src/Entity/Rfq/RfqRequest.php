@@ -8,6 +8,7 @@ use App\Entity\Customer\Customer;
 use App\Repository\Rfq\RfqRequestRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use App\Validator\PhonePattern;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -65,6 +66,7 @@ class RfqRequest
 
     #[ORM\Column(type: 'string', length: 50)]
     #[Assert\NotBlank(message: 'Please enter a phone number.')]
+    #[Assert\Regex(pattern: PhonePattern::REGEX, message: 'Please enter a valid phone number.')]
     private string $phone = '';
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]

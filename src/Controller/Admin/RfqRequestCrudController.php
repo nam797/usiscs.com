@@ -26,6 +26,8 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
  * mirror the sections of the RFQ Flow Spec doc (Customer Info, Project
  * Details, Items Needed, Additional Info) rather than the underlying
  * entity's flat property list.
+ *
+ * @extends AbstractCrudController<RfqRequest>
  */
 class RfqRequestCrudController extends AbstractCrudController
 {
