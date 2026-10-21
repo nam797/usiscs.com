@@ -1,0 +1,159 @@
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% block title %}Services | {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+    {# Hero #}
+    <div class="row mb-5">
+        <div class="col-lg-9 mx-auto text-center">
+            <h1 class="display-6 mb-3">Every Service Built Around Your Uptime.</h1>
+            <p class="text-secondary fs-5 mb-0">
+                From just-in-time supply to emergency repairs, everything we do is built to keep
+                your operation running.
+            </p>
+        </div>
+    </div>
+
+    {#
+        Each section below matches the live site's 8 anchored sections
+        exactly (same anchor ids, so any existing bookmarks/links to
+        usiscs.com/services#jit etc. keep working), copied from the
+        source crawl. Every section ends with the same "Request a Quote"
+        CTA, matching the live page.
+    #}
+    {% set sections = [
+        {
+            id: 'jit',
+            title: 'Just-in-Time Industrial Supply',
+            body: 'Delivers MRO materials, consumables, tools, safety products, and replacement parts on schedule and on site, before downtime occurs.',
+            includes: ['MRO and consumables', 'Safety / PPE', 'Tools and equipment', 'Replacement parts', 'Job site or facility delivery', 'Scheduled replenishment'],
+        },
+        {
+            id: 'sourcing',
+            title: 'Supply Problem Solving & Emergency Sourcing',
+            body: 'Finds hard-to-find and discontinued parts and handles supply disruptions using our 500+ vendor network.',
+            includes: ['Specialty items', 'Discontinued part sourcing', 'Approved substitutes', '48-hour emergency sourcing', 'Cross-vendor availability checks', 'Disruption response'],
+        },
+        {
+            id: 'account',
+            title: 'Dedicated Account Support',
+            body: "Assigns a dedicated rep who knows your specs, approvals, and urgency.",
+            includes: ['Dedicated rep', 'Fast quotes', 'Proactive order updates', 'Escalation support', 'Billing support', 'Spec / compliance documentation'],
+        },
+        {
+            id: 'ecosystem',
+            title: 'Supply Chain Ecosystem Support',
+            body: 'One point of contact that manages vendors, delivery, substitutions, and billing for you.',
+            includes: ['Multi-vendor coordination', 'Delivery tracking', 'Substitution approval', 'Compliance documentation', 'Consolidated billing', 'Supply chain reporting'],
+        },
+        {
+            id: 'small-engine',
+            title: 'Small Engine Repair',
+            body: 'Diagnoses and repairs small equipment quickly to minimize job site stoppages.',
+            includes: ['Generators and portable power', 'Compressors and pneumatic equipment', 'Pumps and fluid transfer', 'Power tools', 'Carburetors / ignition / fuel systems', 'On-site or shop repair'],
+        },
+        {
+            id: 'heavy-equipment',
+            title: 'Heavy Equipment Repair',
+            body: 'Services industrial and construction machinery with fast response.',
+            includes: ['Hydraulic repair and rebuild', 'Drivetrain and transmission', 'Electrical and control diagnostics', 'Structural and weld repair', 'Undercarriage and track service', 'Emergency field repair'],
+        },
+        {
+            id: 'preventative-maintenance',
+            title: 'Preventative Maintenance Scheduling',
+            body: 'Builds and manages custom PM schedules and dispatches technicians.',
+            includes: ['Custom PM schedules', 'Fleet tracking and history', 'Parts pre-staging', 'Scheduled dispatch', 'Service records and compliance documentation', 'Downtime trend reporting'],
+        },
+        {
+            id: 'supply-chain-consulting',
+            title: 'Supply Chain Consulting',
+            body: 'Audits supply chains to reduce costs and eliminate causes of downtime.',
+            includes: ['Gap analysis', 'Vendor consolidation strategy', 'Inventory optimization', 'Procurement process improvement', 'Emergency sourcing contingency planning', 'Ongoing advisory'],
+        },
+    ] %}
+
+    {% for section in sections %}
+        <div class="row mb-5" id="{{ section.id }}">
+            <div class="col-lg-9 mx-auto">
+                <div class="content-card">
+                    <h2 class="h3 mb-2">{{ section.title }}</h2>
+                    <p class="text-secondary mb-3">{{ section.body }}</p>
+                    <div class="row g-2 mb-3">
+                        {% for point in section.includes %}
+                            <div class="col-sm-6">
+                                <span class="text-secondary small">&mdash; {{ point }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <a href="{{ path('app_shop_rfq') }}" class="btn btn-primary btn-sm">Request a Quote</a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+
+    {# Product categories #}
+    <div class="row mb-3">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">What We Supply</span>
+            <h2 class="mb-0">Product Categories</h2>
+        </div>
+    </div>
+    <div class="row g-3 mb-5">
+        {% for category in ['MRO Materials', 'Electrical & Controls', 'Maintenance Supplies', 'Safety & PPE', 'Fasteners & Hardware', 'Specialty & Hard-to-Find'] %}
+            <div class="col-md-4">
+                <div class="content-card text-center">
+                    <span>{{ category }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <span class="text-secondary small">
+                Don't see what you need? <a href="{{ path('app_shop_contact') }}">Contact us</a> directly.
+            </span>
+        </div>
+    </div>
+
+    {# Vendor network banner #}
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="content-banner">
+                <h2 class="h4 mb-0">500+ vendor partners, accessible through one call.</h2>
+            </div>
+        </div>
+    </div>
+
+    {# Free consultation #}
+    <div class="row mb-5">
+        <div class="col-lg-6 mx-auto text-center">
+            <h2 class="h4 mb-2">Book a Strategy Consultation</h2>
+            <p class="text-secondary small mb-3">
+                A free, no-commitment 30-minute session to talk through your supply chain needs.
+            </p>
+            <a
+                href="https://usindustrialsupplychainsolutions.zohobookings.com/portal-embed#/usindustrialsupplychainsolutions"
+                class="btn btn-outline-secondary btn-sm"
+                target="_blank"
+                rel="noopener"
+            >
+                Schedule Your Session
+            </a>
+        </div>
+    </div>
+
+    {# Final CTA #}
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <h2 class="mb-3">Ready to Get Started?</h2>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="{{ path('app_shop_rfq') }}" class="btn btn-primary">Request a Quote</a>
+                <a href="{{ path('app_shop_contact') }}" class="btn btn-outline-secondary">Contact Us</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
