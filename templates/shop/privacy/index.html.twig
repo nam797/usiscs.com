@@ -1,0 +1,83 @@
+{#
+    DRAFT policy. The live site has no actual Privacy Policy published --
+    its own footer links to usiscs.com/privacy, but that page 404s there and
+    isn't in the live sitemap. This draft was written from how this app
+    itself handles data (Contact/RFQ forms, Stripe checkout) and is NOT
+    copied from an existing source. Flag to the client: this needs their
+    (or counsel's) review and sign-off before launch -- it is not legal
+    advice and shouldn't be treated as final.
+#}
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% block title %}Privacy Policy | {{ parent() }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto text-center">
+            <span class="eyebrow">Legal</span>
+            <h1 class="display-6 mb-2">Privacy Policy</h1>
+            <p class="text-secondary small mb-0">Last updated: {{ "now"|date("F Y") }} &mdash; draft, pending review</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+
+            <div class="content-banner mb-4 text-start">
+                <p class="mb-0 small">
+                    This page is a draft prepared for review. It has not yet been approved by
+                    US Industrial Supply Chain Solutions or reviewed by counsel, and should not
+                    be relied on as final until it is.
+                </p>
+            </div>
+
+            <h2 class="h4">Information We Collect</h2>
+            <p class="text-secondary">
+                We collect information you provide directly, such as your name, company,
+                email address, phone number, and message content when you submit our Contact
+                or Request a Quote forms. If you make a purchase, our payment processor,
+                Stripe, collects and processes your payment information on our behalf -- we
+                do not store your card details ourselves.
+            </p>
+
+            <h2 class="h4 mt-4">How We Use Your Information</h2>
+            <p class="text-secondary">
+                We use the information you provide to respond to quote requests and contact
+                inquiries, fulfill orders, process payments, and communicate with you about
+                your account or order. We do not sell your personal information to third
+                parties.
+            </p>
+
+            <h2 class="h4 mt-4">Payment Processing</h2>
+            <p class="text-secondary">
+                Payments are processed securely through Stripe. Stripe's handling of your
+                payment data is governed by its own privacy policy.
+            </p>
+
+            <h2 class="h4 mt-4">Data Sharing</h2>
+            <p class="text-secondary">
+                We share information only with service providers who help us operate this
+                site and fulfill orders (such as payment processing and email delivery), and
+                only to the extent needed for them to perform those services.
+            </p>
+
+            <h2 class="h4 mt-4">Your Choices</h2>
+            <p class="text-secondary">
+                You may contact us at any time to ask what information we hold about you or
+                to request that it be corrected or deleted, subject to records we're required
+                to keep for legal, accounting, or order-fulfillment purposes.
+            </p>
+
+            <h2 class="h4 mt-4">Questions?</h2>
+            <p class="text-secondary mb-0">
+                Contact us at <a href="mailto:operations@usiscs.com">operations@usiscs.com</a>
+                or <a href="tel:+19126657257">1-912-665-7257</a>, Monday&ndash;Friday, 6AM&ndash;6PM EST.
+            </p>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

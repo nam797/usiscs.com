@@ -126,3 +126,46 @@ h1, h2,
   padding: 3rem 2rem;
   text-align: center;
 }
+
+// Scrolling ticker strip, carried over from the live homepage (the band
+// of repeating taglines below the stats bar). CSS-only infinite marquee
+// -- two copies of the same track placed back to back and shifted left
+// by exactly one track width, so the loop has no visible seam.
+.ticker {
+  background-color: #141b26;
+  border-top: 1px solid var(--bs-border-color);
+  border-bottom: 1px solid var(--bs-border-color);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker__track {
+  display: inline-flex;
+  width: max-content;
+  animation: ticker-scroll 28s linear infinite;
+}
+
+.ticker__item {
+  display: inline-block;
+  padding: 0.85rem 0;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  color: #F5F5F5;
+}
+
+.ticker__sep {
+  color: #C0392B;
+  padding: 0 1.25rem;
+}
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker__track {
+    animation: none;
+  }
+}
