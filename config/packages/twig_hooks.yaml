@@ -1,8 +1,10 @@
-# App-level Twig Hooks additions. Sylius's own hooks are defined in
-# vendor/sylius/sylius/.../Resources/config/app/twig_hooks/base.yaml --
-# this file only ADDS sibling items to those hook groups, it never
-# overrides an existing item's template (that's done by overriding the
-# template file itself under templates/bundles/SyliusShopBundle/...).
+# App-level Twig Hooks additions/overrides. Sylius's own hooks are defined
+# in vendor/sylius/sylius/.../Resources/config/app/twig_hooks/base.yaml --
+# this file ADDS sibling items to those hook groups (new links), and
+# DISABLES a couple of Sylius's own default items that don't apply to
+# this site (no "enabled: false" needed to override an item's own
+# template content -- that's done by overriding the template file itself
+# under templates/bundles/SyliusShopBundle/...).
 sylius_twig_hooks:
     hooks:
         # Static Contact / Request a Quote links, shown above the
@@ -21,3 +23,51 @@ sylius_twig_hooks:
             request_a_quote:
                 template: 'shop/footer/request_a_quote_link.html.twig'
                 priority: 400
+
+        # Sylius's default top bar ("Sign up to our newsletter and grab
+        # -20% off") doesn't apply -- there's no newsletter signup flow
+        # on this site. Single-locale/single-currency for now too, so the
+        # locale and currency switchers are just noise above the real
+        # header. Disabling all three removes the top bar entirely.
+        'sylius_shop.base.header.top_bar':
+            info_message:
+                enabled: false
+            currency_switcher:
+                enabled: false
+            locale_switcher:
+                enabled: false
+
+        # Payment provider badges: PayPal/Adyen/Mollie aren't integrated
+        # (Stripe is the only confirmed processor -- see project decisions)
+        # so showing their logos would be factually wrong. Keep Stripe only.
+        'sylius_shop.base.footer.content.payment_methods.providers':
+            paypal:
+                enabled: false
+            adyen:
+                enabled: false
+            mollie:
+                enabled: false
+
+        # Social icons pointed at Sylius's OWN Instagram/Facebook/X accounts
+        # (demo fixture content, never updated) -- disabled rather than left
+        # live linking to a third party until the client gives us real
+        # social links to swap in.
+        'sylius_shop.base.footer.content.payment_methods.social_media':
+            instagram:
+                enabled: false
+            facebook:
+                enabled: false
+            x:
+                enabled: false
+
+        # FAQ / Returns Policy / Delivery & Shipping are dead "#"
+        # placeholders -- no such pages exist yet. Disabled until they're
+        # actually built (Returns Policy content now partly covered by
+        # /terms; a dedicated page can replace this later).
+        'sylius_shop.base.footer.content.menu.help_links':
+            faq:
+                enabled: false
+            returns_policy:
+                enabled: false
+            delivery_and_shipping:
+                enabled: false

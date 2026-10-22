@@ -7,18 +7,15 @@
     /contact rather than fighting the hook system for content that isn't
     catalog-related.
 
-    Copy is carried over from the live site. Two things flagged as
-    NOT reliably captured from the live page and needing confirmation:
+    Copy is carried over from the live site. One thing still flagged as
+    NOT captured from the live page and needing a real asset file:
     - Hero / value-banner background images: the live page's image paths
       (airo-assets/images/pages/home/...) have no file extension and
       aren't fetchable from here -- sections below use a plain dark
       panel instead of a photo until real asset files are supplied.
-    - Stats bar: the live page renders these via a JS count-up that
-      starts at 0, so the crawl only captured the unanimated "0" state,
-      not the real target numbers. "500+" vendor partners is confirmed
-      elsewhere in the copy; "1 Call" matches the "ONE CALL. ANY
-      PROBLEM. SOLVED." tagline used elsewhere. The other two are
-      genuinely unknown -- ask the client for real figures.
+    Stats bar figures (500+ / 48hr / 100% / 1 Call) were confirmed by
+    watching the live page's JS count-up animation finish in a browser
+    (2026-10-21), not inferred.
 #}
 {% extends '@SyliusShop/shared/layout/base.html.twig' %}
 
@@ -48,14 +45,11 @@
             <div class="text-secondary small">Vendor Partners</div>
         </div>
         <div class="col-6 col-md-3 mb-3 mb-md-0">
-            {# "48hr" inferred from the Services page's "48-hour emergency
-               sourcing" line -- not the stats bar's own (unanimated) figure. #}
             <div class="h2 font-display mb-0">48hr</div>
             <div class="text-secondary small">Emergency Sourcing</div>
         </div>
         <div class="col-6 col-md-3">
-            {# Genuinely unknown -- confirm real number with the client. #}
-            <div class="h2 font-display mb-0">&mdash;</div>
+            <div class="h2 font-display mb-0">100%</div>
             <div class="text-secondary small">Uptime Focus</div>
         </div>
         <div class="col-6 col-md-3">
@@ -63,6 +57,31 @@
             <div class="text-secondary small">Any Problem Solved</div>
         </div>
     </div>
+
+</div>
+
+{# Ticker -- full-bleed, so it breaks out of the .container above and
+   reopens one below. Two back-to-back copies of the same item list,
+   scrolled left by exactly one copy's width (see .ticker__track's
+   animation in brand.scss), so the loop has no visible seam. #}
+{% set ticker_items = [
+    'Protecting Customer Uptime',
+    'Just-In-Time Industrial Supply',
+    '500+ Vendor Partners',
+    'One Call. Any Problem.',
+] %}
+<div class="ticker">
+    <div class="ticker__track">
+        {% for copy in 1..2 %}
+            {% for item in ticker_items %}
+                <span class="ticker__item">{{ item|upper }}</span>
+                <span class="ticker__sep">&middot;</span>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+
+<div class="container py-5">
 
     {# What We Do #}
     <div class="row mb-4">
