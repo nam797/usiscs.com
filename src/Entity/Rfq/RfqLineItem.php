@@ -35,13 +35,16 @@ class RfqLineItem
     private int $quantity = 1;
 
     #[ORM\Column(type: 'string', length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     private ?string $partNumber = null;
 
     #[ORM\Column(type: 'string', length: 500)]
     #[Assert\NotBlank(message: 'Please describe the item.')]
+    #[Assert\Length(max: 500)]
     private string $description = '';
 
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    #[Assert\Length(max: 50)]
     private ?string $unitOfMeasure = null;
 
     public function getId(): ?int

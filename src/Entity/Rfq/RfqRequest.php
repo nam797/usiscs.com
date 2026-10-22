@@ -53,23 +53,28 @@ class RfqRequest
 
     #[ORM\Column(type: 'string', length: 255)]
     #[Assert\NotBlank(message: 'Please enter your full name.')]
+    #[Assert\Length(max: 255)]
     private string $fullName = '';
 
     #[ORM\Column(type: 'string', length: 255)]
     #[Assert\NotBlank(message: 'Please enter your company name.')]
+    #[Assert\Length(max: 255)]
     private string $company = '';
 
     #[ORM\Column(type: 'string', length: 255)]
     #[Assert\NotBlank(message: 'Please enter your email address.')]
     #[Assert\Email(message: 'Please enter a valid email address.')]
+    #[Assert\Length(max: 255)]
     private string $email = '';
 
     #[ORM\Column(type: 'string', length: 50)]
     #[Assert\NotBlank(message: 'Please enter a phone number.')]
     #[Assert\Regex(pattern: PhonePattern::REGEX, message: 'Please enter a valid phone number.')]
+    #[Assert\Length(max: 50)]
     private string $phone = '';
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Assert\Length(max: 255)]
     private ?string $jobSite = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
@@ -80,9 +85,11 @@ class RfqRequest
     private string $urgencyLevel = self::URGENCY_STANDARD;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Assert\Length(max: 255)]
     private ?string $deliveryAddress = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Assert\Length(max: 5000)]
     private ?string $additionalNotes = null;
 
     #[ORM\Column(type: 'string', length: 20)]

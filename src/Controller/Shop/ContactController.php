@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Shop;
 
 use App\Form\Contact\ContactRequestType;
+use App\RateLimiting\FormSubmissionThrottle;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
@@ -29,10 +30,16 @@ use Webmozart\Assert\Assert;
  */
 final class ContactController extends AbstractController
 {
+    // Fixed window: a handful of legitimate contact requests from one
+    // visitor in 10 minutes is normal; dozens is not.
+    private const MAX_ATTEMPTS = 5;
+    private const WINDOW_SECONDS = 600;
+
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly ChannelContextInterface $channelContext,
         private readonly LoggerInterface $logger,
+        private readonly FormSubmissionThrottle $throttle,
     ) {
     }
 
@@ -42,16 +49,31 @@ final class ContactController extends AbstractController
         $form = $this->createForm(ContactRequestType::class);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $this->sendNotification($form->getData());
+        if ($form->isSubmitted()) {
+            $clientIp = $request->getClientIp() ?? 'unknown';
 
-            $this->addFlash(
-                'success',
-                "Thanks for reaching out — we'll get back to you within 2 business hours.",
-            );
+            if ($this->throttle->tooManyAttempts('contact', $clientIp, self::MAX_ATTEMPTS, self::WINDOW_SECONDS)) {
+                $this->addFlash(
+                    'error',
+                    'Too many submissions from this connection — please try again in a few minutes.',
+                );
 
-            // Redirect after POST so a page refresh doesn't resubmit the form.
-            return $this->redirectToRoute('app_shop_contact');
+                return $this->redirectToRoute('app_shop_contact');
+            }
+
+            $this->throttle->hit('contact', $clientIp, self::WINDOW_SECONDS);
+
+            if ($form->isValid()) {
+                $this->sendNotification($form->getData());
+
+                $this->addFlash(
+                    'success',
+                    "Thanks for reaching out — we'll get back to you within 2 business hours.",
+                );
+
+                // Redirect after POST so a page refresh doesn't resubmit the form.
+                return $this->redirectToRoute('app_shop_contact');
+            }
         }
 
         return $this->render('shop/contact/index.html.twig', [
