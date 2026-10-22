@@ -20,6 +20,17 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * The public /quote form — field order and grouping match the RFQ Flow
  * Spec doc (itself based on the current usiscs.com /quote page):
  * Customer Info, Project Details, Items Needed, Additional Info.
+ *
+ * `empty_data` is set explicitly to '' on fullName/company/email/phone:
+ * without it, Symfony's default empty-data handling for a non-compound
+ * field binds a blank submission as `null` rather than ''. Fine for this
+ * form's nullable fields (jobSite, deliveryAddress, additionalNotes),
+ * but RfqRequest's fullName/company/email/phone are non-nullable
+ * `string` properties -- without this option, submitting the form with
+ * any of those blank (easy from a bot/curl bypassing the browser's own
+ * `required` attribute, or just unlucky timing) 500s with "Expected
+ * argument of type string, null given" instead of a normal validation
+ * error. Reproduced and confirmed during the security pass (2026-10-22).
  */
 class RfqRequestType extends AbstractType
 {
@@ -34,10 +45,10 @@ class RfqRequestType extends AbstractType
                 ],
                 'expanded' => false,
             ])
-            ->add('fullName', TextType::class, ['label' => 'Full Name'])
-            ->add('company', TextType::class, ['label' => 'Company'])
-            ->add('email', EmailType::class, ['label' => 'Email'])
-            ->add('phone', TelType::class, ['label' => 'Phone'])
+            ->add('fullName', TextType::class, ['label' => 'Full Name', 'empty_data' => ''])
+            ->add('company', TextType::class, ['label' => 'Company', 'empty_data' => ''])
+            ->add('email', EmailType::class, ['label' => 'Email', 'empty_data' => ''])
+            ->add('phone', TelType::class, ['label' => 'Phone', 'empty_data' => ''])
 
             ->add('jobSite', TextType::class, [
                 'label' => 'Job Site / Facility Name',

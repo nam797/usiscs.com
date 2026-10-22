@@ -46,15 +46,16 @@ final class ContactRequestType extends AbstractType
         $builder
             ->add('fullName', TextType::class, [
                 'label' => 'Full Name',
-                'constraints' => [new Assert\NotBlank()],
+                'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 255)],
             ])
             ->add('company', TextType::class, [
                 'label' => 'Company',
                 'required' => false,
+                'constraints' => [new Assert\Length(max: 255)],
             ])
             ->add('email', EmailType::class, [
                 'label' => 'Email Address',
-                'constraints' => [new Assert\NotBlank(), new Assert\Email()],
+                'constraints' => [new Assert\NotBlank(), new Assert\Email(), new Assert\Length(max: 255)],
             ])
             ->add('phone', TelType::class, [
                 'label' => 'Phone Number',
@@ -64,6 +65,7 @@ final class ContactRequestType extends AbstractType
                         'pattern' => PhonePattern::REGEX,
                         'message' => 'Please enter a valid phone number.',
                     ]),
+                    new Assert\Length(max: 50),
                 ],
             ])
             ->add('howCanWeHelp', ChoiceType::class, [
@@ -74,7 +76,7 @@ final class ContactRequestType extends AbstractType
             ])
             ->add('message', TextareaType::class, [
                 'label' => 'Message',
-                'constraints' => [new Assert\NotBlank()],
+                'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 5000)],
             ])
         ;
     }

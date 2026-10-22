@@ -90,6 +90,14 @@ sylius@example.com / sylius
 Both `/admin` and `/backoffice` sit behind the same `admin` firewall, so one
 login covers both.
 
+**Before any shared/staging/prod deploy: change this password** (or create a
+real administrator and delete this one) — `sylius@example.com` / `sylius` is
+a well-known default seeded by every `sylius:install`, not a secret specific
+to this app. Left as-is locally since there's no real exposure on a
+machine only you can reach; flagged here instead of changed automatically,
+since it's a database value (not code) and needs doing again on every fresh
+install anyway, same as the channel name (see main project doc).
+
 ## Checks
 
 These are what CI runs (`.github/workflows/`):

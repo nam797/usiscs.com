@@ -6,6 +6,7 @@ namespace App\Controller\Shop;
 
 use App\Entity\Rfq\RfqRequest;
 use App\Form\Rfq\RfqRequestType;
+use App\RateLimiting\FormSubmissionThrottle;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
@@ -31,11 +32,18 @@ use Webmozart\Assert\Assert;
  */
 final class RfqController extends AbstractController
 {
+    // RFQs are a heavier, more deliberate submission than a contact
+    // message (customer fills in line items, delivery details, etc.), so
+    // the window is a bit more generous than the Contact form's.
+    private const MAX_ATTEMPTS = 8;
+    private const WINDOW_SECONDS = 600;
+
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly MailerInterface $mailer,
         private readonly ChannelContextInterface $channelContext,
         private readonly LoggerInterface $logger,
+        private readonly FormSubmissionThrottle $throttle,
     ) {
     }
 
@@ -47,23 +55,38 @@ final class RfqController extends AbstractController
         $form = $this->createForm(RfqRequestType::class, $rfqRequest);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            foreach ($rfqRequest->getLineItems() as $lineItem) {
-                $lineItem->setRfqRequest($rfqRequest);
+        if ($form->isSubmitted()) {
+            $clientIp = $request->getClientIp() ?? 'unknown';
+
+            if ($this->throttle->tooManyAttempts('rfq', $clientIp, self::MAX_ATTEMPTS, self::WINDOW_SECONDS)) {
+                $this->addFlash(
+                    'error',
+                    'Too many submissions from this connection — please try again in a few minutes.',
+                );
+
+                return $this->redirectToRoute('app_shop_rfq');
             }
 
-            $this->entityManager->persist($rfqRequest);
-            $this->entityManager->flush();
+            $this->throttle->hit('rfq', $clientIp, self::WINDOW_SECONDS);
 
-            $this->sendNotification($rfqRequest);
+            if ($form->isValid()) {
+                foreach ($rfqRequest->getLineItems() as $lineItem) {
+                    $lineItem->setRfqRequest($rfqRequest);
+                }
 
-            $this->addFlash(
-                'success',
-                'Thanks — your request has been submitted. We aim to follow up within 24 hours.',
-            );
+                $this->entityManager->persist($rfqRequest);
+                $this->entityManager->flush();
 
-            // Redirect after POST so a page refresh doesn't resubmit the form.
-            return $this->redirectToRoute('app_shop_rfq');
+                $this->sendNotification($rfqRequest);
+
+                $this->addFlash(
+                    'success',
+                    'Thanks — your request has been submitted. We aim to follow up within 24 hours.',
+                );
+
+                // Redirect after POST so a page refresh doesn't resubmit the form.
+                return $this->redirectToRoute('app_shop_rfq');
+            }
         }
 
         return $this->render('shop/rfq/index.html.twig', [
