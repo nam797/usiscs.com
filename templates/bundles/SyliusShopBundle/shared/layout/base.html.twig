@@ -13,6 +13,34 @@
 
         <title>{% block title %}{{ sylius.channel.name }}{% endblock %}</title>
 
+        {#
+            SEO baseline: Sylius's own #metatags hook (above) only emits
+            charset/viewport/font-preload tags -- no meta description, no
+            Open Graph/Twitter cards, no canonical URL, on any page, ever.
+            Added directly here (rather than via the hook system) because
+            `{% block %}` inheritance is how per-page overrides already
+            work for <title> above -- a hooked template can't be
+            overridden the same way by a page that merely extends this
+            layout. Each page template sets {% block meta_description %};
+            this falls back to a site-wide default when a page doesn't.
+        #}
+        <meta name="description" content="{{ block('meta_description')|striptags|trim }}">
+        <link rel="canonical" href="{{ app.request.uri }}">
+
+        {% block meta_description %}US Industrial Supply Chain Solutions protects customer uptime with just-in-time industrial supply, emergency sourcing, and dedicated account support for construction and industrial contractors nationwide.{% endblock %}
+
+        {% block og_tags %}
+            <meta property="og:type" content="website">
+            <meta property="og:site_name" content="{{ sylius.channel.name }}">
+            <meta property="og:title" content="{{ block('title')|striptags|trim }}">
+            <meta property="og:description" content="{{ block('meta_description')|striptags|trim }}">
+            <meta property="og:url" content="{{ app.request.uri }}">
+
+            <meta name="twitter:card" content="summary">
+            <meta name="twitter:title" content="{{ block('title')|striptags|trim }}">
+            <meta name="twitter:description" content="{{ block('meta_description')|striptags|trim }}">
+        {% endblock %}
+
         {% block stylesheets %}
             {% hook '#stylesheets' with { _prefixes: prefixes } %}
         {% endblock %}
