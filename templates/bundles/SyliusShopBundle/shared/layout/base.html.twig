@@ -23,11 +23,22 @@
             overridden the same way by a page that merely extends this
             layout. Each page template sets {% block meta_description %};
             this falls back to a site-wide default when a page doesn't.
+            The block tag below is wrapped in an HTML comment on purpose:
+            a {% block %} tag always renders its own content in place,
+            wherever it physically sits, in addition to being reusable via
+            block(). Left bare, that printed the raw description text as
+            loose text in <head>, which broke HTML parsing (browsers end
+            <head> on the first non-whitespace text and move everything
+            after -- including the following <meta property="og:..."> tags
+            -- into <body>, where the stray text then rendered visibly at
+            the top of every page). The comment hides that in-place render
+            while leaving the block fully overridable per page and still
+            usable via block('meta_description') below.
         #}
         <meta name="description" content="{{ block('meta_description')|striptags|trim }}">
         <link rel="canonical" href="{{ app.request.uri }}">
 
-        {% block meta_description %}US Industrial Supply Chain Solutions protects customer uptime with just-in-time industrial supply, emergency sourcing, and dedicated account support for construction and industrial contractors nationwide.{% endblock %}
+        <!-- {% block meta_description %}US Industrial Supply Chain Solutions protects customer uptime with just-in-time industrial supply, emergency sourcing, and dedicated account support for construction and industrial contractors nationwide.{% endblock %} -->
 
         {% block og_tags %}
             <meta property="og:type" content="website">
