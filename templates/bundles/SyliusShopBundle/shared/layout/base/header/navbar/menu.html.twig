@@ -1,0 +1,19 @@
+{# Copy of Sylius's category menu with one change: the mobile slide-out's
+   title was an <h1> reading "Taxons", which put a second, meaningless H1
+   ahead of the real heading on every page once categories exist (bad for
+   SEO and screen readers). It's now a plain title labelled "Categories". #}
+<div class="w-100 border-bottom">
+    {% if taxons|length > 0 %}
+        <nav class="navbar offcanvas-lg offcanvas-start offcanvas-wide p-0" id="navbarNav" role="navigation" aria-label="{{ 'sylius.ui.taxon_navigation_desktop'|trans }}">
+            <div class="offcanvas-header w-full">
+                <div class="offcanvas-title fs-5 fw-bold">Categories</div>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#navbarNav" aria-label="{{ 'sylius.ui.close'|trans }}"></button>
+            </div>
+            <div class="offcanvas-body justify-content-lg-center w-full py-0">
+                <div class="navbar-nav my-2 flex-column flex-lg-row gap-lg-4" {{ sylius_test_html_attribute('menu') }}>
+                    {% hook 'menu' with { taxons } %}
+                </div>
+            </div>
+        </nav>
+    {% endif %}
+</div>

@@ -122,10 +122,29 @@ new migration (loading the fixtures wipes that database, never your dev one):
 APP_ENV=test php -d memory_limit=-1 bin/console doctrine:database:create --if-not-exists
 APP_ENV=test php -d memory_limit=-1 bin/console doctrine:migrations:migrate -n
 APP_ENV=test php -d memory_limit=-1 bin/console sylius:fixtures:load e2e -n
+APP_ENV=test php -d memory_limit=-1 bin/console app:catalog:setup-categories
 ```
 
 They also need built assets (`npm run build`). Plain `vendor/bin/phpunit`
 runs both suites.
+
+To browse the test database in a browser, `php -S` needs
+`-d variables_order=EGPCS`, or it ignores `APP_ENV=test` and serves dev:
+
+```bash
+APP_ENV=test php -d variables_order=EGPCS -d memory_limit=-1 -S 127.0.0.1:8001 -t public bin/dev-router.php
+```
+
+## Catalog categories
+
+The category tree (the six categories on /services) is created by an
+idempotent command. Run it once per environment, e.g. after a fresh install
+or on Upsun via `upsun ssh`. It is not in the deploy hook on purpose: a
+category deleted in the admin would come back on every deploy.
+
+```bash
+php -d memory_limit=-1 bin/console app:catalog:setup-categories
+```
 
 PHPStan runs at **level 9** and is currently clean. It picks up
 `phpstan.dist.neon` automatically; create a gitignored `phpstan.neon` only if
