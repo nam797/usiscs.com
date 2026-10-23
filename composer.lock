@@ -3225,16 +3225,16 @@
         },
         {
             "name": "easycorp/easyadmin-bundle",
-            "version": "v5.6.0",
+            "version": "v5.7.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/EasyCorp/EasyAdminBundle.git",
-                "reference": "e02a2b6b38630e53b40a6342b6efbe34b8dda3e3"
+                "reference": "ce1d6a5b8b2cbabc87ca63545b83b5430d9167ad"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/EasyCorp/EasyAdminBundle/zipball/e02a2b6b38630e53b40a6342b6efbe34b8dda3e3",
-                "reference": "e02a2b6b38630e53b40a6342b6efbe34b8dda3e3",
+                "url": "https://api.github.com/repos/EasyCorp/EasyAdminBundle/zipball/ce1d6a5b8b2cbabc87ca63545b83b5430d9167ad",
+                "reference": "ce1d6a5b8b2cbabc87ca63545b83b5430d9167ad",
                 "shasum": ""
             },
             "require": {
@@ -3287,7 +3287,7 @@
                 "symfony/phpunit-bridge": "^6.4.26|^7.0|^8.0",
                 "symfony/process": "^6.4.33|^7.0|^8.0",
                 "symfony/web-link": "^6.4.32|^7.0|^8.0",
-                "vincentlanglet/twig-cs-fixer": "^3.10",
+                "vincentlanglet/twig-cs-fixer": "^4.1",
                 "zenstruck/foundry": "^2.3"
             },
             "type": "symfony-bundle",
@@ -3323,7 +3323,7 @@
             ],
             "support": {
                 "issues": "https://github.com/EasyCorp/EasyAdminBundle/issues",
-                "source": "https://github.com/EasyCorp/EasyAdminBundle/tree/v5.6.0"
+                "source": "https://github.com/EasyCorp/EasyAdminBundle/tree/v5.7.0"
             },
             "funding": [
                 {
@@ -3331,7 +3331,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-09-17T19:03:00+00:00"
+            "time": "2026-10-14T06:20:50+00:00"
         },
         {
             "name": "egulias/email-validator",
