@@ -1,12 +1,16 @@
-{# Text wordmark until the client supplies a real logo file (the live
-   site's logo asset isn't fetchable from here). Matches the live site's
-   tagline text ("Integrate. Optimize. Deliver.") in the dark-theme brand
-   colors. #}
-<span class="d-inline-block lh-1">
-    <span class="d-block fw-bold text-uppercase" style="font-family: 'Bebas Neue', sans-serif; font-size: 1.35rem; letter-spacing: .03em; color: var(--bs-body-color, #F5F5F5);">
-        US Industrial Supply Chain
-    </span>
-    <span class="d-block text-uppercase small" style="letter-spacing: .15em; font-size: .6rem; color: #8A9BB0;">
-        Integrate. Optimize. <span style="color: #C0392B;">Deliver.</span>
-    </span>
+{# Real logo file supplied by the client (2026-10-22), replacing the
+   text-wordmark stand-in. The source PNG has a solid white background
+   (no transparency), matching the live site's own header treatment,
+   which also puts the logo in a white box -- confirmed by screenshot
+   before this file existed. So this wraps the image in a plain white
+   panel rather than placing it directly on the dark header/footer
+   background, where the white box would otherwise look like a
+   rendering bug instead of a deliberate choice. Sharp corners, no
+   border-radius, matching the rest of the brand (see project doc). #}
+<span class="d-block bg-white p-2">
+    <img
+        src="{{ asset('build/app/shop/images/logo.png', 'app.shop') }}"
+        alt="US Industrial Supply Chain Solutions — The Products You Count On. Delivered."
+        class="d-block w-100 h-auto"
+    >
 </span>
