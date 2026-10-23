@@ -7,16 +7,26 @@ permissions:
     contents: read
 
 jobs:
+    # Turns on GitHub auto-merge for Dependabot patch/minor bumps. The merge
+    # itself only happens once main's required status checks pass (branch
+    # protection), so a bump can't land while CI is red. Major bumps are left
+    # for a human to review.
     auto-merge:
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
         permissions:
+            contents: write
             pull-requests: write
         runs-on: ubuntu-latest
         steps:
-            -   uses: actions/checkout@v4
+            -
+                name: Fetch Dependabot metadata
+                id: metadata
+                uses: dependabot/fetch-metadata@v2
 
             -
-                name: Auto-merge minor dependencies upgrades
-                uses: ahmadnassri/action-dependabot-auto-merge@v2
-                with:
-                    target: minor
-                    github-token: ${{ secrets.DEPENDABOT_TOKEN }}
+                name: Enable auto-merge for patch and minor upgrades
+                if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+                run: gh pr merge --auto --merge "$PR_URL"
+                env:
+                    PR_URL: ${{ github.event.pull_request.html_url }}
+                    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
