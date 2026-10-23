@@ -38,6 +38,8 @@
         <meta name="description" content="{{ block('meta_description')|striptags|trim }}">
         <link rel="canonical" href="{{ app.request.uri }}">
 
+        {% include 'shared/favicon.html.twig' %}
+
         <!-- {% block meta_description %}US Industrial Supply Chain Solutions protects customer uptime with just-in-time industrial supply, emergency sourcing, and dedicated account support for construction and industrial contractors nationwide.{% endblock %} -->
 
         {% block og_tags %}

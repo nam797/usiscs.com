@@ -1,0 +1,12 @@
+{# Admin sidebar logo: the client logo instead of Sylius's. Reuses the
+   shop's built copy (app.shop package) so there's one logo file to swap.
+   White panel for the same reason as the shop header: the PNG has a
+   solid white background. #}
+<span class="d-inline-block bg-white p-1">
+    <img
+        src="{{ asset('build/app/shop/images/logo.png', 'app.shop') }}"
+        alt="US Industrial Supply"
+        class="d-block h-auto"
+        style="width: 12rem; max-width: 100%;"
+    >
+</span>

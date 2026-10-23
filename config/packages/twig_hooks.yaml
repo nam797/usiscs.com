@@ -7,6 +7,14 @@
 # under templates/bundles/SyliusShopBundle/...).
 sylius_twig_hooks:
     hooks:
+        # Brand favicon in the admin too (the shop layout includes the
+        # same partial directly). Priority below Sylius's own metatags
+        # (100) so charset still comes first in <head>.
+        'sylius_admin.base#metatags':
+            favicon:
+                template: 'shared/favicon.html.twig'
+                priority: 50
+
         # Static Contact / Request a Quote links, shown above the
         # taxon-driven navbar (which is empty/hidden until there are
         # taxons). Priority 50 is above the taxon menu's priority 0, so
