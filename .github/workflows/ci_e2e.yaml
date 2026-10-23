@@ -89,6 +89,7 @@ jobs:
                     bin/console doctrine:database:create --if-not-exists
                     bin/console doctrine:migrations:migrate -n
                     bin/console sylius:fixtures:load e2e -n
+                    bin/console app:catalog:setup-categories
 
             -   name: "Run end-to-end tests"
                 run: vendor/bin/phpunit --testsuite functional --colors=always

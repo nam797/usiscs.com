@@ -8,26 +8,61 @@ use App\Tests\Functional\FunctionalTestCase;
 
 final class SitemapTest extends FunctionalTestCase
 {
-    public function testItIsValidXmlListingEveryPublicPage(): void
+    private const CONTENT_PAGES = [
+        'http://localhost/en_US/',
+        'http://localhost/services',
+        'http://localhost/about',
+        'http://localhost/contact',
+        'http://localhost/quote',
+        'http://localhost/terms',
+        'http://localhost/privacy',
+    ];
+
+    protected function setUp(): void
     {
-        self::assertSame(
-            [
-                'http://localhost/en_US/',
-                'http://localhost/services',
-                'http://localhost/about',
-                'http://localhost/contact',
-                'http://localhost/quote',
-                'http://localhost/terms',
-                'http://localhost/privacy',
-            ],
-            $this->sitemapUrls(),
-        );
+        parent::setUp();
+
+        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
+        $this->ensureProduct('E2E_HIDDEN_HARD_HAT', 'Discontinued Hard Hat', 'discontinued-hard-hat', 'safety_ppe', enabled: false);
+    }
+
+    public function testItIsValidXmlWithTheContentPagesFirst(): void
+    {
+        $urls = array_column($this->entries(), 'loc');
+
+        self::assertSame(self::CONTENT_PAGES, array_slice($urls, 0, 7));
         self::assertResponseHeaderSame('Content-Type', 'application/xml');
+    }
+
+    public function testItListsEnabledProductsWithTheirLastModifiedDate(): void
+    {
+        $entries = array_column($this->entries(), null, 'loc');
+
+        self::assertArrayHasKey('http://localhost/en_US/products/safety-glasses', $entries);
+        self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $entries['http://localhost/en_US/products/safety-glasses']['lastmod']);
+    }
+
+    public function testItLeavesOutDisabledProducts(): void
+    {
+        self::assertNotContains('http://localhost/en_US/products/discontinued-hard-hat', array_column($this->entries(), 'loc'));
+    }
+
+    public function testItListsOnlyCategoriesThatHaveProducts(): void
+    {
+        $categoryUrls = array_values(array_filter(
+            array_column($this->entries(), 'loc'),
+            static fn (string $url): bool => str_contains($url, '/taxons/'),
+        ));
+
+        self::assertContains('http://localhost/en_US/taxons/products/safety-ppe', $categoryUrls);
+        // Empty categories (and the "Products" root itself) are thin pages.
+        self::assertNotContains('http://localhost/en_US/taxons/products/specialty-hard-to-find', $categoryUrls);
+        self::assertNotContains('http://localhost/en_US/taxons/products', $categoryUrls);
     }
 
     public function testEveryListedUrlLoads(): void
     {
-        foreach ($this->sitemapUrls() as $url) {
+        foreach (array_column($this->entries(), 'loc') as $url) {
             $this->client->request('GET', $url);
             self::assertResponseIsSuccessful(sprintf('%s is in the sitemap but does not load.', $url));
         }
@@ -38,8 +73,8 @@ final class SitemapTest extends FunctionalTestCase
         self::assertFileExists(dirname(__DIR__, 3).'/public/robots.txt');
     }
 
-    /** @return list<string> */
-    private function sitemapUrls(): array
+    /** @return list<array{loc: string, lastmod: string}> */
+    private function entries(): array
     {
         $this->client->request('GET', '/sitemap.xml');
         self::assertResponseIsSuccessful();
@@ -48,11 +83,11 @@ final class SitemapTest extends FunctionalTestCase
         self::assertNotFalse($xml, 'sitemap.xml is not well-formed XML.');
         self::assertSame('urlset', $xml->getName());
 
-        $urls = [];
-        foreach ($xml->url as $entry) {
-            $urls[] = (string) $entry->loc;
+        $entries = [];
+        foreach ($xml->url as $url) {
+            $entries[] = ['loc' => (string) $url->loc, 'lastmod' => (string) $url->lastmod];
         }
 
-        return $urls;
+        return $entries;
     }
 }

@@ -32,6 +32,13 @@
   Found and fixed: the RFQ migration failed on any fresh database
   (messenger_messages statements), which would have broken a new Upsun env.
 
+- Catalog structure + dynamic sitemap (2026-10-23): `app:catalog:setup-categories`
+  creates the six /services categories and sets them as the shop menu (idempotent;
+  run once per environment, NOT on deploy). sitemap.xml now lists enabled products
+  (with lastmod) and categories that have products. Fixed: Sylius's cart and
+  category slide-out titles were <h1>s (two H1s per page); footer links,
+  listing labels and info boxes unreadable/teal on the dark theme.
+
 ## Decisions
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
 - FOSRestBundle removed: nothing in this app uses it (Sylius 2 uses API Platform)
@@ -57,5 +64,13 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- Dependabot #21 (phpstan 2.3.1): waiting on rebase; fix any new phpstan errors
-- Then: catalog/products (+ sitemap TODO), choose Stripe vs Adyen, verify Upsun deploy
+- **Catalog, part 2: product import.** Structure and sitemap are done; products
+  are still blocked on the client's data: source (spreadsheet / ERP / supplier
+  feed / hand entry), rough count, and public prices vs quote-only. Then the
+  SEO Specialist pass on product/category meta.
+- Run `app:catalog:setup-categories` on the dev DB and on Upsun when ready to
+  show categories (dev DB not touched yet, in case the demo runs locally).
+- Then: Upsun deploy + switch build to `npm ci` (first deploy on Sylius 2.3 /
+  Node 24, untested on Upsun); lead email delivery (channel contact email
+  unset, no mail provider); choose Stripe vs Adyen.
+- Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.

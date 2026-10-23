@@ -313,3 +313,26 @@ a.link-reset:hover,
 .navbar {
   --bs-navbar-toggler-border-radius: 0 !important;
 }
+
+// Category/product listing: Sylius labels its "Show:" and sort dropdowns
+// with .text-black-50, which disappears on the dark theme.
+:root[data-bs-theme='dark'] .text-black-50 {
+  color: var(--bs-secondary-color) !important;
+}
+
+// Info notices ("There are no results to display") compile to Sylius teal.
+// Show them as a neutral panel with a brand-red accent instead.
+.alert-info {
+  --bs-alert-color: #F5F5F5 !important;
+  --bs-alert-bg: var(--bs-tertiary-bg) !important;
+  --bs-alert-border-color: var(--bs-border-color) !important;
+  --bs-alert-link-color: #{$brand-accent} !important;
+  border-left: 3px solid #{$brand-accent} !important;
+}
+
+// Plain .nav link lists (footer menus) compile to near-black #212529,
+// invisible on the dark footer. Same muted/accent pair as the header nav.
+.nav {
+  --bs-nav-link-color: #8A9BB0 !important; // muted nav token
+  --bs-nav-link-hover-color: #{$brand-accent} !important;
+}

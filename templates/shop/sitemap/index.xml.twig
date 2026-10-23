@@ -2,7 +2,10 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {% for route in routes %}
     <url>
-        <loc>{{ url(route.name) }}</loc>
+        <loc>{{ url(route.name, route.parameters) }}</loc>
+{% if route.lastmod %}
+        <lastmod>{{ route.lastmod }}</lastmod>
+{% endif %}
         <changefreq>{{ route.changefreq }}</changefreq>
         <priority>{{ route.priority }}</priority>
     </url>

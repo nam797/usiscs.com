@@ -28,6 +28,8 @@ final class ShopPagesTest extends FunctionalTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', $heading);
+        // One H1 per page: a stray second one (e.g. a menu title) muddles SEO.
+        self::assertSelectorCount(1, 'h1');
     }
 
     #[DataProvider('pages')]
