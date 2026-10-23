@@ -28,6 +28,11 @@
   once the required check "Static checks / PHP 8.4, Symfony ~7.4.0" passes
   (branch protection on main, admins can bypass). Majors stay manual.
 
+- Upsun deploy no longer runs `sylius:fixtures:load` (2026-10-23). It used to
+  run on every deploy, and the default suite purges the database. For a brand
+  new environment, load fixtures once by hand:
+  `upsun ssh -- bin/console sylius:fixtures:load -n` (wipes data; never on prod).
+
 ## Gotchas
 - Dependency bumps can pull in a Sylius minor upgrade. When sylius/sylius
   changes in composer.lock, read vendor/sylius/sylius/UPGRADE-2.x.md and run
