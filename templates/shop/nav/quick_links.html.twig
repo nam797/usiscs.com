@@ -1,17 +1,19 @@
 {#
-    Static top-level nav, added above the (currently empty, since there
-    are no taxons yet) taxon navbar. Hooked in via
-    config/packages/twig_hooks.yaml rather than overriding
-    navbar/menu.html.twig, so it doesn't fork Sylius's taxon-menu logic.
+    Static top-level nav, above Sylius's category menu. Hooked in via
+    config/packages/twig_hooks.yaml.
+
+    Desktop (lg+): the page links and the Request a Quote button in one row.
+    Phones/tablets: the links don't fit in a row, so they live in the
+    hamburger slide-out instead (see bundles/SyliusShopBundle/.../navbar/
+    menu.html.twig), and this row is just a full-width Request a Quote
+    button -- the site's main call to action.
 
     Matches the live site's nav (Home, Services, Shop, About, Contact,
-    Request a Quote) MINUS "Shop" -- there's no real catalog page to
-    link to yet (0 products/taxons; the live site's own /shop is just a
-    "Loading catalog..." placeholder). Add it once a catalog listing
-    page exists.
+    Request a Quote) minus "Shop": the product categories show in their
+    own menu row instead.
 #}
 <div class="w-100 border-bottom">
-    <nav class="navbar p-0 justify-content-center" aria-label="Main navigation">
+    <nav class="navbar p-0 justify-content-center d-none d-lg-flex" aria-label="Main navigation">
         <div class="navbar-nav flex-row gap-3 py-2 align-items-center">
             <a class="nav-link" href="{{ path('sylius_shop_homepage') }}">Home</a>
             <a class="nav-link" href="{{ path('app_shop_services') }}">Services</a>
@@ -20,4 +22,7 @@
             <a class="btn btn-primary btn-sm" href="{{ path('app_shop_rfq') }}">Request a Quote</a>
         </div>
     </nav>
+    <div class="d-lg-none px-3 py-2">
+        <a class="btn btn-primary w-100" href="{{ path('app_shop_rfq') }}">Request a Quote</a>
+    </div>
 </div>

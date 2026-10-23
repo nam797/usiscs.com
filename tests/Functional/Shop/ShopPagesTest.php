@@ -84,6 +84,27 @@ final class ShopPagesTest extends FunctionalTestCase
         }
     }
 
+    public function testThePhoneMenuOpenedByTheHamburgerHasEveryMainPage(): void
+    {
+        $crawler = $this->client->request('GET', '/en_US/');
+
+        // The hamburger must point at a menu that exists, or it does nothing.
+        self::assertSelectorExists('button[data-bs-target="#navbarNav"]');
+        self::assertSelectorExists('#navbarNav');
+
+        $hrefs = $crawler->filter('#navbarNav a')->each(static fn ($a): string => (string) $a->attr('href'));
+        foreach (['/en_US/', '/services', '/about', '/contact', '/quote'] as $path) {
+            self::assertContains($path, $hrefs, sprintf('Phone menu has no link to %s.', $path));
+        }
+    }
+
+    public function testPhonesGetAFullWidthRequestAQuoteButton(): void
+    {
+        $this->client->request('GET', '/en_US/');
+
+        self::assertSelectorExists('.d-lg-none > a.btn-primary.w-100[href="/quote"]');
+    }
+
     public function testTheFooterLinksToTheLegalPages(): void
     {
         $crawler = $this->client->request('GET', '/en_US/');
