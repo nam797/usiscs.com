@@ -169,3 +169,109 @@ h1, h2,
     animation: none;
   }
 }
+
+// --- Replace Sylius teal with the brand reds -------------------------
+// Sylius compiles its own $primary (#22B99A teal) into the core shop CSS,
+// and Bootstrap bakes it into each component's own variables
+// (--bs-btn-bg on .btn-primary, etc.) rather than reading --bs-primary at
+// runtime, so the :root override above never reaches them. Each component
+// that used the teal is re-pointed here. CTA red for filled states,
+// accent red for focus rings and hover text.
+
+$brand-cta: #8B1A1A;
+$brand-cta-hover: #A32222; // not in brand spec — CTA red lightened for hover
+$brand-cta-active: #6E1414; // not in brand spec — CTA red darkened for press
+$brand-accent: #C0392B;
+$brand-focus-ring: 0 0 0 0.25rem rgba(192, 57, 43, 0.35);
+
+.btn-primary {
+  --bs-btn-color: #fff !important;
+  --bs-btn-bg: #{$brand-cta} !important;
+  --bs-btn-border-color: #{$brand-cta} !important;
+  --bs-btn-hover-color: #fff !important;
+  --bs-btn-hover-bg: #{$brand-cta-hover} !important;
+  --bs-btn-hover-border-color: #{$brand-cta-hover} !important;
+  --bs-btn-focus-shadow-rgb: 192, 57, 43 !important;
+  --bs-btn-active-color: #fff !important;
+  --bs-btn-active-bg: #{$brand-cta-active} !important;
+  --bs-btn-active-border-color: #{$brand-cta-active} !important;
+  --bs-btn-disabled-color: #fff !important;
+  --bs-btn-disabled-bg: #{$brand-cta} !important;
+  --bs-btn-disabled-border-color: #{$brand-cta} !important;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #{$brand-accent} !important;
+  --bs-btn-border-color: #{$brand-accent} !important;
+  --bs-btn-hover-color: #fff !important;
+  --bs-btn-hover-bg: #{$brand-cta} !important;
+  --bs-btn-hover-border-color: #{$brand-cta} !important;
+  --bs-btn-focus-shadow-rgb: 192, 57, 43 !important;
+  --bs-btn-active-color: #fff !important;
+  --bs-btn-active-bg: #{$brand-cta-active} !important;
+  --bs-btn-active-border-color: #{$brand-cta-active} !important;
+  --bs-btn-disabled-color: #{$brand-accent} !important;
+  --bs-btn-disabled-border-color: #{$brand-accent} !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: #{$brand-accent} !important;
+  box-shadow: $brand-focus-ring !important;
+}
+
+.form-check-input:checked,
+.form-check-input[type=checkbox]:indeterminate {
+  background-color: #{$brand-cta} !important;
+  border-color: #{$brand-cta} !important;
+}
+
+.form-range::-webkit-slider-thumb { background-color: #{$brand-cta} !important; }
+.form-range::-moz-range-thumb { background-color: #{$brand-cta} !important; }
+
+.nav-link:focus-visible {
+  box-shadow: $brand-focus-ring !important;
+}
+
+.btn-close {
+  --bs-btn-close-focus-shadow: #{$brand-focus-ring} !important;
+}
+
+.dropdown-menu {
+  --bs-dropdown-link-active-bg: #{$brand-cta} !important;
+}
+
+.nav-pills {
+  --bs-nav-pills-link-active-bg: #{$brand-cta} !important;
+}
+
+.navbar {
+  --bs-navbar-hover-color: #{$brand-accent} !important;
+  --bs-navbar-active-color: #{$brand-accent} !important;
+  --bs-navbar-brand-color: #F5F5F5 !important;
+}
+
+.pagination {
+  --bs-pagination-hover-color: #{$brand-accent} !important;
+  --bs-pagination-focus-color: #{$brand-accent} !important;
+  --bs-pagination-focus-box-shadow: #{$brand-focus-ring} !important;
+  --bs-pagination-active-color: #fff !important;
+  --bs-pagination-active-bg: #{$brand-cta} !important;
+  --bs-pagination-active-border-color: #{$brand-cta} !important;
+}
+
+.progress,
+.progress-stacked {
+  --bs-progress-bar-bg: #{$brand-cta} !important;
+}
+
+.list-group {
+  --bs-list-group-active-bg: #{$brand-cta} !important;
+  --bs-list-group-active-border-color: #{$brand-cta} !important;
+}
+
+a.link-reset:hover,
+.list-nav li a:hover {
+  color: #{$brand-accent} !important;
+}
