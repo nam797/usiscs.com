@@ -1,0 +1,56 @@
+# Minimal data for the end-to-end tests (tests/Functional): one locale,
+# currency, country, channel and admin user -- just enough for every page
+# to render. Sylius's own "default" suite also loads hundreds of demo
+# products and images, which is slow and not what these tests are about.
+#
+#   APP_ENV=test bin/console sylius:fixtures:load e2e -n
+#
+# Test environments only, and purges the database first (orm_purger).
+when@test: &app_e2e_fixtures
+    sylius_fixtures:
+        suites:
+            e2e:
+                listeners:
+                    orm_purger: ~
+
+                fixtures:
+                    locale:
+                        options:
+                            locales: ['en_US']
+
+                    currency:
+                        options:
+                            currencies: ['USD']
+
+                    geographical:
+                        options:
+                            countries: ['US']
+                            zones:
+                                US:
+                                    name: 'United States of America'
+                                    countries: ['US']
+
+                    channel:
+                        options:
+                            custom:
+                                default:
+                                    name: 'US Industrial Supply Chain Solutions'
+                                    code: 'default'
+                                    locales: ['en_US']
+                                    currencies: ['USD']
+                                    enabled: true
+                                    hostname: 'localhost'
+                                    contact_email: 'sales@usiscs.test'
+
+                    admin_user:
+                        options:
+                            custom:
+                                -   email: 'admin@usiscs.test'
+                                    username: 'admin'
+                                    password: 'e2e-admin-password'
+                                    enabled: true
+                                    locale_code: 'en_US'
+                                    first_name: 'E2E'
+                                    last_name: 'Admin'
+
+when@test_cached: *app_e2e_fixtures

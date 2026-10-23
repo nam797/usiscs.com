@@ -107,8 +107,25 @@ php -d memory_limit=-1 bin/console lint:twig src
 php -d memory_limit=-1 bin/console lint:yaml src
 php -d memory_limit=-1 bin/console lint:container
 php -d memory_limit=-1 vendor/bin/phpstan analyse
-php -d memory_limit=-1 vendor/bin/phpunit
+vendor/bin/phpunit --testsuite unit
+vendor/bin/phpunit --testsuite functional   # needs the test database below
 ```
+
+### End-to-end tests (`tests/Functional`)
+
+These boot the real app against a separate `usiscs_test` database with a
+small fixture set (one channel, `admin` / `e2e-admin-password`), defined in
+`config/packages/app_e2e_fixtures.yaml`. One-time setup, and again after a
+new migration (loading the fixtures wipes that database, never your dev one):
+
+```bash
+APP_ENV=test php -d memory_limit=-1 bin/console doctrine:database:create --if-not-exists
+APP_ENV=test php -d memory_limit=-1 bin/console doctrine:migrations:migrate -n
+APP_ENV=test php -d memory_limit=-1 bin/console sylius:fixtures:load e2e -n
+```
+
+They also need built assets (`npm run build`). Plain `vendor/bin/phpunit`
+runs both suites.
 
 PHPStan runs at **level 9** and is currently clean. It picks up
 `phpstan.dist.neon` automatically; create a gitignored `phpstan.neon` only if

@@ -86,8 +86,9 @@ jobs:
             -   name: Test installer
                 run: bin/console sylius:install --no-interaction -vvv
 
+            # Functional tests need the "e2e" fixtures and run per-PR in ci_e2e.yaml.
             -   name: Run PHPUnit
-                run: vendor/bin/phpunit --colors=always
+                run: vendor/bin/phpunit --testsuite unit --colors=always
 
             -   name: Run CLI Behat
                 run: |

@@ -1,0 +1,103 @@
+name: End-to-end Tests
+
+on:
+    workflow_dispatch: ~
+    workflow_call:
+        inputs:
+            branch:
+                description: "Branch"
+                required: false
+                type: string
+                default: ""
+
+permissions:
+    contents: read
+
+jobs:
+    # tests/Functional: real kernel, templates and database, so pages that
+    # fail to render, broken forms and admin regressions are caught before
+    # merge. Uses the small "e2e" fixture suite (config/packages/
+    # app_e2e_fixtures.yaml), not Sylius's demo data.
+    e2e:
+        name: "PHPUnit functional, PHP 8.4, MySQL 8.4"
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+
+        services:
+            mysql:
+                image: mysql:8.4
+                env:
+                    MYSQL_ROOT_PASSWORD: root
+                ports:
+                    - 3306:3306
+                options: >-
+                    --health-cmd="mysqladmin ping -proot"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=20
+
+        env:
+            APP_ENV: test
+            DATABASE_URL: "mysql://root:root@127.0.0.1:3306/usiscs_test?serverVersion=8.4.0&charset=utf8mb4"
+
+        steps:
+            -   name: "Checkout (With Branch)"
+                if: "${{ inputs.branch != '' }}"
+                uses: actions/checkout@v4
+                with:
+                    ref: ${{ inputs.branch }}
+
+            -   name: "Checkout"
+                if: "${{ inputs.branch == '' }}"
+                uses: actions/checkout@v4
+
+            -   name: "Setup PHP"
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: "8.4"
+                    extensions: intl, gd, mysql, pdo_mysql
+                    coverage: none
+
+            -   name: "Get Composer cache directory"
+                id: composer-cache
+                run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+            -   name: "Setup Composer cache"
+                uses: actions/cache@v4
+                with:
+                    path: ${{ steps.composer-cache.outputs.dir }}
+                    key: ${{ runner.os }}-e2e-composer-${{ hashFiles('composer.lock') }}
+                    restore-keys: ${{ runner.os }}-e2e-composer-
+
+            -   name: "Install PHP dependencies"
+                run: composer install --no-interaction --no-scripts
+
+            # Every page links the built CSS/JS, so templates fail without it.
+            -   name: "Setup Node"
+                uses: actions/setup-node@v4
+                with:
+                    node-version-file: ".node-version"
+                    cache: npm
+
+            -   name: "Build frontend assets"
+                run: |
+                    npm ci
+                    npm run build
+
+            -   name: "Prepare database"
+                run: |
+                    bin/console doctrine:database:create --if-not-exists
+                    bin/console doctrine:migrations:migrate -n
+                    bin/console sylius:fixtures:load e2e -n
+
+            -   name: "Run end-to-end tests"
+                run: vendor/bin/phpunit --testsuite functional --colors=always
+
+            -   name: "Upload logs"
+                uses: actions/upload-artifact@v4
+                if: failure()
+                with:
+                    name: "Logs (e2e) - ${{ github.run_id }}-${{ github.run_number }}"
+                    path: var/log
+                    if-no-files-found: ignore
+                    overwrite: true
