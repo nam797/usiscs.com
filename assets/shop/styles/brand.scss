@@ -336,3 +336,26 @@ a.link-reset:hover,
   --bs-nav-link-color: #8A9BB0 !important; // muted nav token
   --bs-nav-link-hover-color: #{$brand-accent} !important;
 }
+
+// Product page Details / Attributes / Reviews accordion: Bootstrap compiles
+// near-black headings and a Sylius-teal chevron (an SVG with the colour
+// baked in), so both are re-declared for the dark theme.
+$brand-chevron: "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23F5F5F5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e";
+
+.accordion {
+  --bs-accordion-color: var(--bs-body-color) !important;
+  --bs-accordion-bg: transparent !important;
+  --bs-accordion-border-color: var(--bs-border-color) !important;
+  --bs-accordion-btn-color: #F5F5F5 !important;
+  --bs-accordion-btn-bg: transparent !important;
+  --bs-accordion-active-color: #F5F5F5 !important;
+  --bs-accordion-active-bg: transparent !important;
+  --bs-accordion-btn-focus-box-shadow: #{$brand-focus-ring} !important;
+}
+
+// Bootstrap's dark mode sets the chevron on the ::after itself, so it has
+// to be overridden there rather than inherited from .accordion.
+:root[data-bs-theme='dark'] .accordion-button::after {
+  --bs-accordion-btn-icon: url("#{$brand-chevron}") !important;
+  --bs-accordion-btn-active-icon: url("#{$brand-chevron}") !important;
+}

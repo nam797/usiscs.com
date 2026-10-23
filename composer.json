@@ -26,6 +26,7 @@
         "dompdf/dompdf": "^3.1",
         "easycorp/easyadmin-bundle": "^5.6",
         "flux-se/sylius-stripe-plugin": "^2.0.2",
+        "openspout/openspout": "^5.12",
         "sylius/adyen-plugin": "^2.0.6",
         "sylius/mollie-plugin": "^3.2.3",
         "sylius/paypal-plugin": "^2.0.8",

@@ -39,7 +39,15 @@
   category slide-out titles were <h1>s (two H1s per page); footer links,
   listing labels and info boxes unreadable/teal on the dark theme.
 
+- Product import + go-live (2026-10-23): `app:catalog:import` (xlsx/csv) and
+  `app:catalog:import-template`; new products arrive as hidden drafts; re-imports
+  respect admin edits per field (app_product_import_state snapshot); "Go live" /
+  "Take offline" bulk actions on the Sylius admin product list with a readiness
+  check (name, category, price). Pricing = supplier price for now.
+
 ## Decisions
+- Catalog import: admin edits always win, per field; imports never change
+  whether a product is live (except go_live=yes on brand-new products).
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
 - FOSRestBundle removed: nothing in this app uses it (Sylius 2 uses API Platform)
 
@@ -64,13 +72,13 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- **Catalog, part 2: product import.** Structure and sitemap are done; products
-  are still blocked on the client's data: source (spreadsheet / ERP / supplier
-  feed / hand entry), rough count, and public prices vs quote-only. Then the
-  SEO Specialist pass on product/category meta.
-- Run `app:catalog:setup-categories` on the dev DB and on Upsun when ready to
-  show categories (dev DB not touched yet, in case the demo runs locally).
-- Then: Upsun deploy + switch build to `npm ci` (first deploy on Sylius 2.3 /
-  Node 24, untested on Upsun); lead email delivery (channel contact email
-  unset, no mail provider); choose Stripe vs Adyen.
+- **Get the client's go-live sheet** (send them the template), dry-run it, then
+  import on Upsun (`upsun ssh`, after `app:catalog:setup-categories`).
+- **Supplier feed**: once its format/delivery is known, add a
+  `ProductSourceInterface` implementation + an Upsun cron calling the importer.
+  Decide what happens to products that drop out of the feed.
+- **Markup**: supplier price is used as the selling price for now.
+- Backoffice upload page so staff can import without the CLI.
+- Then: Upsun deploy + switch build to `npm ci`; lead email delivery (channel
+  contact email unset, no mail provider); choose Stripe vs Adyen.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.

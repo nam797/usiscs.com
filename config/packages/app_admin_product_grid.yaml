@@ -1,0 +1,19 @@
+# "Go live" / "Take offline" bulk actions on the Sylius admin product list
+# (App\Controller\Admin\ProductGoLiveController). Imported products arrive
+# as hidden drafts; staff filter the list by "Enabled: No", tick the ones
+# to publish and click Go live.
+sylius_grid:
+    templates:
+        bulk_action:
+            app_go_live: 'admin/product/grid/bulk_action/go_live.html.twig'
+            app_take_offline: 'admin/product/grid/bulk_action/take_offline.html.twig'
+    grids:
+        sylius_admin_product:
+            actions:
+                bulk:
+                    app_go_live:
+                        type: app_go_live
+                        label: 'Go live'
+                    app_take_offline:
+                        type: app_take_offline
+                        label: 'Take offline'
