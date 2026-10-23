@@ -16,6 +16,7 @@ final class ProductGoLiveTest extends FunctionalTestCase
 {
     public function testTheProductListHasGoLiveAndTakeOfflineActions(): void
     {
+        $this->ensureListHasAProduct();
         $this->loginAsAdmin();
 
         $this->client->request('GET', '/admin/products/');
@@ -114,10 +115,13 @@ final class ProductGoLiveTest extends FunctionalTestCase
     {
         $variant = $product->getVariants()->first();
         self::assertInstanceOf(ProductVariantInterface::class, $variant);
+        // Delete the rows outright; detaching them from the variant would make
+        // Doctrine try to save them without a variant first.
         foreach ($variant->getChannelPricings()->toArray() as $pricing) {
-            $variant->removeChannelPricing($pricing);
+            $this->entityManager()->remove($pricing);
         }
         $this->entityManager()->flush();
+        $this->entityManager()->clear();
     }
 
     private function firstPricing(ProductInterface $product): mixed
@@ -136,8 +140,15 @@ final class ProductGoLiveTest extends FunctionalTestCase
         return $fresh;
     }
 
+    /** Sylius hides bulk actions on an empty list, so tests can't rely on earlier tests' data. */
+    private function ensureListHasAProduct(): void
+    {
+        $this->ensureProduct('GL-LISTED', 'Listed drill', 'listed-drill', 'mro_materials', enabled: false);
+    }
+
     private function tokenFromProductList(): string
     {
+        $this->ensureListHasAProduct();
         $crawler = $this->client->request('GET', '/admin/products/');
         $token = $crawler->filter('form[action="/admin/products/bulk/go-live"] input[name="_token"]')->attr('value');
         self::assertNotEmpty($token, 'The token comes from the real page, as a browser would send it.');
