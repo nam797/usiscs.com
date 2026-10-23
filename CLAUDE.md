@@ -1,7 +1,7 @@
 # usiscs.com
 
 Storefront for usiscs.com (industrial and construction supply), built on
-Sylius 2.2 / Symfony 7, PHP 8.4, MySQL 8.4. Hosted on Upsun (MariaDB 11.8 there).
+Sylius 2.3 / Symfony 7, PHP 8.4, MySQL 8.4. Hosted on Upsun (MariaDB 11.8 there).
 GitHub: nam797/usiscs.com
 
 ## Start here

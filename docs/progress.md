@@ -13,6 +13,13 @@
   All logo uses point at assets/shop/images/logo.png, so a new logo is a one-file
   swap (favicons need regenerating separately; they're static files in public/).
 
+- Admin dark mode fixed (2026-10-23): the sylius/paypal-plugin 2.1.0 bump had
+  silently upgraded Sylius 2.2 -> 2.3.2, but the frontend half of the upgrade
+  (vendor/sylius/sylius/UPGRADE-2.3.md, "Dependencies" 7/9/10) was never done,
+  so the admin ran on stale CSS with dark text in dark mode. Done now: Encore 6,
+  @sylius-ui/* from Resources/npm, babel transform plugin, Node 24, webpack
+  pinned <5.109 like Sylius.
+
 ## Decisions
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
 - FOSRestBundle removed: nothing in this app uses it (Sylius 2 uses API Platform)
@@ -22,6 +29,9 @@
   (branch protection on main, admins can bypass). Majors stay manual.
 
 ## Gotchas
+- Dependency bumps can pull in a Sylius minor upgrade. When sylius/sylius
+  changes in composer.lock, read vendor/sylius/sylius/UPGRADE-2.x.md and run
+  `npm install && npm run build`.
 - Renaming the static-checks job or changing the PHP/Symfony matrix renames the
   required check; update branch protection on main to match or PRs will hang.
 - Build skips docs-only PRs (paths-ignore), so they never get the required check;
