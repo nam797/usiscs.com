@@ -16806,20 +16806,20 @@
         },
         {
             "name": "friends-of-behat/suite-settings-extension",
-            "version": "v1.1.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/FriendsOfBehat/SuiteSettingsExtension.git",
-                "reference": "7a4e44e232622d20680582f305b33846f0617823"
+                "reference": "6cee84fe06598e1c95979c887180a967f7b87e14"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/FriendsOfBehat/SuiteSettingsExtension/zipball/7a4e44e232622d20680582f305b33846f0617823",
-                "reference": "7a4e44e232622d20680582f305b33846f0617823",
+                "url": "https://api.github.com/repos/FriendsOfBehat/SuiteSettingsExtension/zipball/6cee84fe06598e1c95979c887180a967f7b87e14",
+                "reference": "6cee84fe06598e1c95979c887180a967f7b87e14",
                 "shasum": ""
             },
             "require": {
-                "behat/behat": "^3.8",
+                "behat/behat": "^3.8 || ^4.0",
                 "php": "^7.4 || ^8.0"
             },
             "require-dev": {
@@ -16845,9 +16845,9 @@
             "description": "Allows to overwrite suites' default settings.",
             "support": {
                 "issues": "https://github.com/FriendsOfBehat/SuiteSettingsExtension/issues",
-                "source": "https://github.com/FriendsOfBehat/SuiteSettingsExtension/tree/v1.1.0"
+                "source": "https://github.com/FriendsOfBehat/SuiteSettingsExtension/tree/v1.2.0"
             },
-            "time": "2021-02-05T14:35:02+00:00"
+            "time": "2026-09-29T07:55:55+00:00"
         },
         {
             "name": "friends-of-behat/symfony-extension",
