@@ -1,0 +1,196 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Catalog\Import;
+
+use App\Command\SetupCategoriesCommand;
+
+/**
+ * One validated product from the go-live spreadsheet or the supplier feed.
+ *
+ * Columns are matched by header name, so their order in the sheet doesn't
+ * matter. Optional columns that are missing from a sheet entirely are "not
+ * provided" (the import leaves those fields alone); an optional column that
+ * is present but blank means "no value".
+ */
+final class ProductRow
+{
+    public const REQUIRED_COLUMNS = ['sku', 'name', 'category', 'price'];
+
+    public const OPTIONAL_COLUMNS = [
+        'description',
+        'short_description',
+        'manufacturer',
+        'part_number',
+        'unit_of_measure',
+        'stock_qty',
+        'image_url',
+        'go_live',
+    ];
+
+    /** Sylius product/variant code rule. */
+    private const SKU_PATTERN = '/^[\w-]+$/';
+
+    /**
+     * @param list<string> $provided columns present in the source, for optional fields
+     */
+    private function __construct(
+        public readonly string $sku,
+        public readonly string $name,
+        public readonly string $categoryCode,
+        public readonly int $priceInCents,
+        public readonly ?string $description,
+        public readonly ?string $shortDescription,
+        public readonly ?string $manufacturer,
+        public readonly ?string $partNumber,
+        public readonly ?string $unitOfMeasure,
+        public readonly ?int $stockQty,
+        public readonly ?string $imageUrl,
+        public readonly bool $goLive,
+        private readonly array $provided,
+    ) {
+    }
+
+    /**
+     * @param array<string, string> $values column name => cell text
+     *
+     * @throws InvalidProductRow
+     */
+    public static function fromArray(array $values): self
+    {
+        $problems = [];
+        $text = static fn (string $column): string => trim($values[$column] ?? '');
+        $optional = static fn (string $column): ?string => '' === $text($column) ? null : $text($column);
+
+        $sku = $text('sku');
+        if ('' === $sku) {
+            $problems[] = 'sku is required';
+        } elseif (!preg_match(self::SKU_PATTERN, $sku) || strlen($sku) > 255) {
+            $problems[] = sprintf('sku "%s" may only contain letters, numbers, "-" and "_" (max 255)', $sku);
+        }
+
+        $name = $text('name');
+        if ('' === $name) {
+            $problems[] = 'name is required';
+        } elseif (mb_strlen($name) > 255) {
+            $problems[] = 'name is longer than 255 characters';
+        }
+
+        $categoryCode = self::categoryCode($text('category'));
+        if (null === $categoryCode) {
+            $problems[] = '' === $text('category')
+                ? 'category is required'
+                : sprintf('unknown category "%s" (use one of: %s)', $text('category'), implode(', ', SetupCategoriesCommand::CATEGORIES));
+        }
+
+        $price = self::priceInCents($text('price'));
+        if (null === $price) {
+            $problems[] = '' === $text('price')
+                ? 'price is required'
+                : sprintf('price "%s" is not a valid amount (e.g. 12.99)', $text('price'));
+        } elseif ($price <= 0) {
+            $problems[] = 'price must be greater than 0';
+        }
+
+        foreach (['manufacturer', 'part_number', 'unit_of_measure'] as $column) {
+            if (mb_strlen($text($column)) > 255) {
+                $problems[] = sprintf('%s is longer than 255 characters', $column);
+            }
+        }
+
+        $stockQty = null;
+        if (null !== $optional('stock_qty')) {
+            if (!preg_match('/^\d+$/', $text('stock_qty'))) {
+                $problems[] = sprintf('stock_qty "%s" must be a whole number of 0 or more', $text('stock_qty'));
+            } else {
+                $stockQty = (int) $text('stock_qty');
+            }
+        }
+
+        $imageUrl = $optional('image_url');
+        if (null !== $imageUrl && !self::isHttpUrl($imageUrl)) {
+            $problems[] = sprintf('image_url "%s" must be an http(s) link', $imageUrl);
+        }
+
+        $goLive = self::yesNo($text('go_live'));
+        if (null === $goLive) {
+            $problems[] = sprintf('go_live "%s" must be yes or no', $text('go_live'));
+        }
+
+        if ([] !== $problems) {
+            throw new InvalidProductRow($problems);
+        }
+
+        \assert(null !== $categoryCode && null !== $price && null !== $goLive);
+
+        return new self(
+            $sku,
+            $name,
+            $categoryCode,
+            $price,
+            $optional('description'),
+            $optional('short_description'),
+            $optional('manufacturer'),
+            $optional('part_number'),
+            $optional('unit_of_measure'),
+            $stockQty,
+            $imageUrl,
+            $goLive,
+            array_values(array_intersect(self::OPTIONAL_COLUMNS, array_keys($values))),
+        );
+    }
+
+    public function provides(string $optionalColumn): bool
+    {
+        return in_array($optionalColumn, $this->provided, true);
+    }
+
+    /** Accepts a category code or its name, case-insensitively. */
+    private static function categoryCode(string $value): ?string
+    {
+        $needle = mb_strtolower($value);
+        foreach (SetupCategoriesCommand::CATEGORIES as $code => $name) {
+            if ($needle === $code || $needle === mb_strtolower($name)) {
+                return $code;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * "12.99", "$1,299.00", "12" -> cents. Parsed as text (never via float)
+     * so prices can't pick up rounding errors.
+     */
+    private static function priceInCents(string $value): ?int
+    {
+        $value = str_replace([' ', '$'], '', $value);
+        if (!preg_match('/^(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?$/', $value, $matches)) {
+            return null;
+        }
+
+        $dollars = (int) str_replace(',', '', $matches[1]);
+        $cents = (int) str_pad($matches[2] ?? '0', 2, '0');
+
+        return $dollars * 100 + $cents;
+    }
+
+    private static function yesNo(string $value): ?bool
+    {
+        return match (mb_strtolower($value)) {
+            '', 'no', 'n', 'false', '0' => false,
+            'yes', 'y', 'true', '1' => true,
+            default => null,
+        };
+    }
+
+    private static function isHttpUrl(string $value): bool
+    {
+        $scheme = parse_url($value, \PHP_URL_SCHEME);
+
+        return false !== filter_var($value, \FILTER_VALIDATE_URL)
+            && is_string($scheme)
+            && in_array(strtolower($scheme), ['http', 'https'], true);
+    }
+}

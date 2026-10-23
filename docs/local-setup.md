@@ -135,6 +135,34 @@ To browse the test database in a browser, `php -S` needs
 APP_ENV=test php -d variables_order=EGPCS -d memory_limit=-1 -S 127.0.0.1:8001 -t public bin/dev-router.php
 ```
 
+## Importing products
+
+Products come in from a spreadsheet (and later the supplier feed) through one
+importer (`src/Catalog/Import/`). Send the client the template, then import
+what they fill in:
+
+```bash
+php -d memory_limit=-1 bin/console app:catalog:import-template catalog-import-template.xlsx
+php -d memory_limit=-1 bin/console app:catalog:import products.xlsx --dry-run   # check, saves nothing
+php -d memory_limit=-1 bin/console app:catalog:import products.xlsx             # -v: a line per product
+```
+
+- Columns are matched by header name: `sku`, `name`, `category`, `price` are
+  required; `description`, `short_description`, `manufacturer`, `part_number`,
+  `unit_of_measure`, `stock_qty`, `image_url`, `go_live` are optional.
+- **New products arrive hidden.** `go_live=yes` publishes a new product straight
+  away if it's ready (name, category, price in every channel).
+- **Re-importing updates products, but never a field an admin has changed**
+  (per field: e.g. an admin's price edit sticks while stock keeps updating),
+  and never changes whether a product is live.
+- Products made by hand in the admin are never touched by an import.
+- Bad rows are listed with their spreadsheet row number and skipped; the rest
+  still import. The command exits non-zero if any row was skipped.
+
+**Taking products live:** Sylius admin → Catalog → Products → filter
+*Enabled: No* → tick products → **Go live** (or **Take offline**). Products that
+aren't ready are listed with the reason and left hidden.
+
 ## Catalog categories
 
 The category tree (the six categories on /services) is created by an

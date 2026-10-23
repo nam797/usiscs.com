@@ -1,0 +1,10 @@
+{# "Go live" bulk action on the Sylius admin product list. Reuses Sylius's
+   own grid scripts: check-all.js enables the button once a row is ticked
+   (data-check-all-action), and bulk-delete.js adds the ticked product ids
+   to this form on submit (data-bulk-delete), so no new JavaScript. #}
+<form method="post" action="{{ path('app_admin_product_bulk_go_live') }}" data-bulk-delete="index" class="d-inline">
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('App\\Controller\\Admin\\ProductGoLiveController::CSRF_TOKEN_ID')) }}">
+    <button type="submit" class="btn btn-success" disabled data-check-all-action="index" data-test-bulk-action="go-live">
+        {{ action.label|default('Go live') }}
+    </button>
+</form>
