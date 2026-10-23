@@ -275,3 +275,41 @@ a.link-reset:hover,
 .list-nav li a:hover {
   color: #{$brand-accent} !important;
 }
+
+// Header cart button (and any other .btn-transparent): Sylius pairs it
+// with .btn-light, so it compiles to black text and a light-gray hover
+// background -- invisible/glaring on the dark header.
+.btn-transparent {
+  --bs-btn-color: #F5F5F5 !important;
+  --bs-btn-hover-color: #F5F5F5 !important;
+  --bs-btn-active-color: #F5F5F5 !important;
+}
+
+.btn-transparent:hover,
+.btn-transparent:active {
+  background-color: var(--bs-tertiary-bg) !important;
+}
+
+// Sharp corners: the --bs-border-radius override at the top covers
+// components that read the variable, but Sylius compiles a fixed 0.3rem
+// into buttons and form controls. Round sliders/step dots are left alone.
+.btn,
+.btn-lg, .btn-group-lg > .btn,
+.btn-sm, .btn-group-sm > .btn {
+  --bs-btn-border-radius: 0 !important;
+}
+
+.btn-group,
+.form-control, .form-control-sm, .form-control-lg,
+.form-select, .form-select-sm, .form-select-lg,
+.input-group-text,
+.input-group > .form-control,
+.input-group > .form-select,
+.ts-dropdown,
+.btn-close {
+  border-radius: 0 !important;
+}
+
+.navbar {
+  --bs-navbar-toggler-border-radius: 0 !important;
+}
