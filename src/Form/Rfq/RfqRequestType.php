@@ -80,6 +80,10 @@ class RfqRequestType extends AbstractType
                 'allow_delete' => true,
                 'by_reference' => false,
                 'prototype' => true,
+                // CollectionType bubbles errors to the parent by default, but
+                // the template renders "Add at least one item." from
+                // form.lineItems' own errors -- without this it never shows.
+                'error_bubbling' => false,
             ])
 
             ->add('additionalNotes', TextareaType::class, [
