@@ -8,6 +8,10 @@
 - CI fixed (2026-10-23): main had been red since the sylius/paypal-plugin 2.1.0
   bump dropped friendsofsymfony/rest-bundle while config/bundles.php still
   registered it. Also fixed 5 phpstan errors that slipped in while CI was red.
+- Branding (2026-10-23): favicon set cut from the logo's hexagon mark (shop +
+  admin), and the client logo replaces Sylius's in the admin sidebar and login.
+  All logo uses point at assets/shop/images/logo.png, so a new logo is a one-file
+  swap (favicons need regenerating separately; they're static files in public/).
 
 ## Decisions
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
@@ -26,5 +30,5 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- Re-run and merge Dependabot PRs #21 (phpstan) and #22 (suite-settings-extension)
+- Dependabot #21 (phpstan 2.3.1): waiting on rebase; fix any new phpstan errors
 - Then: catalog/products (+ sitemap TODO), choose Stripe vs Adyen, verify Upsun deploy
