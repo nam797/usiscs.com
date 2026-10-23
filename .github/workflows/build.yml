@@ -29,6 +29,11 @@ jobs:
         with:
             type: minimal
 
+    # Runs on every push and PR: real pages, forms and admin against MySQL.
+    e2e:
+        name: End-to-end
+        uses: ./.github/workflows/ci_e2e.yaml
+
     # The Behat jobs below are Sylius's own upstream suites, inherited from the
     # Sylius-Standard skeleton: features/ in this repo is empty and behat.yml.dist
     # imports them from vendor/. They take ~45 minutes per job across six jobs and

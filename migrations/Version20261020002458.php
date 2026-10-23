@@ -20,10 +20,11 @@ final class Version20261020002458 extends AbstractMigration
         $this->addSql('CREATE TABLE app_rfq_request (id INT AUTO_INCREMENT NOT NULL, customer_id INT DEFAULT NULL, customerType VARCHAR(20) NOT NULL, fullName VARCHAR(255) NOT NULL, company VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, phone VARCHAR(50) NOT NULL, jobSite VARCHAR(255) DEFAULT NULL, requiredByDate DATE DEFAULT NULL COMMENT \'(DC2Type:date_immutable)\', urgencyLevel VARCHAR(20) NOT NULL, deliveryAddress VARCHAR(255) DEFAULT NULL, additionalNotes LONGTEXT DEFAULT NULL, status VARCHAR(20) NOT NULL, createdAt DATETIME NOT NULL COMMENT \'(DC2Type:datetime_immutable)\', INDEX IDX_85F06E489395C3F3 (customer_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
         $this->addSql('ALTER TABLE app_rfq_line_item ADD CONSTRAINT FK_8D22E996C3B61895 FOREIGN KEY (rfqRequest_id) REFERENCES app_rfq_request (id) ON DELETE CASCADE');
         $this->addSql('ALTER TABLE app_rfq_request ADD CONSTRAINT FK_85F06E489395C3F3 FOREIGN KEY (customer_id) REFERENCES sylius_customer (id) ON DELETE SET NULL');
-        $this->addSql('DROP INDEX IDX_75EA56E0FB7336F0 ON messenger_messages');
-        $this->addSql('DROP INDEX IDX_75EA56E0E3BD61CE ON messenger_messages');
-        $this->addSql('DROP INDEX IDX_75EA56E016BA31DB ON messenger_messages');
-        $this->addSql('CREATE INDEX IDX_75EA56E0FB7336F0E3BD61CE16BA31DBBF396750 ON messenger_messages (queue_name, available_at, delivered_at, id)');
+        // The generated diff also re-indexed messenger_messages, which only
+        // existed in the dev database it was diffed against: Messenger
+        // creates that table itself on first use, so on a fresh database
+        // those statements failed and blocked every new install. Removed;
+        // this migration only owns the RFQ tables.
     }
 
     public function down(Schema $schema): void
@@ -32,9 +33,5 @@ final class Version20261020002458 extends AbstractMigration
         $this->addSql('ALTER TABLE app_rfq_request DROP FOREIGN KEY FK_85F06E489395C3F3');
         $this->addSql('DROP TABLE app_rfq_line_item');
         $this->addSql('DROP TABLE app_rfq_request');
-        $this->addSql('DROP INDEX IDX_75EA56E0FB7336F0E3BD61CE16BA31DBBF396750 ON messenger_messages');
-        $this->addSql('CREATE INDEX IDX_75EA56E0FB7336F0 ON messenger_messages (queue_name)');
-        $this->addSql('CREATE INDEX IDX_75EA56E0E3BD61CE ON messenger_messages (available_at)');
-        $this->addSql('CREATE INDEX IDX_75EA56E016BA31DB ON messenger_messages (delivered_at)');
     }
 }

@@ -25,6 +25,13 @@
   tests/Unit/Controller/ControllerTestCase (real forms + session, stubbed Twig/router).
   Writing them found and fixed a bug: /quote never showed "Add at least one item."
 
+- End-to-end tests (2026-10-23): 45 tests in tests/Functional (real kernel,
+  templates, MySQL) for every shop page, the contact and RFQ forms (incl.
+  emails, CSRF, throttling), sitemap, admin login/branding and the RFQ
+  backoffice. New per-PR CI job "End-to-end" (.github/workflows/ci_e2e.yaml).
+  Found and fixed: the RFQ migration failed on any fresh database
+  (messenger_messages statements), which would have broken a new Upsun env.
+
 ## Decisions
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
 - FOSRestBundle removed: nothing in this app uses it (Sylius 2 uses API Platform)

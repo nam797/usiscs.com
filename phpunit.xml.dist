@@ -13,6 +13,8 @@
     <php>
         <ini name="display_errors" value="1" />
         <ini name="error_reporting" value="-1" />
+        <!-- Booting the Sylius kernel (tests/Functional) needs more than PHP's 128M default. -->
+        <ini name="memory_limit" value="-1" />
 
         <!-- ###+ symfony/framework-bundle ### -->
         <env name="APP_DEBUG" value="0"/>
@@ -27,8 +29,13 @@
     </php>
 
     <testsuites>
-        <testsuite name="Test Suite">
-            <directory>tests</directory>
+        <!-- No database or kernel: runs anywhere, including the required CI check. -->
+        <testsuite name="unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <!-- Real kernel, templates and database; see tests/Functional/FunctionalTestCase.php for setup. -->
+        <testsuite name="functional">
+            <directory>tests/Functional</directory>
         </testsuite>
     </testsuites>
 

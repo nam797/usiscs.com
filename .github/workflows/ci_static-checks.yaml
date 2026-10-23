@@ -86,7 +86,7 @@ jobs:
 
             # composer install, not update: this project commits composer.lock, and
             # letting Composer re-resolve pulls in DBAL 4, doctrine-bundle 3 and
-            # API Platform 5, which Sylius 2.2 does not support. That broke the
+            # API Platform 5, which Sylius 2.2 did not support. That broke the
             # kernel and failed the first step that boots it (lint:twig).
             -   name: "Install dependencies"
                 run: composer install --no-interaction --no-scripts
@@ -110,5 +110,6 @@ jobs:
             -   name: Run PHPStan
                 run: vendor/bin/phpstan analyse
 
+            # No database in this job; tests/Functional runs in ci_e2e.yaml.
             -   name: Run PHPUnit
-                run: vendor/bin/phpunit --colors=always
+                run: vendor/bin/phpunit --testsuite unit --colors=always
