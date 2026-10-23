@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\RateLimiting;
 
+use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 
 /**
@@ -29,18 +30,26 @@ final class FormSubmissionThrottle
     {
         $item = $this->cache->getItem($this->cacheKey($formKey, $clientIp));
 
-        return $item->isHit() && (int) $item->get() >= $maxAttempts;
+        return $this->attempts($item) >= $maxAttempts;
     }
 
     public function hit(string $formKey, string $clientIp, int $windowSeconds): void
     {
         $item = $this->cache->getItem($this->cacheKey($formKey, $clientIp));
-        $count = $item->isHit() ? (int) $item->get() : 0;
 
-        $item->set($count + 1);
+        $item->set($this->attempts($item) + 1);
         $item->expiresAfter($windowSeconds);
 
         $this->cache->save($item);
+    }
+
+    private function attempts(CacheItemInterface $item): int
+    {
+        // Only this class writes these keys, so anything that isn't an int
+        // (a miss, or a value left by some other format) counts as zero.
+        $count = $item->isHit() ? $item->get() : 0;
+
+        return is_int($count) ? $count : 0;
     }
 
     private function cacheKey(string $formKey, string $clientIp): string

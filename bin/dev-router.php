@@ -13,7 +13,8 @@
 // Usage: php -d memory_limit=-1 -S 127.0.0.1:8000 -t public bin/dev-router.php
 
 $publicDir = dirname(__DIR__).'/public';
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
+$uri = $_SERVER['REQUEST_URI'] ?? '/';
+$path = parse_url(is_string($uri) ? $uri : '/', PHP_URL_PATH) ?: '/';
 
 if ($path !== '/' && is_file($publicDir.$path)) {
     return false;
