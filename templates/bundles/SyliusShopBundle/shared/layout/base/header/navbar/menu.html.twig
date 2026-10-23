@@ -1,19 +1,33 @@
-{# Copy of Sylius's category menu with one change: the mobile slide-out's
-   title was an <h1> reading "Taxons", which put a second, meaningless H1
-   ahead of the real heading on every page once categories exist (bad for
-   SEO and screen readers). It's now a plain title labelled "Categories". #}
-<div class="w-100 border-bottom">
-    {% if taxons|length > 0 %}
-        <nav class="navbar offcanvas-lg offcanvas-start offcanvas-wide p-0" id="navbarNav" role="navigation" aria-label="{{ 'sylius.ui.taxon_navigation_desktop'|trans }}">
-            <div class="offcanvas-header w-full">
-                <div class="offcanvas-title fs-5 fw-bold">Categories</div>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#navbarNav" aria-label="{{ 'sylius.ui.close'|trans }}"></button>
+{# Sylius's category menu, which is also the slide-out the header's
+   hamburger button opens on phones/tablets. Changes from Sylius:
+
+   - Always rendered, even with no categories: otherwise the hamburger
+     points at nothing and does nothing on a phone.
+   - On phones/tablets the slide-out also lists the main pages (they're
+     hidden from the top row there; see shop/nav/quick_links.html.twig),
+     above the categories.
+   - Its title was an <h1> reading "Taxons", a second H1 on every page.
+     Now a plain "Menu" title. #}
+<div class="w-100{{ taxons|length > 0 ? ' border-bottom' : ' d-lg-none' }}">
+    <nav class="navbar offcanvas-lg offcanvas-start offcanvas-wide p-0" id="navbarNav" role="navigation" aria-label="{{ 'sylius.ui.taxon_navigation_desktop'|trans }}">
+        <div class="offcanvas-header w-full border-bottom">
+            <div class="offcanvas-title fs-5 fw-bold">Menu</div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#navbarNav" aria-label="{{ 'sylius.ui.close'|trans }}"></button>
+        </div>
+        <div class="offcanvas-body flex-column flex-lg-row justify-content-lg-center w-full py-0">
+            <div class="navbar-nav d-lg-none my-2 flex-column">
+                <a class="nav-link" href="{{ path('sylius_shop_homepage') }}">Home</a>
+                <a class="nav-link" href="{{ path('app_shop_services') }}">Services</a>
+                <a class="nav-link" href="{{ path('app_shop_about') }}">About</a>
+                <a class="nav-link" href="{{ path('app_shop_contact') }}">Contact</a>
+                <a class="nav-link" href="{{ path('app_shop_rfq') }}">Request a Quote</a>
             </div>
-            <div class="offcanvas-body justify-content-lg-center w-full py-0">
+            {% if taxons|length > 0 %}
+                <div class="d-lg-none text-uppercase small fw-semibold text-secondary border-top pt-3 mt-1">Products</div>
                 <div class="navbar-nav my-2 flex-column flex-lg-row gap-lg-4" {{ sylius_test_html_attribute('menu') }}>
                     {% hook 'menu' with { taxons } %}
                 </div>
-            </div>
-        </nav>
-    {% endif %}
+            {% endif %}
+        </div>
+    </nav>
 </div>
