@@ -10,6 +10,7 @@ use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
@@ -64,7 +65,7 @@ final class ContactController extends AbstractController
             $this->throttle->hit('contact', $clientIp, self::WINDOW_SECONDS);
 
             if ($form->isValid()) {
-                $this->sendNotification($form->getData());
+                $this->sendNotification($this->submittedData($form));
 
                 $this->addFlash(
                     'success',
@@ -79,6 +80,24 @@ final class ContactController extends AbstractController
         return $this->render('shop/contact/index.html.twig', [
             'form' => $form->createView(),
         ]);
+    }
+
+    /**
+     * The form has no data_class, so read each field's value directly
+     * rather than trusting the untyped array from $form->getData().
+     *
+     * @return array<string, string|null>
+     */
+    private function submittedData(FormInterface $form): array
+    {
+        $data = [];
+
+        foreach ($form->all() as $name => $field) {
+            $value = $field->getData();
+            $data[$name] = is_string($value) ? $value : null;
+        }
+
+        return $data;
     }
 
     /** @param array<string, string|null> $data */
@@ -100,8 +119,10 @@ final class ContactController extends AbstractController
             return;
         }
 
-        $topicLabel = ContactRequestType::TOPIC_LABELS[$data['howCanWeHelp'] ?? null]
-            ?? (string) ($data['howCanWeHelp'] ?? 'Unknown');
+        $topic = $data['howCanWeHelp'] ?? null;
+        $topicLabel = null !== $topic
+            ? (ContactRequestType::TOPIC_LABELS[$topic] ?? $topic)
+            : 'Unknown';
 
         // Self-notify from/to the channel's own contact address, same
         // reasoning as the RFQ notification: no dedicated transactional
