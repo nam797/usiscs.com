@@ -9,7 +9,7 @@ was actually run against a clean checkout.
 | -------- | ------------------ | ----- |
 | PHP      | 8.4                | CI and Upsun both run 8.4. 8.5.11 also works locally; `composer.json` allows `^8.3`. |
 | Composer | 2.x                | |
-| Node     | 20 (see `.node-version`) | CI uses 20.x/22.x. Node 26 also builds cleanly. |
+| Node     | 24 (see `.node-version`) | Sylius 2.3 requires `^22.13 || >=24` (enforced). CI uses 24.x; Node 26 also builds cleanly. |
 | MySQL    | 8.4                | `compose.yml` and CI use MySQL 8.4; Upsun uses MariaDB 11.8. **Do not use PostgreSQL** — see "Database platform" below. |
 
 Required PHP extensions: `intl`, `gd`, `pdo_mysql`, `mbstring`, `openssl`,
