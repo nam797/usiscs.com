@@ -61,10 +61,10 @@ final class ContactRequestType extends AbstractType
                 'label' => 'Phone Number',
                 'required' => false,
                 'constraints' => [
-                    new Assert\Regex([
-                        'pattern' => PhonePattern::REGEX,
-                        'message' => 'Please enter a valid phone number.',
-                    ]),
+                    new Assert\Regex(
+                        pattern: PhonePattern::REGEX,
+                        message: 'Please enter a valid phone number.',
+                    ),
                     new Assert\Length(max: 50),
                 ],
             ])

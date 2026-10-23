@@ -20,6 +20,11 @@
   @sylius-ui/* from Resources/npm, babel transform plugin, Node 24, webpack
   pinned <5.109 like Sylius.
 
+- Unit tests for all custom code (2026-10-23): 130 tests in tests/Unit, no DB or
+  kernel needed, so they run in the required CI check. Controllers use
+  tests/Unit/Controller/ControllerTestCase (real forms + session, stubbed Twig/router).
+  Writing them found and fixed a bug: /quote never showed "Add at least one item."
+
 ## Decisions
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
 - FOSRestBundle removed: nothing in this app uses it (Sylius 2 uses API Platform)
