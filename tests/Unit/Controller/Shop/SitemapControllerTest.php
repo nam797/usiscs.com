@@ -46,7 +46,7 @@ final class SitemapControllerTest extends ControllerTestCase
         $updated = new \DateTimeImmutable('2026-10-20 14:30:00');
 
         $this->sitemap(
-            taxonSlugs: ['products/safety-ppe'],
+            taxonSlugs: ['safety-ppe'],
             products: [
                 ['slug' => 'safety-glasses', 'updatedAt' => $updated],
                 ['slug' => 'hard-hat', 'updatedAt' => null],
@@ -59,13 +59,13 @@ final class SitemapControllerTest extends ControllerTestCase
             array_column($routes, 'name'),
         );
 
-        self::assertSame(['_locale' => 'en_US', 'slug' => 'products/safety-ppe'], $routes[7]['parameters']);
+        self::assertSame(['slug' => 'safety-ppe'], $routes[7]['parameters']);
         self::assertNull($routes[7]['lastmod']);
 
-        self::assertSame(['_locale' => 'en_US', 'slug' => 'safety-glasses'], $routes[8]['parameters']);
+        self::assertSame(['slug' => 'safety-glasses'], $routes[8]['parameters']);
         self::assertSame('2026-10-20', $routes[8]['lastmod'], 'Products carry their last-modified date.');
 
-        self::assertSame(['_locale' => 'en_US', 'slug' => 'hard-hat'], $routes[9]['parameters']);
+        self::assertSame(['slug' => 'hard-hat'], $routes[9]['parameters']);
         self::assertNull($routes[9]['lastmod']);
     }
 
@@ -96,7 +96,7 @@ final class SitemapControllerTest extends ControllerTestCase
 
     public function testEveryEntryHasAValidChangefreqAndPriority(): void
     {
-        $this->sitemap(taxonSlugs: ['products/x'], products: [['slug' => 'y', 'updatedAt' => null]]);
+        $this->sitemap(taxonSlugs: ['x'], products: [['slug' => 'y', 'updatedAt' => null]]);
 
         foreach ($this->routes() as $route) {
             self::assertContains($route['changefreq'], ['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never']);

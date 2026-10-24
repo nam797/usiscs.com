@@ -9,3 +9,30 @@
 
 controllers:
     resource: routing.controllers
+
+# Sylius's own contact form sits at /contact/, which without a locale prefix
+# would catch /contact (redirecting it there) ahead of our contact page.
+# Redefined here, after app_shop_contact, as a redirect to our page.
+sylius_shop_contact_request:
+    path: /contact/
+    methods: [GET]
+    controller: Symfony\Bundle\FrameworkBundle\Controller\RedirectController::redirectAction
+    defaults:
+        route: app_shop_contact
+        permanent: true
+
+# Category pages at the site root: /safety-ppe/hand-protection. Same action as
+# Sylius's /taxons/{slug} route, under the same name so every shop template
+# links here. It matches any path, so it must stay the LAST route: everything
+# above it (pages, cart, account, products, admin) is matched first, and a path
+# that is no category ends in the product grid's 404.
+sylius_shop_product_index:
+    path: /{slug}
+    methods: [GET]
+    defaults:
+        _controller: sylius.controller.product::indexAction
+        _sylius:
+            template: "@SyliusShop/product/index.html.twig"
+            grid: sylius_shop_product
+    requirements:
+        slug: .+(?<!/)

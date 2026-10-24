@@ -73,7 +73,7 @@ final class ProductImportTest extends FunctionalTestCase
         self::assertSame(1, $report->createdLive);
         self::assertTrue($this->product('IMP-GL-1')->isEnabled());
 
-        $this->client->request('GET', '/en_US/products/gloves');
+        $this->client->request('GET', '/products/gloves');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Gloves');
     }
@@ -82,7 +82,7 @@ final class ProductImportTest extends FunctionalTestCase
     {
         $this->import([['IMP-DR-1', 'Draft drill', 'MRO Materials', '99', '', '', '', 'no']]);
 
-        $this->client->request('GET', '/en_US/products/draft-drill');
+        $this->client->request('GET', '/products/draft-drill');
         self::assertResponseStatusCodeSame(404);
 
         $this->client->request('GET', '/sitemap.xml');
@@ -184,6 +184,13 @@ final class ProductImportTest extends FunctionalTestCase
 
         self::assertSame('welding-gloves', $this->product('IMP-SG-1')->getSlug());
         self::assertSame('welding-gloves-imp-sg-2', $this->product('IMP-SG-2')->getSlug());
+    }
+
+    public function testTrademarkSignsStayOutOfTheProductUrl(): void
+    {
+        $this->import([['IMP-TM-1', 'Allegro® Respirator™ Cleaning Pads', 'Safety & PPE', '17.40', '', '', '', '']]);
+
+        self::assertSame('allegro-respirator-cleaning-pads', $this->product('IMP-TM-1')->getSlug());
     }
 
     public function testAnImageThatCannotBeFetchedIsAWarningNotAFailure(): void

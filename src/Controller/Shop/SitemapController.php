@@ -55,7 +55,7 @@ final class SitemapController extends AbstractController
         foreach ($this->catalog->taxonSlugs($channel, $locale) as $slug) {
             $routes[] = [
                 'name' => 'sylius_shop_product_index',
-                'parameters' => ['_locale' => $locale, 'slug' => $slug],
+                'parameters' => ['slug' => $slug],
                 'changefreq' => 'weekly',
                 'priority' => '0.7',
                 'lastmod' => null,
@@ -65,7 +65,7 @@ final class SitemapController extends AbstractController
         foreach ($this->catalog->products($channel, $locale) as $product) {
             $routes[] = [
                 'name' => 'sylius_shop_product_show',
-                'parameters' => ['_locale' => $locale, 'slug' => $product['slug']],
+                'parameters' => ['slug' => $product['slug']],
                 'changefreq' => 'weekly',
                 'priority' => '0.6',
                 'lastmod' => $product['updatedAt']?->format('Y-m-d'),

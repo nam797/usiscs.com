@@ -76,8 +76,9 @@ the storefront renders unstyled.
 
 | URL | What it is |
 | --- | --- |
-| `/` | Storefront (redirects to `/en_US/`) |
-| `/quote` | Public request-for-quote form. Not locale-prefixed — `/en_US/quote` is a 404. |
+| `/` | Storefront. Shop URLs have no locale prefix; old `/en_US/...` links redirect (301). |
+| `/safety-ppe` | A category page: categories live at the site root, products at `/products/{slug}`. |
+| `/quote` | Public request-for-quote form. |
 | `/admin` | Sylius admin: catalog, orders, customers |
 | `/backoffice` | EasyAdmin dashboard for the RFQ queue (`App\Controller\Admin\DashboardController`) |
 

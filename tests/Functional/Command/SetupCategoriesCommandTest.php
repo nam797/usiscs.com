@@ -57,7 +57,7 @@ final class SetupCategoriesCommandTest extends FunctionalTestCase
 
         self::assertStringContainsString('Specialty & Hard-to-Find', $tester->getDisplay());
         self::assertStringContainsString('Created 1 category.', $tester->getDisplay());
-        self::assertSame('products/specialty-hard-to-find', $this->taxon('specialty_hard_to_find')?->getSlug());
+        self::assertSame('specialty-hard-to-find', $this->taxon('specialty_hard_to_find')?->getSlug());
     }
 
     public function testItNeverOverwritesAnAdminsChanges(): void

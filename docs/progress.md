@@ -46,6 +46,11 @@
   check (name, category, price). Pricing = supplier price for now.
 
 ## Decisions
+- Short shop URLs, no locale prefix: categories at the root (`/safety-ppe/hand-protection`,
+  slugs without the root taxon's "products/"), products at `/products/{slug}`.
+  `/en_US/...` links 301 to the new form. The catch-all category route in
+  `config/routes.yaml` must stay last, and a category slug must not equal a page
+  path (about, contact, cart, account, products...).
 - Catalog import: admin edits always win, per field; imports never change
   whether a product is live (except go_live=yes on brand-new products).
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
