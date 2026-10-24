@@ -1,3 +1,5 @@
 sylius_shop:
+    # One locale, no /{_locale} prefix in shop URLs (config/routes/sylius_shop.yaml).
+    locale_switcher: storage
     product_grid:
         include_all_descendants: true

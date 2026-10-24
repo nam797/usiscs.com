@@ -48,7 +48,7 @@ final class ProductGoLiveTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', '1 product is now live in the shop.');
         self::assertSelectorTextContains('body', 'GL-NOPRICE (no price in channel "default")');
 
-        $this->client->request('GET', '/en_US/products/ready-drill');
+        $this->client->request('GET', '/products/ready-drill');
         self::assertResponseIsSuccessful();
     }
 
@@ -62,7 +62,7 @@ final class ProductGoLiveTest extends FunctionalTestCase
 
         self::assertResponseRedirects('/admin/products/');
         self::assertFalse($this->reload($live)->isEnabled());
-        $this->client->request('GET', '/en_US/products/live-drill');
+        $this->client->request('GET', '/products/live-drill');
         self::assertResponseStatusCodeSame(404);
     }
 

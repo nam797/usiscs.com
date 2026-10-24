@@ -12,7 +12,7 @@ final class ShopPagesTest extends FunctionalTestCase
     /** @return iterable<string, array{string, string}> */
     public static function pages(): iterable
     {
-        yield 'home' => ['/en_US/', 'Your Supply Chain Problem Is Our Job.'];
+        yield 'home' => ['/', 'Your Supply Chain Problem Is Our Job.'];
         yield 'services' => ['/services', 'Every Service Built Around Your Uptime.'];
         yield 'about' => ['/about', 'Built to Keep Operations Running.'];
         yield 'contact' => ['/contact', 'Get In Touch'];
@@ -66,16 +66,43 @@ final class ShopPagesTest extends FunctionalTestCase
         self::assertResponseHeaderSame('Strict-Transport-Security', 'max-age=15768000; includeSubDomains');
     }
 
-    public function testTheRootRedirectsToTheLocalisedHomepage(): void
+    public function testTheHomepageIsTheSiteRoot(): void
     {
         $this->client->request('GET', '/');
 
-        self::assertResponseRedirects('/en_US/');
+        self::assertResponseIsSuccessful();
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function legacyUrls(): iterable
+    {
+        yield 'homepage' => ['/en_US/', '/'];
+        yield 'category' => ['/en_US/taxons/products/safety-ppe', '/safety-ppe'];
+        yield 'product' => ['/en_US/products/hex-bolt', '/products/hex-bolt'];
+        yield 'query string kept' => ['/en_US/taxons/products/safety-ppe?page=2', '/safety-ppe?page=2'];
+        yield 'cart' => ['/en_US/cart/', '/cart/'];
+    }
+
+    #[DataProvider('legacyUrls')]
+    public function testOldLocalisedUrlsRedirectPermanently(string $old, string $new): void
+    {
+        $this->client->request('GET', $old);
+
+        self::assertResponseRedirects($new, 301);
+    }
+
+    public function testContactIsOurPageNotSyliussForm(): void
+    {
+        $this->client->request('GET', '/contact');
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/contact/');
+        self::assertResponseRedirects('/contact', 301);
     }
 
     public function testTheNavigationLinksToEveryMainPage(): void
     {
-        $crawler = $this->client->request('GET', '/en_US/');
+        $crawler = $this->client->request('GET', '/');
 
         $hrefs = $crawler->filter('nav a')->each(static fn ($a): string => (string) $a->attr('href'));
 
@@ -86,28 +113,28 @@ final class ShopPagesTest extends FunctionalTestCase
 
     public function testThePhoneMenuOpenedByTheHamburgerHasEveryMainPage(): void
     {
-        $crawler = $this->client->request('GET', '/en_US/');
+        $crawler = $this->client->request('GET', '/');
 
         // The hamburger must point at a menu that exists, or it does nothing.
         self::assertSelectorExists('button[data-bs-target="#navbarNav"]');
         self::assertSelectorExists('#navbarNav');
 
         $hrefs = $crawler->filter('#navbarNav a')->each(static fn ($a): string => (string) $a->attr('href'));
-        foreach (['/en_US/', '/services', '/about', '/contact', '/quote'] as $path) {
+        foreach (['/', '/services', '/about', '/contact', '/quote'] as $path) {
             self::assertContains($path, $hrefs, sprintf('Phone menu has no link to %s.', $path));
         }
     }
 
     public function testPhonesGetAFullWidthRequestAQuoteButton(): void
     {
-        $this->client->request('GET', '/en_US/');
+        $this->client->request('GET', '/');
 
         self::assertSelectorExists('.d-lg-none > a.btn-primary.w-100[href="/quote"]');
     }
 
     public function testTheFooterLinksToTheLegalPages(): void
     {
-        $crawler = $this->client->request('GET', '/en_US/');
+        $crawler = $this->client->request('GET', '/');
 
         $hrefs = $crawler->filter('footer a')->each(static fn ($a): string => (string) $a->attr('href'));
 

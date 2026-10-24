@@ -9,7 +9,7 @@ use App\Tests\Functional\FunctionalTestCase;
 final class SitemapTest extends FunctionalTestCase
 {
     private const CONTENT_PAGES = [
-        'http://localhost/en_US/',
+        'http://localhost/',
         'http://localhost/services',
         'http://localhost/about',
         'http://localhost/contact',
@@ -38,26 +38,26 @@ final class SitemapTest extends FunctionalTestCase
     {
         $entries = array_column($this->entries(), null, 'loc');
 
-        self::assertArrayHasKey('http://localhost/en_US/products/safety-glasses', $entries);
-        self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $entries['http://localhost/en_US/products/safety-glasses']['lastmod']);
+        self::assertArrayHasKey('http://localhost/products/safety-glasses', $entries);
+        self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $entries['http://localhost/products/safety-glasses']['lastmod']);
     }
 
     public function testItLeavesOutDisabledProducts(): void
     {
-        self::assertNotContains('http://localhost/en_US/products/discontinued-hard-hat', array_column($this->entries(), 'loc'));
+        self::assertNotContains('http://localhost/products/discontinued-hard-hat', array_column($this->entries(), 'loc'));
     }
 
     public function testItListsOnlyCategoriesThatHaveProducts(): void
     {
         $categoryUrls = array_values(array_filter(
             array_column($this->entries(), 'loc'),
-            static fn (string $url): bool => str_contains($url, '/taxons/'),
+            static fn (string $url): bool => !in_array($url, self::CONTENT_PAGES, true) && !str_contains($url, '/products/'),
         ));
 
-        self::assertContains('http://localhost/en_US/taxons/products/safety-ppe', $categoryUrls);
+        self::assertContains('http://localhost/safety-ppe', $categoryUrls);
         // Empty categories (and the "Products" root itself) are thin pages.
-        self::assertNotContains('http://localhost/en_US/taxons/products/specialty-hard-to-find', $categoryUrls);
-        self::assertNotContains('http://localhost/en_US/taxons/products', $categoryUrls);
+        self::assertNotContains('http://localhost/specialty-hard-to-find', $categoryUrls);
+        self::assertNotContains('http://localhost/products', $categoryUrls);
     }
 
     public function testEveryListedUrlLoads(): void

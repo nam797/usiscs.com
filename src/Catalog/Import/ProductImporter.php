@@ -522,7 +522,8 @@ final class ProductImporter
 
     private function uniqueSlug(string $name, string $sku, string $locale): string
     {
-        $base = (string) $this->slugger->slug($name)->lower();
+        // Trademark signs would otherwise become "-r-" / "tm" in the URL.
+        $base = (string) $this->slugger->slug(str_replace(['®', '™', '©', '℠'], '', $name))->lower();
         if ('' === $base) {
             $base = strtolower($sku);
         }
