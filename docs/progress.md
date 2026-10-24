@@ -45,6 +45,17 @@
   "Take offline" bulk actions on the Sylius admin product list with a readiness
   check (name, category, price). Pricing = supplier price for now.
 
+- ORS Nasco research (2026-10-24): the "P&A REST API v2.0" (Workato, OAuth) is
+  bulk STOCK only, 6 refreshes/day; prices come from the separate SOAP service
+  (GetPA, PriceOnlyV2, 40 items/call) and are our account COST, not a sell price.
+  Docs in ~/Downloads (both PDFs + the 2,737-SKU price/direct-ship sheets).
+- Category tree draft for client review (2026-10-24): 7 departments, 31
+  categories, counts from the 2,737 launch SKUs:
+  https://claude.ai/artifact/51a7h72mQ1qY3HXwJbemdG
+- Short shop URLs (2026-10-24, PR #34): no /en_US prefix, categories at the root
+  (/safety-ppe), products at /products/{slug}, old links 301; trademark signs
+  out of product slugs.
+
 ## Decisions
 - Short shop URLs, no locale prefix: categories at the root (`/safety-ppe/hand-protection`,
   slugs without the root taxon's "products/"), products at `/products/{slug}`.
@@ -77,12 +88,25 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- **Get the client's go-live sheet** (send them the template), dry-run it, then
-  import on Upsun (`upsun ssh`, after `app:catalog:setup-categories`).
-- **Supplier feed**: once its format/delivery is known, add a
-  `ProductSourceInterface` implementation + an Upsun cron calling the importer.
-  Decide what happens to products that drop out of the feed.
-- **Markup**: supplier price is used as the selling price for now.
+- **Now: client review of the category tree** (link above). Then build it:
+  replace the 6 placeholder categories (setup-categories), brand pages and
+  filters, per-category SEO title/description/intro.
+- **Full catalog load (2,737 ORS SKUs)** from the "ORS price feed" sheet in
+  `USISCS_ORS_vs_Grainger_Price_Comparison.xlsx` (list price, cost, brand,
+  part #, pack/UOM), mapped onto the approved tree.
+  - Show the pack unit on prices ("$305.74 / CA of 144 PR").
+  - Group size variants (same name, different ORS item) into one product.
+  - Rule for ORS SKUs with "." (Sylius codes allow only letters, digits, - and _).
+  - Product images: none in ORS files, so a source is needed.
+  - Selling price = ORS **list** price. The ORS API price is our *cost*.
+- **ORS sync** (branch `ors-nasco-sync`, local WIP commit, not pushed): clients
+  for the bulk stock REST API and the SOAP price service, `app:ors:sync-stock`,
+  `app:ors:sync-cost`, a below-cost go-live guard, migration
+  `Version20261023210000`.
+  - Still to do: rebase on main, tests, 4 phpstan fixes, docs, Upsun crons.
+  - Needs credentials from ORS: OAuth client/secret + token URL, and the SOAP
+    account # + 2 passwords.
+- Local dev DB has 60 sample ORS products (imported from the price feed sheet).
 - Backoffice upload page so staff can import without the CLI.
 - Then: Upsun deploy + switch build to `npm ci`; lead email delivery (channel
   contact email unset, no mail provider); choose Stripe vs Adyen.
