@@ -55,6 +55,10 @@
 - Short shop URLs (2026-10-24, PR #34): no /en_US prefix, categories at the root
   (/safety-ppe), products at /products/{slug}, old links 301; trademark signs
   out of product slugs.
+- Faster shop pages (2026-10-25): Mollie's and Adyen's scripts (~1.9s from
+  their servers, blocking) now load only on checkout and order-payment pages.
+  Fixed a PR #34 bug: the old-link redirect was catching Mollie/Adyen/PayPal
+  addresses, which still start with /en_US.
 
 ## Decisions
 - Short shop URLs, no locale prefix: categories at the root (`/safety-ppe/hand-protection`,
@@ -62,6 +66,8 @@
   `/en_US/...` links 301 to the new form. The catch-all category route in
   `config/routes.yaml` must stay last, and a category slug must not equal a page
   path (about, contact, cart, account, products...).
+  The old-link redirect must stay below plugin routes (no route priority):
+  Mollie, Adyen and PayPal addresses still start with /en_US.
 - Catalog import: admin edits always win, per field; imports never change
   whether a product is live (except go_live=yes on brand-new products).
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL

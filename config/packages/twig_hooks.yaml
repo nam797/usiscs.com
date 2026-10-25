@@ -15,6 +15,18 @@ sylius_twig_hooks:
                 template: 'shared/favicon.html.twig'
                 priority: 50
 
+        # Mollie and Adyen add their scripts to every shop page. They're
+        # only needed to pay, so templates/shop/payment_scripts.html.twig
+        # loads them on checkout and order-payment pages instead.
+        'sylius_shop.base#javascripts':
+            mollie_javascripts:
+                enabled: false
+            adyen_analytics:
+                enabled: false
+            payment_scripts:
+                template: 'shop/payment_scripts.html.twig'
+                priority: 100
+
         # Static Contact / Request a Quote links, shown above the
         # taxon-driven navbar (which is empty/hidden until there are
         # taxons). Priority 50 is above the taxon menu's priority 0, so
