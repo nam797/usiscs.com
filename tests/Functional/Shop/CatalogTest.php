@@ -6,23 +6,26 @@ namespace App\Tests\Functional\Shop;
 
 use App\Command\SetupCategoriesCommand;
 use App\Tests\Functional\FunctionalTestCase;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 
 final class CatalogTest extends FunctionalTestCase
 {
     public function testTheShopMenuListsTheSixCategoriesInOrder(): void
     {
-        $crawler = $this->client->request('GET', '/en_US/');
+        $crawler = $this->client->request('GET', '/');
 
-        $menu = $crawler->filter('nav a[href*="/taxons/"]')->each(static fn ($a): string => trim($a->text()));
+        $slugger = new AsciiSlugger();
+        $categoryHrefs = array_map(static fn (string $name): string => '/'.$slugger->slug($name)->lower(), SetupCategoriesCommand::CATEGORIES);
+        $menu = $crawler->filter('nav a')->each(static fn ($a): ?string => in_array($a->attr('href'), $categoryHrefs, true) ? trim($a->text()) : null);
 
-        self::assertSame(array_values(SetupCategoriesCommand::CATEGORIES), $menu);
+        self::assertSame(array_values(SetupCategoriesCommand::CATEGORIES), array_values(array_filter($menu)));
     }
 
     public function testACategoryPageListsItsProducts(): void
     {
         $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
 
-        $this->client->request('GET', '/en_US/taxons/products/safety-ppe');
+        $this->client->request('GET', '/safety-ppe');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Safety & PPE');
@@ -32,7 +35,7 @@ final class CatalogTest extends FunctionalTestCase
 
     public function testAnEmptyCategoryPageStillLoads(): void
     {
-        $this->client->request('GET', '/en_US/taxons/products/specialty-hard-to-find');
+        $this->client->request('GET', '/specialty-hard-to-find');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Specialty & Hard-to-Find');
@@ -42,7 +45,7 @@ final class CatalogTest extends FunctionalTestCase
     {
         $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
 
-        $this->client->request('GET', '/en_US/products/safety-glasses');
+        $this->client->request('GET', '/products/safety-glasses');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Safety Glasses');
@@ -54,7 +57,7 @@ final class CatalogTest extends FunctionalTestCase
     {
         $this->ensureProduct('E2E_HIDDEN_HARD_HAT', 'Discontinued Hard Hat', 'discontinued-hard-hat', 'safety_ppe', enabled: false);
 
-        $this->client->request('GET', '/en_US/products/discontinued-hard-hat');
+        $this->client->request('GET', '/products/discontinued-hard-hat');
 
         self::assertResponseStatusCodeSame(404);
     }

@@ -96,7 +96,8 @@ final class SetupCategoriesCommand extends Command
         $position = 0;
         foreach (self::CATEGORIES as $code => $name) {
             if (null === $this->findTaxon($code)) {
-                $slug = 'products/'.$slugger->slug($name)->lower();
+                // No "products/" prefix: categories live at the site root (/safety-ppe).
+                $slug = (string) $slugger->slug($name)->lower();
                 $child = $this->createTaxon($code, $name, $slug, $localeCodes);
                 $child->setPosition($position);
                 $root->addChild($child);
