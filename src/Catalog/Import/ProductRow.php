@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalog\Import;
 
+use App\Catalog\Unit\PackUnit;
 use App\Command\SetupCategoriesCommand;
 
 /**
@@ -29,14 +30,17 @@ final class ProductRow
         'go_live',
     ];
 
-    /** Sylius product/variant code rule. */
-    private const SKU_PATTERN = '/^[\w-]+$/';
+    /** Supplier item numbers: letters, numbers and - _ . / + (ORS uses all of them). */
+    private const SKU_PATTERN = '/^[\w.\/+-]+$/';
 
     /**
      * @param list<string> $provided columns present in the source, for optional fields
      */
     private function __construct(
+        /** the Sylius product/variant code (see ProductCode) */
         public readonly string $sku,
+        /** the SKU as written in the sheet, e.g. ORS's "012-92-500-7.5-8" */
+        public readonly string $supplierSku,
         public readonly string $name,
         public readonly string $categoryCode,
         public readonly int $priceInCents,
@@ -44,7 +48,7 @@ final class ProductRow
         public readonly ?string $shortDescription,
         public readonly ?string $manufacturer,
         public readonly ?string $partNumber,
-        public readonly ?string $unitOfMeasure,
+        public readonly ?PackUnit $unitOfMeasure,
         public readonly ?int $stockQty,
         public readonly ?string $imageUrl,
         public readonly bool $goLive,
@@ -67,7 +71,7 @@ final class ProductRow
         if ('' === $sku) {
             $problems[] = 'sku is required';
         } elseif (!preg_match(self::SKU_PATTERN, $sku) || strlen($sku) > 255) {
-            $problems[] = sprintf('sku "%s" may only contain letters, numbers, "-" and "_" (max 255)', $sku);
+            $problems[] = sprintf('sku "%s" may only contain letters, numbers, "-", "_", ".", "/" and "+" (max 255)', $sku);
         }
 
         $name = $text('name');
@@ -93,7 +97,16 @@ final class ProductRow
             $problems[] = 'price must be greater than 0';
         }
 
-        foreach (['manufacturer', 'part_number', 'unit_of_measure'] as $column) {
+        $unitOfMeasure = null;
+        if (null !== $optional('unit_of_measure')) {
+            try {
+                $unitOfMeasure = PackUnit::parse($text('unit_of_measure'));
+            } catch (\InvalidArgumentException $e) {
+                $problems[] = sprintf('unit_of_measure: %s', $e->getMessage());
+            }
+        }
+
+        foreach (['manufacturer', 'part_number'] as $column) {
             if (mb_strlen($text($column)) > 255) {
                 $problems[] = sprintf('%s is longer than 255 characters', $column);
             }
@@ -125,6 +138,7 @@ final class ProductRow
         \assert(null !== $categoryCode && null !== $price && null !== $goLive);
 
         return new self(
+            ProductCode::fromSku($sku),
             $sku,
             $name,
             $categoryCode,
@@ -133,7 +147,7 @@ final class ProductRow
             $optional('short_description'),
             $optional('manufacturer'),
             $optional('part_number'),
-            $optional('unit_of_measure'),
+            $unitOfMeasure,
             $stockQty,
             $imageUrl,
             $goLive,

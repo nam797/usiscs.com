@@ -76,6 +76,11 @@
   Not live yet: needs a mail provider DSN on Upsun and the channel contact
   email set (see local-setup.md "Lead emails").
 
+- Pack units and supplier SKUs (2026-10-26): `unit_of_measure` ("144 PR = 1
+  CA", "case of 12") is stored per variant and shown as "per case of 144
+  pairs" under prices and "Sold per ..." in the cart. SKUs with . / + become
+  `_` in the product code; the ORS SKU is kept for the syncs.
+
 ## Decisions
 - ORS Nasco: selling price = ORS list price (from the price feed import); the
   API "price" is our cost, used only as a never-sell-below guard. Stock always
@@ -129,9 +134,8 @@
 - **Full catalog load (2,737 ORS SKUs)** from the "ORS price feed" sheet in
   `USISCS_ORS_vs_Grainger_Price_Comparison.xlsx` (list price, cost, brand,
   part #, pack/UOM), mapped onto the approved tree.
-  - Show the pack unit on prices ("$305.74 / CA of 144 PR").
+  - Done: pack unit on prices and in the cart; SKUs with . / + (91 of them).
   - Group size variants (same name, different ORS item) into one product.
-  - Rule for ORS SKUs with "." (Sylius codes allow only letters, digits, - and _).
   - Product images: none in ORS files, so a source is needed.
   - Selling price = ORS **list** price. The ORS API price is our *cost*.
 - **ORS sync: built, waiting on ORS credentials.** Get from ORS: OAuth

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity\Product;
 
+use App\Catalog\Unit\PackUnit;
 use Doctrine\ORM\Mapping as ORM;
 use Sylius\Component\Core\Model\ProductVariant as BaseProductVariant;
 use Sylius\Component\Product\Model\ProductVariantTranslationInterface;
@@ -12,6 +13,28 @@ use Sylius\Component\Product\Model\ProductVariantTranslationInterface;
 #[ORM\Table(name: 'sylius_product_variant')]
 class ProductVariant extends BaseProductVariant
 {
+    /** What the price is for, e.g. "CA" (see PackUnit); null when not set. */
+    #[ORM\Column(name: 'sell_unit', type: 'string', length: 10, nullable: true)]
+    private ?string $sellUnit = null;
+
+    #[ORM\Column(name: 'pack_quantity', type: 'integer', nullable: true)]
+    private ?int $packQuantity = null;
+
+    #[ORM\Column(name: 'pack_unit', type: 'string', length: 10, nullable: true)]
+    private ?string $packUnit = null;
+
+    public function getPackUnit(): ?PackUnit
+    {
+        return null === $this->sellUnit ? null : PackUnit::of($this->sellUnit, $this->packQuantity ?? 1, $this->packUnit);
+    }
+
+    public function setPackUnit(?PackUnit $unit): void
+    {
+        $this->sellUnit = $unit?->sellUnit;
+        $this->packQuantity = $unit?->quantity;
+        $this->packUnit = $unit?->innerUnit;
+    }
+
     protected function createTranslation(): ProductVariantTranslationInterface
     {
         return new ProductVariantTranslation();

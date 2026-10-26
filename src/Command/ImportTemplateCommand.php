@@ -27,7 +27,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class ImportTemplateCommand extends Command
 {
     private const COLUMN_HELP = [
-        'sku' => ['Required', 'Your unique product code. Letters, numbers, - and _ only. Re-importing a SKU updates that product.'],
+        'sku' => ['Required', 'Your unique product code (e.g. the ORS item number). Letters, numbers and - _ . / + only. Re-importing a SKU updates that product.'],
         'name' => ['Required', 'Product name as shown in the shop.'],
         'category' => ['Required', 'One of the names (or codes) on the Categories sheet.'],
         'price' => ['Required', 'Selling price in USD, e.g. 12.99'],
@@ -35,7 +35,7 @@ final class ImportTemplateCommand extends Command
         'short_description' => ['Optional', 'One-line summary.'],
         'manufacturer' => ['Optional', 'Brand / manufacturer.'],
         'part_number' => ['Optional', "Manufacturer's part number."],
-        'unit_of_measure' => ['Optional', 'e.g. each, box of 50, pair.'],
+        'unit_of_measure' => ['Optional', 'What the price is for: each, box, case of 12, case of 144 pairs, or as ORS writes it (144 PR = 1 CA).'],
         'stock_qty' => ['Optional', 'Units in stock. Leave blank to not track stock.'],
         'image_url' => ['Optional', 'Link (http/https) to a JPEG, PNG, WebP or GIF up to 5 MB.'],
         'go_live' => ['Optional', 'yes = show in the shop straight away (new products only). Blank/no = hidden draft for review.'],

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Catalog\Import;
 
 use App\Catalog\GoLive\ReadinessChecker;
+use App\Catalog\Unit\PackUnit;
 use App\Entity\Catalog\ProductImportState;
 use App\Entity\Channel\Channel;
 use App\Entity\Locale\Locale;
 use App\Entity\Product\Product;
 use App\Entity\Product\ProductAttribute;
 use App\Entity\Product\ProductTranslation;
+use App\Entity\Product\ProductVariant;
 use App\Entity\Taxonomy\Taxon;
 use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Attribute\Factory\AttributeFactoryInterface;
@@ -49,7 +51,6 @@ final class ProductImporter
     public const ATTRIBUTES = [
         'manufacturer' => 'Manufacturer',
         'part_number' => 'Part number',
-        'unit_of_measure' => 'Unit of measure',
     ];
 
     /** @var array<string, array<string, true>> slugs handed out during this run, per locale */
@@ -120,7 +121,9 @@ final class ProductImporter
 
                 if (isset($seen[$row->sku])) {
                     ++$report->failed;
-                    $report->add($rowNumber, $row->sku, ImportReport::ERROR, sprintf('duplicate SKU, already on row %d; this row was skipped', $seen[$row->sku]));
+                    $report->add($rowNumber, $row->supplierSku, ImportReport::ERROR, $row->sku === $row->supplierSku
+                        ? sprintf('duplicate SKU, already on row %d; this row was skipped', $seen[$row->sku])
+                        : sprintf('becomes product code "%s", already used on row %d; this row was skipped', $row->sku, $seen[$row->sku]));
                     continue;
                 }
                 $seen[$row->sku] = $rowNumber;
@@ -213,13 +216,17 @@ final class ProductImporter
         $this->entityManager->persist($product);
 
         if (null === $state) {
-            $this->entityManager->persist(new ProductImportState($row->sku, $sourceName, $incoming));
+            $this->entityManager->persist(new ProductImportState($row->sku, $sourceName, $incoming, $row->supplierSku));
         } else {
             // The product was imported before and then deleted in the admin.
             $state->recordImport($sourceName, $incoming);
+            $state->setSupplierSku($row->supplierSku);
         }
 
         ++$report->created;
+        if ($row->sku !== $row->supplierSku) {
+            $report->add($rowNumber, $row->supplierSku, ImportReport::INFO, sprintf('saved as product code "%s" (Sylius codes allow only letters, numbers, - and _)', $row->sku));
+        }
 
         if (!$row->goLive) {
             $report->add($rowNumber, $row->sku, ImportReport::INFO, 'created as a hidden draft');
@@ -257,6 +264,7 @@ final class ProductImporter
 
         $this->write($product, $variant, $result->toWrite);
         $state->recordImport($sourceName, $result->snapshot);
+        $state->setSupplierSku($row->supplierSku);
 
         if ([] === $result->toWrite) {
             ++$report->unchanged;
@@ -290,7 +298,7 @@ final class ProductImporter
             'short_description' => $row->shortDescription,
             'manufacturer' => $row->manufacturer,
             'part_number' => $row->partNumber,
-            'unit_of_measure' => $row->unitOfMeasure,
+            'unit_of_measure' => $row->unitOfMeasure?->toString(),
         ];
         foreach ($optional as $column => $value) {
             if ($row->provides($column)) {
@@ -326,6 +334,7 @@ final class ProductImporter
                 'short_description' === $field => $translation->getShortDescription(),
                 'category' === $field => $product->getMainTaxon()?->getCode(),
                 'stock' === $field => $variant->isTracked() ? $variant->getOnHand() : null,
+                'unit_of_measure' === $field => $variant instanceof ProductVariant ? $variant->getPackUnit()?->toString() : null,
                 isset(self::ATTRIBUTES[$field]) => $this->attributeValue($product, $field),
                 str_starts_with($field, 'price:') => $this->pricing($variant, substr($field, 6))?->getPrice(),
                 default => null,
@@ -347,6 +356,7 @@ final class ProductImporter
                 'short_description' === $field => $this->eachTranslation($product, static fn ($t) => $t instanceof ProductTranslationInterface ? $t->setShortDescription($text) : null),
                 'category' === $field => $this->setCategory($product, (string) $text),
                 'stock' === $field => $this->setStock($variant, null === $value ? null : (int) $value),
+                'unit_of_measure' === $field => $variant instanceof ProductVariant ? $variant->setPackUnit(null === $text ? null : PackUnit::parse($text)) : null,
                 isset(self::ATTRIBUTES[$field]) => $this->setAttribute($product, $field, $text),
                 str_starts_with($field, 'price:') => $this->setPrice($variant, substr($field, 6), (int) $value),
                 default => null,

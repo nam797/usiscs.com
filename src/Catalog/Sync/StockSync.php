@@ -51,7 +51,7 @@ final class StockSync
         }
 
         try {
-            foreach (array_chunk($this->importedSkus->all($only), self::BATCH_SIZE) as $skus) {
+            foreach (array_chunk($this->importedSkus->all($only), self::BATCH_SIZE, true) as $skus) {
                 $this->syncBatch($skus, $available, $report);
                 $this->entityManager->flush();
                 $this->entityManager->clear();
@@ -67,23 +67,24 @@ final class StockSync
     }
 
     /**
-     * @param list<string>                                              $skus
+     * @param array<string, string>                                     $skus      product code => ORS SKU
      * @param array<string, \App\Supplier\OrsNasco\AvailabilityRow> $available
      */
     private function syncBatch(array $skus, array $available, ImportReport $report): void
     {
         $variants = [];
-        foreach ($this->entityManager->getRepository(ProductVariant::class)->findBy(['code' => $skus]) as $variant) {
+        foreach ($this->entityManager->getRepository(ProductVariant::class)->findBy(['code' => array_keys($skus)]) as $variant) {
             if ($variant instanceof ProductVariantInterface) {
                 $variants[(string) $variant->getCode()] = $variant;
             }
         }
         $states = [];
-        foreach ($this->entityManager->getRepository(ProductImportState::class)->findBy(['productCode' => $skus]) as $state) {
+        foreach ($this->entityManager->getRepository(ProductImportState::class)->findBy(['productCode' => array_keys($skus)]) as $state) {
             $states[$state->getProductCode()] = $state;
         }
 
-        foreach ($skus as $sku) {
+        foreach ($skus as $sku => $orsSku) {
+            $sku = (string) $sku; // PHP turns an all-digit code key into an int
             $variant = $variants[$sku] ?? null;
             if (!$variant instanceof ProductVariantInterface) {
                 ++$report->untouched;
@@ -91,7 +92,7 @@ final class StockSync
                 continue;
             }
 
-            $row = $available[$sku] ?? null;
+            $row = $available[$orsSku] ?? null;
             if (null === $row) {
                 ++$report->untouched;
                 $report->add(0, $sku, ImportReport::WARNING, 'not in the ORS availability list; stock left as it is');

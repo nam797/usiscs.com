@@ -157,6 +157,12 @@ php -d memory_limit=-1 bin/console app:catalog:import products.xlsx             
   (per field: e.g. an admin's price edit sticks while stock keeps updating),
   and never changes whether a product is live.
 - Products made by hand in the admin are never touched by an import.
+- **SKUs** may contain `.`, `/` and `+` (ORS uses them); Sylius codes can't, so
+  they become `_` in the product code (`012-92-500-7.5-8` → `012-92-500-7_5-8`).
+  The original is kept for the ORS syncs, and `--sku` accepts either.
+- **`unit_of_measure`** is what the price is for: `each`, `box`, `case of 12`,
+  `case of 144 pairs`, or ORS's `144 PR = 1 CA`. Shown under prices
+  ("per case of 144 pairs") and in the cart ("Sold per case of 144 pairs").
 - Bad rows are listed with their spreadsheet row number and skipped; the rest
   still import. The command exits non-zero if any row was skipped.
 
