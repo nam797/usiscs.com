@@ -97,6 +97,24 @@ final class AdminTest extends FunctionalTestCase
         self::assertSame(RfqRequest::STATUS_QUOTED, $this->savedRfqs()[0]->getStatus());
     }
 
+    public function testStripeIsTheOnlyCardProcessorOnOffer(): void
+    {
+        $this->loginAsAdmin();
+
+        $this->client->request('GET', '/admin/payment-methods/');
+        self::assertResponseIsSuccessful();
+        $offered = $this->client->getCrawler()->filter('a[href*="/admin/payment-methods/new/"]')->each(
+            static fn ($link): string => basename((string) $link->attr('href')),
+        );
+        sort($offered);
+        self::assertSame(['offline', 'stripe_checkout', 'stripe_web_elements'], $offered);
+
+        $this->client->request('GET', '/admin/payment-methods/new/stripe_checkout');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('input[name$="[gatewayConfig][config][publishable_key]"]');
+        self::assertSelectorExists('input[name$="[gatewayConfig][config][secret_key]"]');
+    }
+
     private function loginAsAdmin(): void
     {
         $repository = static::getContainer()->get('sylius.repository.admin_user');

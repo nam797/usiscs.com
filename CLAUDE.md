@@ -15,6 +15,8 @@ GitHub: nam797/usiscs.com
 - RFQ (request for quote): `src/Entity/Rfq`, `src/Form/Rfq`, `src/Repository/Rfq`,
   admin CRUD in `src/Controller/Admin/RfqRequestCrudController.php`
 - Contact form: `src/Form/Contact/`
+- Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius
+  admin; see docs/local-setup.md "Payments (Stripe)")
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`
 - Security headers: `src/EventListener/SecurityHeadersListener.php`
 - Templates: `templates/shop/`, overrides in `templates/bundles/SyliusShopBundle/`
