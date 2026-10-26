@@ -81,6 +81,12 @@
   pairs" under prices and "Sold per ..." in the cart. SKUs with . / + become
   `_` in the product code; the ORS SKU is kept for the syncs.
 
+- Variant groups and the ORS import sheet (2026-10-26): import columns
+  `group` + `variant_name` sell several SKUs as one product with a choice;
+  `app:catalog:prepare-ors-import` turns the ORS price feed into an import
+  sheet (list price, pack unit, families grouped, draft variant names,
+  interim categories).
+
 ## Decisions
 - ORS Nasco: selling price = ORS list price (from the price feed import); the
   API "price" is our cost, used only as a never-sell-below guard. Stock always
@@ -134,8 +140,11 @@
 - **Full catalog load (2,737 ORS SKUs)** from the "ORS price feed" sheet in
   `USISCS_ORS_vs_Grainger_Price_Comparison.xlsx` (list price, cost, brand,
   part #, pack/UOM), mapped onto the approved tree.
-  - Done: pack unit on prices and in the cart; SKUs with . / + (91 of them).
-  - Group size variants (same name, different ORS item) into one product.
+  - Done: pack unit on prices and in the cart; SKUs with . / + (91 of them);
+    size/colour variants grouped into one product; `app:catalog:prepare-ors-import`
+    builds the import sheet (2,549 SKUs → 1,390 products, 188 without a price).
+  - Still to do: review the 1,684 drafted variant names (some ORS
+    abbreviations remain), real categories once the tree is approved.
   - Product images: none in ORS files, so a source is needed.
   - Selling price = ORS **list** price. The ORS API price is our *cost*.
 - **ORS sync: built, waiting on ORS credentials.** Get from ORS: OAuth

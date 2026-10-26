@@ -166,6 +166,31 @@ php -d memory_limit=-1 bin/console app:catalog:import products.xlsx             
 - Bad rows are listed with their spreadsheet row number and skipped; the rest
   still import. The command exits non-zero if any row was skipped.
 
+- **`group` + `variant_name`** sell several SKUs as one product with a choice
+  (sizes, colours): rows with the same `group` become variants of the product
+  whose code is the group. Its name, category, description and manufacturer
+  come from the group's first row; each SKU keeps its own price, stock, pack
+  unit and `variant_name` ("Size 10, black"). A SKU that is already a product
+  of its own isn't moved into a group (delete it first).
+
+### Loading the ORS catalog
+
+```bash
+php -d memory_limit=-1 bin/console app:catalog:prepare-ors-import \
+    ~/Downloads/USISCS_ORS_vs_Grainger_Price_Comparison.xlsx ors-import.xlsx \
+    --families ~/Downloads/ORS_Nasco_2737_Direct_Ship_Review.xlsx
+php -d memory_limit=-1 bin/console app:catalog:import ors-import.xlsx --dry-run
+```
+
+It reads the "ORS price feed" sheet (and product families from "SKU review"):
+price = ORS list price per selling unit, `unit_of_measure` = ORS's conversion,
+families of 2+ priced SKUs become groups with variant names drafted from ORS's
+short descriptions (marked in the `review` column), all as hidden drafts.
+SKUs without an ORS price are listed on the "Skipped" sheet. Categories are a
+keyword stand-in (`src/Catalog/Ors/InterimCategory.php`) until the client
+approves the category tree. From the 2026-10-03 feed: 2,549 SKUs → 1,390
+products (525 with a choice of 2+), 188 skipped.
+
 **Taking products live:** Sylius admin → Catalog → Products → filter
 *Enabled: No* → tick products → **Go live** (or **Take offline**). Products that
 aren't ready are listed with the reason and left hidden.

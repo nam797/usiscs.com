@@ -17,6 +17,9 @@ GitHub: nam797/usiscs.com
 - Contact form: `src/Form/Contact/`, saved as `src/Entity/Contact/ContactMessage`,
   admin list in `src/Controller/Admin/ContactMessageCrudController.php`
 - Lead emails (RFQ + contact): `src/Lead/LeadNotifier.php`
+- Catalog import: `src/Catalog/Import/` (`app:catalog:import`), pack units in
+  `src/Catalog/Unit/`, ORS price feed → import sheet in `src/Catalog/Ors/`
+  (`app:catalog:prepare-ors-import`)
 - ORS Nasco supplier sync: API clients in `src/Supplier/OrsNasco/`, syncs in
   `src/Catalog/Sync/`, commands `app:ors:sync-stock` / `app:ors:sync-cost`
 - Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius

@@ -28,6 +28,8 @@ final class ProductRow
         'stock_qty',
         'image_url',
         'go_live',
+        'group',
+        'variant_name',
     ];
 
     /** Supplier item numbers: letters, numbers and - _ . / + (ORS uses all of them). */
@@ -52,6 +54,10 @@ final class ProductRow
         public readonly ?int $stockQty,
         public readonly ?string $imageUrl,
         public readonly bool $goLive,
+        /** product code shared by the SKUs sold as one product (sizes, colours); null for a product of its own */
+        public readonly ?string $group,
+        /** what tells this SKU apart within its group, e.g. "Size 10, black" */
+        public readonly ?string $variantName,
         private readonly array $provided,
     ) {
     }
@@ -126,6 +132,17 @@ final class ProductRow
             $problems[] = sprintf('image_url "%s" must be an http(s) link', $imageUrl);
         }
 
+        $group = $optional('group');
+        if (null !== $group && (!preg_match(self::SKU_PATTERN, $group) || strlen($group) > 255)) {
+            $problems[] = sprintf('group "%s" may only contain letters, numbers, "-", "_", ".", "/" and "+" (max 255)', $group);
+        }
+        $variantName = $optional('variant_name');
+        if (null !== $group && null === $variantName) {
+            $problems[] = 'variant_name is required for a SKU in a group (e.g. "Size 10, black")';
+        } elseif (null !== $variantName && mb_strlen($variantName) > 255) {
+            $problems[] = 'variant_name is longer than 255 characters';
+        }
+
         $goLive = self::yesNo($text('go_live'));
         if (null === $goLive) {
             $problems[] = sprintf('go_live "%s" must be yes or no', $text('go_live'));
@@ -151,6 +168,8 @@ final class ProductRow
             $stockQty,
             $imageUrl,
             $goLive,
+            null === $group ? null : ProductCode::fromSku($group),
+            $variantName,
             array_values(array_intersect(self::OPTIONAL_COLUMNS, array_keys($values))),
         );
     }

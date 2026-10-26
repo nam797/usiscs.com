@@ -39,6 +39,8 @@ final class ImportTemplateCommand extends Command
         'stock_qty' => ['Optional', 'Units in stock. Leave blank to not track stock.'],
         'image_url' => ['Optional', 'Link (http/https) to a JPEG, PNG, WebP or GIF up to 5 MB.'],
         'go_live' => ['Optional', 'yes = show in the shop straight away (new products only). Blank/no = hidden draft for review.'],
+        'group' => ['Optional', 'SKUs with the same group are sold as one product with a choice (sizes, colours). The group is that product\'s code; name, category, description and manufacturer come from its first row.'],
+        'variant_name' => ['Optional', 'Required with group: what this SKU is within the product, e.g. "Size 10, black".'],
     ];
 
     protected function configure(): void

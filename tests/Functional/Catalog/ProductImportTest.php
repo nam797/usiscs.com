@@ -102,6 +102,80 @@ final class ProductImportTest extends FunctionalTestCase
         self::assertSame('IMP-92-500-7.5-8', $state->getSupplierSku());
     }
 
+    public function testSkusInAGroupBecomeVariantsOfOneProduct(): void
+    {
+        $report = $this->importGrouped([
+            ['IMP-HF-8', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', 'yes', 'IMP-HYFLEX', 'Size 8', '12 PR = 1 DZ'],
+            ['IMP-HF-9', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', 'yes', 'IMP-HYFLEX', 'Size 9', '12 PR = 1 DZ'],
+            ['IMP-HF-10', 'HyFlex 11-600 Gloves', 'Safety & PPE', '622.22', 'yes', 'IMP-HYFLEX', 'Size 10', '144 PR = 1 CA'],
+        ]);
+
+        self::assertSame(3, $report->created, implode("\n", array_column($report->messages(), 'message')));
+        $product = $this->product('IMP-HYFLEX');
+        self::assertTrue($product->isEnabled());
+        self::assertSame('HyFlex 11-600 Gloves', $product->getName());
+        self::assertSame(ProductInterface::VARIANT_SELECTION_CHOICE, $product->getVariantSelectionMethod());
+        $names = [];
+        foreach ($product->getVariants() as $variant) {
+            $names[(string) $variant->getCode()] = $variant->getTranslation('en_US')->getName();
+        }
+        self::assertSame(['IMP-HF-8' => 'Size 8', 'IMP-HF-9' => 'Size 9', 'IMP-HF-10' => 'Size 10'], $names);
+        self::assertNull($this->findProduct('IMP-HF-8'), 'No product of its own per SKU.');
+
+        $this->client->request('GET', '/products/hyflex-11-600-gloves');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Size 10');
+        self::assertSelectorTextContains('body', 'per case of 144 pairs');
+    }
+
+    public function testReimportingAGroupUpdatesItsSkusAndAddsNewOnes(): void
+    {
+        $rows = [
+            ['IMP-HF-8', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 8', ''],
+            ['IMP-HF-9', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 9', ''],
+        ];
+        $this->importGrouped($rows);
+        $product = $this->product('IMP-HYFLEX');
+        $product->getTranslation('en_US')->setName('HyFlex® 11-600 Palm-Coated Gloves');
+        $this->entityManager()->flush();
+        $this->entityManager()->clear();
+
+        $rows[1][3] = '49.99';
+        $rows[] = ['IMP-HF-10', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 10', ''];
+        $report = $this->importGrouped($rows);
+
+        self::assertSame(1, $report->created);
+        self::assertSame(1, $report->updated);
+        self::assertSame(1, $report->unchanged);
+        $product = $this->product('IMP-HYFLEX');
+        self::assertSame('HyFlex® 11-600 Palm-Coated Gloves', $product->getName(), "The admin's name is kept.");
+        self::assertCount(3, $product->getVariants());
+        $variant = $this->entityManager()->getRepository(ProductVariant::class)->findOneBy(['code' => 'IMP-HF-9']);
+        self::assertInstanceOf(ProductVariant::class, $variant);
+        $pricing = $variant->getChannelPricings()->first();
+        self::assertInstanceOf(ChannelPricingInterface::class, $pricing);
+        self::assertSame(4999, $pricing->getPrice());
+    }
+
+    public function testASkuInAGroupNeedsAVariantName(): void
+    {
+        $report = $this->importGrouped([['IMP-HF-8', 'HyFlex', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', '', '']]);
+
+        self::assertSame(1, $report->failed);
+        self::assertStringContainsString('variant_name is required', implode("\n", array_column($report->messages(), 'message')));
+    }
+
+    public function testASkuThatIsAlreadyItsOwnProductIsNotMovedIntoAGroup(): void
+    {
+        $this->import([['IMP-HF-8', 'HyFlex size 8', 'Safety & PPE', '51.85', '', '', '', '']]);
+
+        $report = $this->importGrouped([['IMP-HF-8', 'HyFlex', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 8', '']]);
+
+        self::assertSame(1, $report->failed);
+        self::assertStringContainsString('is already product "IMP-HF-8"', implode("\n", array_column($report->messages(), 'message')));
+        self::assertNull($this->findProduct('IMP-HYFLEX'));
+    }
+
     public function testGoLiveYesPublishesAReadyProduct(): void
     {
         $report = $this->import([['IMP-GL-1', 'Gloves', 'Safety & PPE', '9.50', '', '', '', 'yes']]);
@@ -311,6 +385,16 @@ final class ProductImportTest extends FunctionalTestCase
     private function importWithUnit(array $rows): ImportReport
     {
         $path = $this->sheet($rows, [...self::HEADER, 'unit_of_measure']);
+        $report = $this->importer()->import(new ExcelProductSource($path));
+        $this->entityManager()->clear();
+
+        return $report;
+    }
+
+    /** @param list<list<string>> $rows sku, name, category, price, go_live, group, variant_name, unit_of_measure */
+    private function importGrouped(array $rows): ImportReport
+    {
+        $path = $this->sheet($rows, ['sku', 'name', 'category', 'price', 'go_live', 'group', 'variant_name', 'unit_of_measure']);
         $report = $this->importer()->import(new ExcelProductSource($path));
         $this->entityManager()->clear();
 
