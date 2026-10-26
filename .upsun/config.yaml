@@ -7,6 +7,11 @@ applications:
             "config/jwt":
                 source: storage
                 source_path: jwt
+            # Key that encrypts payment gateway settings (the Stripe API keys)
+            # in the database. Losing it means re-entering the Stripe keys.
+            "config/encryption":
+                source: storage
+                source_path: encryption
             "/var/cache":
                 source: instance
                 source_path: cache
@@ -66,6 +71,9 @@ applications:
             env:
                 APP_ENV: 'prod'
                 APP_DEBUG: 0
+                # The real key in the config/encryption mount, never the
+                # committed test.key.
+                SYLIUS_PAYMENT_ENCRYPTION_KEY_PATH: '%kernel.project_dir%/config/encryption/key'
                 N_PREFIX: /app/.global
         build:
             flavor: composer
@@ -117,6 +125,7 @@ applications:
                 bin/console doctrine:database:create --if-not-exists
                 bin/console doctrine:migrations:migrate -n
                 bin/console lexik:jwt:generate-keypair --skip-if-exists
+                [ -f config/encryption/key ] || bin/console sylius:payment:generate-key -n
                 bin/console assets:install --symlink --relative public
                 bin/console cache:clear
         source:

@@ -17,6 +17,8 @@ GitHub: nam797/usiscs.com
 - Contact form: `src/Form/Contact/`
 - ORS Nasco supplier sync: API clients in `src/Supplier/OrsNasco/`, syncs in
   `src/Catalog/Sync/`, commands `app:ors:sync-stock` / `app:ors:sync-cost`
+- Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius
+  admin; see docs/local-setup.md "Payments (Stripe)")
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`
 - Security headers: `src/EventListener/SecurityHeadersListener.php`
 - Templates: `templates/shop/`, overrides in `templates/bundles/SyliusShopBundle/`

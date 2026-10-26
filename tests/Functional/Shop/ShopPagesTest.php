@@ -6,7 +6,6 @@ namespace App\Tests\Functional\Shop;
 
 use App\Tests\Functional\FunctionalTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Symfony\Component\Routing\RouterInterface;
 
 final class ShopPagesTest extends FunctionalTestCase
 {
@@ -90,16 +89,6 @@ final class ShopPagesTest extends FunctionalTestCase
         $this->client->request('GET', $old);
 
         self::assertResponseRedirects($new, 301);
-    }
-
-    public function testPaymentPluginAddressesAreNotTreatedAsOldLinks(): void
-    {
-        // Mollie, Adyen and PayPal keep the locale in their own addresses.
-        $router = static::getContainer()->get('router');
-        self::assertInstanceOf(RouterInterface::class, $router);
-
-        self::assertSame('sylius_adyen_shop_express_checkout_cart_configuration', $router->match('/en_US/adyen/express-checkout/cart-configuration')['_route']);
-        self::assertSame('sylius_adyen_shop_config', $router->match('/en_US/payment/adyen/adyen_card/abc123')['_route']);
     }
 
     public function testContactIsOurPageNotSyliussForm(): void
