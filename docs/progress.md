@@ -100,10 +100,11 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- **Now: turn on lead emails** (the code is done): pick a
-  provider (recommended: Postmark), verify usiscs.com (SPF/DKIM DNS records),
-  set `env:MAILER_DSN` on Upsun, set the channel contact email in the Sylius
-  admin, then send a test quote.
+- **Waiting on the client: lead emails** (the code is done). Client is setting
+  up Postmark (sent 2026-10-26). Then: verify usiscs.com (SPF/DKIM DNS
+  records), set `env:MAILER_DSN` on Upsun, set the channel contact email in
+  the Sylius admin, send a test quote.
+- **Now: finish the ORS sync** (see below).
 - **Client review of the category tree** (link above). Then build it:
   replace the 6 placeholder categories (setup-categories), brand pages and
   filters, per-category SEO title/description/intro.
