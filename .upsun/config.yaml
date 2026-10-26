@@ -85,6 +85,19 @@ applications:
             sylius-remove-expired-carts:
                 spec: "0 2 * * *"
                 cmd: "php bin/console --env=prod sylius:remove-expired-carts"
+            # ORS Nasco syncs: turn on once the ORS credentials are set as Upsun
+            # variables (see docs/local-setup.md "ORS Nasco sync").
+            # Stock: ORS refreshes 6x a day (00:30, 07:30, 10:30, 11:30, 13:30,
+            # 15:30 Central). Hourly at :45 runs 15 min after each refresh
+            # whatever the UTC offset, and again an hour later if ORS was
+            # late. It's one API call.
+            # ors-sync-stock:
+            #     spec: "45 * * * *"
+            #     cmd: "php bin/console --env=prod app:ors:sync-stock"
+            # Cost: nightly, ~70 SOAP calls for 2,737 SKUs (03:30 UTC).
+            # ors-sync-cost:
+            #     spec: "30 3 * * *"
+            #     cmd: "php bin/console --env=prod app:ors:sync-cost"
         hooks:
             build: |
                 set -e

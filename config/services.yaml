@@ -7,6 +7,17 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # ORS Nasco supplier APIs (src/Supplier/OrsNasco). Defaults point at ORS's
+    # test endpoints; the production URLs and every credential go in
+    # .env.local / Upsun variables, never in .env.
+    env(ORS_AVAILABILITY_URL): 'https://apim.workato.com/orsnascotest/availability/bulkavailability'
+    env(ORS_OAUTH_TOKEN_URL): ''
+    env(ORS_OAUTH_CLIENT_ID): ''
+    env(ORS_OAUTH_CLIENT_SECRET): ''
+    env(ORS_PA_URL): 'https://webservices.orsnasco.com/ORSInventoryQueryToolWSV3TEST/ORSInventoryQueryTool.asmx'
+    env(ORS_CUSTNO): ''
+    env(ORS_PA_PASSWORD): ''
+    env(ORS_PA_PASSWORD2): ''
 
 services:
     # Default configuration for services in *this* file

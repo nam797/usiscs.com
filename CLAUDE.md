@@ -15,6 +15,8 @@ GitHub: nam797/usiscs.com
 - RFQ (request for quote): `src/Entity/Rfq`, `src/Form/Rfq`, `src/Repository/Rfq`,
   admin CRUD in `src/Controller/Admin/RfqRequestCrudController.php`
 - Contact form: `src/Form/Contact/`
+- ORS Nasco supplier sync: API clients in `src/Supplier/OrsNasco/`, syncs in
+  `src/Catalog/Sync/`, commands `app:ors:sync-stock` / `app:ors:sync-cost`
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`
 - Security headers: `src/EventListener/SecurityHeadersListener.php`
 - Templates: `templates/shop/`, overrides in `templates/bundles/SyliusShopBundle/`

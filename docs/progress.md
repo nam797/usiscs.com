@@ -55,12 +55,20 @@
 - Short shop URLs (2026-10-24, PR #34): no /en_US prefix, categories at the root
   (/safety-ppe), products at /products/{slug}, old links 301; trademark signs
   out of product slugs.
+- ORS Nasco sync (2026-10-26): `app:ors:sync-stock` (bulk REST, on hand = ORS
+  total) and `app:ors:sync-cost` (SOAP PriceOnlyV2, cost into
+  `app_supplier_item`); go-live refuses products priced at or below cost.
+  Dry-run, --sku, nothing written on an ORS failure. Crons committed but
+  commented out until credentials exist.
 - Faster shop pages (2026-10-25): Mollie's and Adyen's scripts (~1.9s from
   their servers, blocking) now load only on checkout and order-payment pages.
   Fixed a PR #34 bug: the old-link redirect was catching Mollie/Adyen/PayPal
   addresses, which still start with /en_US.
 
 ## Decisions
+- ORS Nasco: selling price = ORS list price (from the price feed import); the
+  API "price" is our cost, used only as a never-sell-below guard. Stock always
+  follows ORS (orders change on-hand, so admin stock edits aren't kept).
 - Short shop URLs, no locale prefix: categories at the root (`/safety-ppe/hand-protection`,
   slugs without the root taxon's "products/"), products at `/products/{slug}`.
   `/en_US/...` links 301 to the new form. The catch-all category route in
@@ -105,13 +113,11 @@
   - Rule for ORS SKUs with "." (Sylius codes allow only letters, digits, - and _).
   - Product images: none in ORS files, so a source is needed.
   - Selling price = ORS **list** price. The ORS API price is our *cost*.
-- **ORS sync** (branch `ors-nasco-sync`, local WIP commit, not pushed): clients
-  for the bulk stock REST API and the SOAP price service, `app:ors:sync-stock`,
-  `app:ors:sync-cost`, a below-cost go-live guard, migration
-  `Version20261023210000`.
-  - Still to do: rebase on main, tests, 4 phpstan fixes, docs, Upsun crons.
-  - Needs credentials from ORS: OAuth client/secret + token URL, and the SOAP
-    account # + 2 passwords.
+- **ORS sync: built, waiting on ORS credentials.** Get from ORS: OAuth
+  client ID/secret + token URL (stock API), and the SOAP account # + 2
+  passwords (price service). Then: dry runs against the ORS test endpoints
+  (docs/local-setup.md "ORS Nasco sync"), set Upsun variables, uncomment the
+  crons in `.upsun/config.yaml`.
 - Local dev DB has 60 sample ORS products (imported from the price feed sheet).
 - Backoffice upload page so staff can import without the CLI.
 - Then: Upsun deploy + switch build to `npm ci`; lead email delivery (channel

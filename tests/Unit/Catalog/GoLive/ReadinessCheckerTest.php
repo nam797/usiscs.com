@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Catalog\GoLive;
 
 use App\Catalog\GoLive\ReadinessChecker;
+use App\Catalog\GoLive\SupplierCostLookupInterface;
 use App\Entity\Channel\Channel;
 use App\Entity\Channel\ChannelPricing;
 use App\Entity\Product\Product;
@@ -61,6 +62,42 @@ final class ReadinessCheckerTest extends TestCase
         self::assertCount(3, (new ReadinessChecker())->problems($product));
     }
 
+    public function testAPriceAboveTheSupplierCostIsFine(): void
+    {
+        self::assertSame([], (new ReadinessChecker($this->costs(['GLASSES' => 1298])))->problems($this->product()));
+    }
+
+    public function testItNeedsAPriceAboveTheSupplierCost(): void
+    {
+        $checker = new ReadinessChecker($this->costs(['GLASSES' => 1299]));
+
+        self::assertSame(
+            ['price $12.99 in channel "default" is not above the supplier cost $12.99'],
+            $checker->problems($this->product()),
+        );
+    }
+
+    public function testAnUnknownCostDoesNotBlockGoingLive(): void
+    {
+        self::assertSame([], (new ReadinessChecker($this->costs([])))->problems($this->product()));
+    }
+
+    /** @param array<string, int> $costs */
+    private function costs(array $costs): SupplierCostLookupInterface
+    {
+        return new class($costs) implements SupplierCostLookupInterface {
+            /** @param array<string, int> $costs */
+            public function __construct(private readonly array $costs)
+            {
+            }
+
+            public function costInCents(string $sku): ?int
+            {
+                return $this->costs[$sku] ?? null;
+            }
+        };
+    }
+
     /** @param array<string, ?int> $channels channel code => price in cents (null: no pricing) */
     private function product(string $name = 'Safety glasses', bool $withCategory = true, array $channels = ['default' => 1299]): Product
     {
@@ -76,6 +113,7 @@ final class ReadinessCheckerTest extends TestCase
         }
 
         $variant = new ProductVariant();
+        $variant->setCode('GLASSES');
         $product->addVariant($variant);
 
         foreach ($channels as $code => $price) {
