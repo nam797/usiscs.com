@@ -16,6 +16,8 @@ final class ImportReport
 
     public int $created = 0;
     public int $createdLive = 0;
+    /** SKUs added as a new choice (size, colour) to a product that already existed */
+    public int $added = 0;
     public int $updated = 0;
     public int $unchanged = 0;
     public int $untouched = 0;
