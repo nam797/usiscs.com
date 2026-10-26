@@ -29,7 +29,7 @@ use Symfony\Component\Console\Tester\CommandTester;
  */
 final class OrsSyncTest extends FunctionalTestCase
 {
-    private const SKUS = ['ORS-T1', 'ORS-T2', 'ORS-T3'];
+    private const SKUS = ['ORS-T1', 'ORS-T2', 'ORS-T3', 'ORS-T4_5'];
 
     private FakeOrsNasco $ors;
 
@@ -55,6 +55,28 @@ final class OrsSyncTest extends FunctionalTestCase
         self::assertSame(340, $this->variant('ORS-T1')->getOnHand());
         self::assertTrue($this->variant('ORS-T2')->isTracked());
         self::assertSame(0, $this->variant('ORS-T2')->getOnHand());
+    }
+
+    public function testOrsIsAskedForItsOwnSkuWhenTheProductCodeDiffers(): void
+    {
+        $this->ors->willHaveStock('ORS-T4.5', 60);
+        $this->ors->willCost('ORS-T4.5', 120);
+
+        $this->runCommand('app:ors:sync-stock');
+        $this->runCommand('app:ors:sync-cost');
+
+        self::assertSame(60, $this->variant('ORS-T4_5')->getOnHand());
+        self::assertSame(120, $this->supplierItem('ORS-T4_5')?->getCostInCents());
+    }
+
+    public function testASkuCanBePickedByEitherSpelling(): void
+    {
+        $this->ors->willHaveStock('ORS-T4.5', 60);
+
+        $tester = $this->runCommand('app:ors:sync-stock', ['--sku' => ['ORS-T4.5']]);
+
+        self::assertSame(60, $this->variant('ORS-T4_5')->getOnHand());
+        self::assertStringNotContainsString('ORS-T1', $tester->getDisplay());
     }
 
     public function testAnItemMissingFromTheOrsListKeepsItsStock(): void
@@ -142,7 +164,7 @@ final class OrsSyncTest extends FunctionalTestCase
         $kernel = static::$kernel;
         self::assertNotNull($kernel);
         $tester = new CommandTester((new Application($kernel))->find($command));
-        $tester->execute(['--sku' => self::SKUS] + $options);
+        $tester->execute($options + ['--sku' => self::SKUS]);
         $this->entityManager()->clear();
 
         return $tester;
@@ -157,13 +179,14 @@ final class OrsSyncTest extends FunctionalTestCase
         $writer->addRow(Row::fromValues(['ORS-T1', 'ORS test blades', 'Safety & PPE', '17.40', '25', 'yes']));
         $writer->addRow(Row::fromValues(['ORS-T2', 'ORS test nut', 'Safety & PPE', '1.20', '25', 'yes']));
         $writer->addRow(Row::fromValues(['ORS-T3', 'ORS test gloves', 'Safety & PPE', '9.50', '25', 'yes']));
+        $writer->addRow(Row::fromValues(['ORS-T4.5', 'ORS test dotted', 'Safety & PPE', '3.00', '25', 'yes']));
         $writer->close();
 
         try {
             $importer = static::getContainer()->get(ProductImporter::class);
             self::assertInstanceOf(ProductImporter::class, $importer);
             $report = $importer->import(new ExcelProductSource($path), false);
-            self::assertSame(3, $report->createdLive, 'Run app:catalog:setup-categories first.');
+            self::assertSame(4, $report->createdLive, 'Run app:catalog:setup-categories first.');
         } finally {
             unlink($path);
         }

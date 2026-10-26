@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 
 final class ProductRowTest extends TestCase
 {
+    private const REQUIRED = ['name' => 'Gloves', 'category' => 'Safety & PPE', 'price' => '9'];
+
     /** @return array<string, string> */
     private static function minimal(): array
     {
@@ -48,10 +50,20 @@ final class ProductRowTest extends TestCase
         self::assertSame('Grade 8 hex bolt', $row->shortDescription);
         self::assertSame('Acme', $row->manufacturer);
         self::assertSame('AC-1/2-13', $row->partNumber);
-        self::assertSame('box of 50', $row->unitOfMeasure);
+        self::assertSame('50 EA = 1 BX', $row->unitOfMeasure?->toString());
         self::assertSame(120, $row->stockQty);
         self::assertSame('https://cdn.example.com/hb500.jpg', $row->imageUrl);
         self::assertTrue($row->goLive);
+    }
+
+    public function testSupplierSkusWithDotsAndSlashesGetAValidProductCode(): void
+    {
+        $row = ProductRow::fromArray(['sku' => '012-92-500-7.5-8', 'name' => 'Gloves', 'category' => 'Safety & PPE', 'price' => '9']);
+
+        self::assertSame('012-92-500-7_5-8', $row->sku);
+        self::assertSame('012-92-500-7.5-8', $row->supplierSku);
+        self::assertSame('112-34-844_XL', ProductRow::fromArray(['sku' => '112-34-844/XL'] + self::REQUIRED)->sku);
+        self::assertSame('142-TR-300N_HIK', ProductRow::fromArray(['sku' => '142-TR-300N+HIK'] + self::REQUIRED)->sku);
     }
 
     public function testItTrimsCellsAndTreatsBlankOptionalsAsNoValue(): void
@@ -123,7 +135,8 @@ final class ProductRowTest extends TestCase
     {
         yield 'missing sku' => ['sku', '', 'sku is required'];
         yield 'sku with spaces' => ['sku', 'HB 500', 'may only contain'];
-        yield 'sku with slash' => ['sku', 'HB/500', 'may only contain'];
+        yield 'sku with a comma' => ['sku', 'HB,500', 'may only contain'];
+        yield 'unreadable unit of measure' => ['unit_of_measure', 'sold by the case', 'unit_of_measure: "sold by the case" is not a unit of measure'];
         yield 'missing name' => ['name', '', 'name is required'];
         yield 'long name' => ['name', str_repeat('a', 256), 'longer than 255'];
         yield 'missing category' => ['category', '', 'category is required'];

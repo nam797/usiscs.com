@@ -15,6 +15,18 @@ sylius_twig_hooks:
                 template: 'shared/favicon.html.twig'
                 priority: 50
 
+        # What a price is for ("per case of 12"), under the price on the
+        # product page and on product cards. Sylius's price is at 100 and
+        # the lowest-price note at 0.
+        'sylius_shop.product.show.content.info.summary.prices':
+            pack_unit:
+                template: 'shop/product/pack_unit.html.twig'
+                priority: 50
+        'sylius_shop.shared.product.card.prices':
+            pack_unit:
+                template: 'shop/product/pack_unit.html.twig'
+                priority: -100
+
         # Static Contact / Request a Quote links, shown above the
         # taxon-driven navbar (which is empty/hidden until there are
         # taxons). Priority 50 is above the taxon menu's priority 0, so

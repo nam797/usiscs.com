@@ -43,7 +43,7 @@ final class CostSync
     {
         $skus = $this->importedSkus->all($only);
         // Every request is made first: one failed call means nothing is written.
-        $prices = [] === $skus ? [] : $this->client->fetch($skus);
+        $prices = [] === $skus ? [] : $this->client->fetch(array_values(array_unique($skus)));
 
         $report = new ImportReport($dryRun);
         $connection = $this->entityManager->getConnection();
@@ -52,7 +52,7 @@ final class CostSync
         }
 
         try {
-            foreach (array_chunk($skus, self::BATCH_SIZE) as $batch) {
+            foreach (array_chunk($skus, self::BATCH_SIZE, true) as $batch) {
                 $this->syncBatch($batch, $prices, $report);
                 $this->entityManager->flush();
                 $this->entityManager->clear();
@@ -68,24 +68,25 @@ final class CostSync
     }
 
     /**
-     * @param list<string>            $skus
+     * @param array<string, string>   $skus   product code => ORS SKU
      * @param array<string, PriceRow> $prices
      */
     private function syncBatch(array $skus, array $prices, ImportReport $report): void
     {
         $items = [];
-        foreach ($this->entityManager->getRepository(SupplierItem::class)->findBy(['sku' => $skus]) as $item) {
+        foreach ($this->entityManager->getRepository(SupplierItem::class)->findBy(['sku' => array_keys($skus)]) as $item) {
             $items[$item->getSku()] = $item;
         }
         $variants = [];
-        foreach ($this->entityManager->getRepository(ProductVariant::class)->findBy(['code' => $skus]) as $variant) {
+        foreach ($this->entityManager->getRepository(ProductVariant::class)->findBy(['code' => array_keys($skus)]) as $variant) {
             if ($variant instanceof ProductVariantInterface) {
                 $variants[(string) $variant->getCode()] = $variant;
             }
         }
 
-        foreach ($skus as $sku) {
-            $row = $prices[$sku] ?? null;
+        foreach ($skus as $sku => $orsSku) {
+            $sku = (string) $sku; // PHP turns an all-digit code key into an int
+            $row = $prices[$orsSku] ?? null;
             if (null === $row) {
                 ++$report->untouched;
                 $report->add(0, $sku, ImportReport::WARNING, 'ORS did not answer for this SKU; cost left as it is');

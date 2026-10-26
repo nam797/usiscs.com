@@ -14,6 +14,10 @@ use Doctrine\ORM\Mapping as ORM;
  * Keyed by product code rather than a foreign key, so deleting a product in
  * the admin never fails on this table; an orphaned row is harmless and is
  * replaced if the SKU is ever imported again.
+ *
+ * Also the list of SKUs the supplier syncs look after, with the supplier's
+ * own item number when it isn't a valid Sylius code (ORS "012-92-500-7.5-8"
+ * is product code "012-92-500-7_5-8").
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'app_product_import_state')]
@@ -27,6 +31,9 @@ class ProductImportState
     #[ORM\Column(name: 'product_code', type: 'string', length: 255, unique: true)]
     private string $productCode;
 
+    #[ORM\Column(name: 'supplier_sku', type: 'string', length: 255, nullable: true)]
+    private ?string $supplierSku = null;
+
     #[ORM\Column(name: 'source', type: 'string', length: 50)]
     private string $source;
 
@@ -38,9 +45,10 @@ class ProductImportState
     private \DateTimeImmutable $lastImportedAt;
 
     /** @param array<string, scalar|null> $importedValues */
-    public function __construct(string $productCode, string $source, array $importedValues)
+    public function __construct(string $productCode, string $source, array $importedValues, ?string $supplierSku = null)
     {
         $this->productCode = $productCode;
+        $this->setSupplierSku($supplierSku);
         $this->source = $source;
         $this->importedValues = $importedValues;
         $this->lastImportedAt = new \DateTimeImmutable();
@@ -54,6 +62,17 @@ class ProductImportState
     public function getProductCode(): string
     {
         return $this->productCode;
+    }
+
+    /** The SKU as the supplier writes it; the product code when they're the same. */
+    public function getSupplierSku(): string
+    {
+        return $this->supplierSku ?? $this->productCode;
+    }
+
+    public function setSupplierSku(?string $supplierSku): void
+    {
+        $this->supplierSku = $supplierSku === $this->productCode ? null : $supplierSku;
     }
 
     public function getSource(): string

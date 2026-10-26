@@ -1,0 +1,6 @@
+{# What the price above is for: "per case of 12", "each". Product page and
+   product cards (config/packages/twig_hooks.yaml). #}
+{% set pack_unit = hookable_metadata.context.variant.packUnit|default(null) %}
+{% if pack_unit %}
+    <div class="text-body-secondary small" data-test-pack-unit>{{ pack_unit.perPrice }}</div>
+{% endif %}

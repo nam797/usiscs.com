@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalog\Import;
 
+use App\Catalog\Unit\PackUnit;
 use App\Command\SetupCategoriesCommand;
 
 /**
@@ -27,16 +28,21 @@ final class ProductRow
         'stock_qty',
         'image_url',
         'go_live',
+        'group',
+        'variant_name',
     ];
 
-    /** Sylius product/variant code rule. */
-    private const SKU_PATTERN = '/^[\w-]+$/';
+    /** Supplier item numbers: letters, numbers and - _ . / + (ORS uses all of them). */
+    private const SKU_PATTERN = '/^[\w.\/+-]+$/';
 
     /**
      * @param list<string> $provided columns present in the source, for optional fields
      */
     private function __construct(
+        /** the Sylius product/variant code (see ProductCode) */
         public readonly string $sku,
+        /** the SKU as written in the sheet, e.g. ORS's "012-92-500-7.5-8" */
+        public readonly string $supplierSku,
         public readonly string $name,
         public readonly string $categoryCode,
         public readonly int $priceInCents,
@@ -44,10 +50,14 @@ final class ProductRow
         public readonly ?string $shortDescription,
         public readonly ?string $manufacturer,
         public readonly ?string $partNumber,
-        public readonly ?string $unitOfMeasure,
+        public readonly ?PackUnit $unitOfMeasure,
         public readonly ?int $stockQty,
         public readonly ?string $imageUrl,
         public readonly bool $goLive,
+        /** product code shared by the SKUs sold as one product (sizes, colours); null for a product of its own */
+        public readonly ?string $group,
+        /** what tells this SKU apart within its group, e.g. "Size 10, black" */
+        public readonly ?string $variantName,
         private readonly array $provided,
     ) {
     }
@@ -67,7 +77,7 @@ final class ProductRow
         if ('' === $sku) {
             $problems[] = 'sku is required';
         } elseif (!preg_match(self::SKU_PATTERN, $sku) || strlen($sku) > 255) {
-            $problems[] = sprintf('sku "%s" may only contain letters, numbers, "-" and "_" (max 255)', $sku);
+            $problems[] = sprintf('sku "%s" may only contain letters, numbers, "-", "_", ".", "/" and "+" (max 255)', $sku);
         }
 
         $name = $text('name');
@@ -93,7 +103,16 @@ final class ProductRow
             $problems[] = 'price must be greater than 0';
         }
 
-        foreach (['manufacturer', 'part_number', 'unit_of_measure'] as $column) {
+        $unitOfMeasure = null;
+        if (null !== $optional('unit_of_measure')) {
+            try {
+                $unitOfMeasure = PackUnit::parse($text('unit_of_measure'));
+            } catch (\InvalidArgumentException $e) {
+                $problems[] = sprintf('unit_of_measure: %s', $e->getMessage());
+            }
+        }
+
+        foreach (['manufacturer', 'part_number'] as $column) {
             if (mb_strlen($text($column)) > 255) {
                 $problems[] = sprintf('%s is longer than 255 characters', $column);
             }
@@ -113,6 +132,17 @@ final class ProductRow
             $problems[] = sprintf('image_url "%s" must be an http(s) link', $imageUrl);
         }
 
+        $group = $optional('group');
+        if (null !== $group && (!preg_match(self::SKU_PATTERN, $group) || strlen($group) > 255)) {
+            $problems[] = sprintf('group "%s" may only contain letters, numbers, "-", "_", ".", "/" and "+" (max 255)', $group);
+        }
+        $variantName = $optional('variant_name');
+        if (null !== $group && null === $variantName) {
+            $problems[] = 'variant_name is required for a SKU in a group (e.g. "Size 10, black")';
+        } elseif (null !== $variantName && mb_strlen($variantName) > 255) {
+            $problems[] = 'variant_name is longer than 255 characters';
+        }
+
         $goLive = self::yesNo($text('go_live'));
         if (null === $goLive) {
             $problems[] = sprintf('go_live "%s" must be yes or no', $text('go_live'));
@@ -125,6 +155,7 @@ final class ProductRow
         \assert(null !== $categoryCode && null !== $price && null !== $goLive);
 
         return new self(
+            ProductCode::fromSku($sku),
             $sku,
             $name,
             $categoryCode,
@@ -133,10 +164,12 @@ final class ProductRow
             $optional('short_description'),
             $optional('manufacturer'),
             $optional('part_number'),
-            $optional('unit_of_measure'),
+            $unitOfMeasure,
             $stockQty,
             $imageUrl,
             $goLive,
+            null === $group ? null : ProductCode::fromSku($group),
+            $variantName,
             array_values(array_intersect(self::OPTIONAL_COLUMNS, array_keys($values))),
         );
     }

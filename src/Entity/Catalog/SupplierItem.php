@@ -11,8 +11,8 @@ use Doctrine\ORM\Mapping as ORM;
  * Kept out of the Sylius product tables so supplier data never mixes with
  * what the shop shows; the selling price stays the channel pricing.
  *
- * Keyed by SKU (= product/variant code = ORS item number), not a foreign
- * key, like ProductImportState.
+ * Keyed by product/variant code (not a foreign key), like
+ * ProductImportState, which also holds the ORS item number when it differs.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'app_supplier_item')]

@@ -8,7 +8,9 @@ use App\Catalog\Import\ExcelProductSource;
 use App\Catalog\Import\ImportReport;
 use App\Catalog\Import\ProductImporter;
 use App\Entity\Catalog\ProductImportState;
+use App\Entity\Order\OrderItem;
 use App\Entity\Product\Product;
+use App\Entity\Product\ProductVariant;
 use App\Tests\Functional\FunctionalTestCase;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
@@ -17,6 +19,7 @@ use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
+use Twig\Environment;
 
 /**
  * Runs the real importer against the test database. Every SKU used here
@@ -64,6 +67,113 @@ final class ProductImportTest extends FunctionalTestCase
         self::assertSame(1299, $this->price($product));
         self::assertTrue($variant->isTracked());
         self::assertSame(120, $variant->getOnHand());
+    }
+
+    public function testAPackUnitIsShownWithThePrice(): void
+    {
+        $this->importWithUnit([['IMP-PK-1', 'Nitrile gloves', 'Safety & PPE', '305.74', '', '', '', 'yes', '144 PR = 1 CA']]);
+
+        $variant = $this->variant($this->product('IMP-PK-1'));
+        self::assertInstanceOf(ProductVariant::class, $variant);
+        self::assertSame('144 PR = 1 CA', $variant->getPackUnit()?->toString());
+
+        $this->client->request('GET', '/products/nitrile-gloves');
+        self::assertSelectorTextContains('[data-test-pack-unit]', 'per case of 144 pairs');
+        $this->client->request('GET', '/safety-ppe');
+        self::assertSelectorTextContains('body', 'per case of 144 pairs');
+
+        // The cart and order line ("Sold per ..."), rendered on its own: a real cart needs the add-to-cart live component.
+        $item = new OrderItem();
+        $item->setVariant($this->variant($this->product('IMP-PK-1')));
+        $twig = static::getContainer()->get('twig');
+        self::assertInstanceOf(Environment::class, $twig);
+        $html = $twig->createTemplate("{{ component('sylius_shop:order_item:product_info', {item: item}) }}")->render(['item' => $item]);
+        self::assertStringContainsString('Sold per case of 144 pairs', $html);
+    }
+
+    public function testASupplierSkuWithADotGetsAValidCodeAndKeepsItsOwnSku(): void
+    {
+        $report = $this->import([['IMP-92-500-7.5-8', 'Cut gloves size 7.5', 'Safety & PPE', '9.50', '', '', '', '']]);
+
+        self::assertSame(1, $report->created);
+        self::assertSame('IMP-92-500-7_5-8', $this->variant($this->product('IMP-92-500-7_5-8'))->getCode());
+        $state = $this->entityManager()->getRepository(ProductImportState::class)->findOneBy(['productCode' => 'IMP-92-500-7_5-8']);
+        self::assertInstanceOf(ProductImportState::class, $state);
+        self::assertSame('IMP-92-500-7.5-8', $state->getSupplierSku());
+    }
+
+    public function testSkusInAGroupBecomeVariantsOfOneProduct(): void
+    {
+        $report = $this->importGrouped([
+            ['IMP-HF-8', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', 'yes', 'IMP-HYFLEX', 'Size 8', '12 PR = 1 DZ'],
+            ['IMP-HF-9', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', 'yes', 'IMP-HYFLEX', 'Size 9', '12 PR = 1 DZ'],
+            ['IMP-HF-10', 'HyFlex 11-600 Gloves', 'Safety & PPE', '622.22', 'yes', 'IMP-HYFLEX', 'Size 10', '144 PR = 1 CA'],
+        ]);
+
+        self::assertSame(3, $report->created, implode("\n", array_column($report->messages(), 'message')));
+        $product = $this->product('IMP-HYFLEX');
+        self::assertTrue($product->isEnabled());
+        self::assertSame('HyFlex 11-600 Gloves', $product->getName());
+        self::assertSame(ProductInterface::VARIANT_SELECTION_CHOICE, $product->getVariantSelectionMethod());
+        $names = [];
+        foreach ($product->getVariants() as $variant) {
+            $names[(string) $variant->getCode()] = $variant->getTranslation('en_US')->getName();
+        }
+        self::assertSame(['IMP-HF-8' => 'Size 8', 'IMP-HF-9' => 'Size 9', 'IMP-HF-10' => 'Size 10'], $names);
+        self::assertNull($this->findProduct('IMP-HF-8'), 'No product of its own per SKU.');
+
+        $this->client->request('GET', '/products/hyflex-11-600-gloves');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Size 10');
+        self::assertSelectorTextContains('body', 'per case of 144 pairs');
+    }
+
+    public function testReimportingAGroupUpdatesItsSkusAndAddsNewOnes(): void
+    {
+        $rows = [
+            ['IMP-HF-8', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 8', ''],
+            ['IMP-HF-9', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 9', ''],
+        ];
+        $this->importGrouped($rows);
+        $product = $this->product('IMP-HYFLEX');
+        $product->getTranslation('en_US')->setName('HyFlex® 11-600 Palm-Coated Gloves');
+        $this->entityManager()->flush();
+        $this->entityManager()->clear();
+
+        $rows[1][3] = '49.99';
+        $rows[] = ['IMP-HF-10', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 10', ''];
+        $report = $this->importGrouped($rows);
+
+        self::assertSame(1, $report->created);
+        self::assertSame(1, $report->updated);
+        self::assertSame(1, $report->unchanged);
+        $product = $this->product('IMP-HYFLEX');
+        self::assertSame('HyFlex® 11-600 Palm-Coated Gloves', $product->getName(), "The admin's name is kept.");
+        self::assertCount(3, $product->getVariants());
+        $variant = $this->entityManager()->getRepository(ProductVariant::class)->findOneBy(['code' => 'IMP-HF-9']);
+        self::assertInstanceOf(ProductVariant::class, $variant);
+        $pricing = $variant->getChannelPricings()->first();
+        self::assertInstanceOf(ChannelPricingInterface::class, $pricing);
+        self::assertSame(4999, $pricing->getPrice());
+    }
+
+    public function testASkuInAGroupNeedsAVariantName(): void
+    {
+        $report = $this->importGrouped([['IMP-HF-8', 'HyFlex', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', '', '']]);
+
+        self::assertSame(1, $report->failed);
+        self::assertStringContainsString('variant_name is required', implode("\n", array_column($report->messages(), 'message')));
+    }
+
+    public function testASkuThatIsAlreadyItsOwnProductIsNotMovedIntoAGroup(): void
+    {
+        $this->import([['IMP-HF-8', 'HyFlex size 8', 'Safety & PPE', '51.85', '', '', '', '']]);
+
+        $report = $this->importGrouped([['IMP-HF-8', 'HyFlex', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 8', '']]);
+
+        self::assertSame(1, $report->failed);
+        self::assertStringContainsString('is already product "IMP-HF-8"', implode("\n", array_column($report->messages(), 'message')));
+        self::assertNull($this->findProduct('IMP-HYFLEX'));
     }
 
     public function testGoLiveYesPublishesAReadyProduct(): void
@@ -271,6 +381,26 @@ final class ProductImportTest extends FunctionalTestCase
         return $report;
     }
 
+    /** @param list<list<string>> $rows rows with a unit_of_measure column at the end */
+    private function importWithUnit(array $rows): ImportReport
+    {
+        $path = $this->sheet($rows, [...self::HEADER, 'unit_of_measure']);
+        $report = $this->importer()->import(new ExcelProductSource($path));
+        $this->entityManager()->clear();
+
+        return $report;
+    }
+
+    /** @param list<list<string>> $rows sku, name, category, price, go_live, group, variant_name, unit_of_measure */
+    private function importGrouped(array $rows): ImportReport
+    {
+        $path = $this->sheet($rows, ['sku', 'name', 'category', 'price', 'go_live', 'group', 'variant_name', 'unit_of_measure']);
+        $report = $this->importer()->import(new ExcelProductSource($path));
+        $this->entityManager()->clear();
+
+        return $report;
+    }
+
     private function importer(): ProductImporter
     {
         $importer = static::getContainer()->get(ProductImporter::class);
@@ -279,13 +409,16 @@ final class ProductImportTest extends FunctionalTestCase
         return $importer;
     }
 
-    /** @param list<list<string>> $rows */
-    private function sheet(array $rows): string
+    /**
+     * @param list<list<string>> $rows
+     * @param list<string>       $header
+     */
+    private function sheet(array $rows, array $header = self::HEADER): string
     {
         $path = $this->dir.'/products-'.bin2hex(random_bytes(3)).'.xlsx';
         $writer = new Writer();
         $writer->openToFile($path);
-        $writer->addRow(Row::fromValues(self::HEADER));
+        $writer->addRow(Row::fromValues($header));
         foreach ($rows as $row) {
             $writer->addRow(Row::fromValues($row));
         }
