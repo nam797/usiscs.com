@@ -22,7 +22,6 @@ final class LegacyUrlRedirectController
         requirements: ['locale' => '[a-z]{2}_[A-Z]{2}', 'path' => '.*'],
         defaults: ['path' => ''],
         methods: ['GET', 'HEAD'],
-        priority: 10,
     )]
     public function __invoke(Request $request, string $path): RedirectResponse
     {

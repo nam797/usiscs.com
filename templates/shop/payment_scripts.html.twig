@@ -1,0 +1,9 @@
+{# Mollie's and Adyen's scripts come from their own servers and block the
+   page while they load (~1.3s and ~0.6s). They're only used to take a
+   payment, so they load on checkout and order-payment pages only (see
+   config/packages/twig_hooks.yaml). #}
+{% set route = app.request.attributes.get('_route') %}
+{% if route starts with 'sylius_shop_checkout_' or route in ['sylius_shop_order_pay', 'sylius_shop_order_show'] %}
+    {% include '@SyliusMolliePlugin/shop/shared/layout/base/mollie_javascripts.html.twig' %}
+    {% include '@SyliusAdyenPlugin/shop/shared/layout/base/analytics.html.twig' %}
+{% endif %}
