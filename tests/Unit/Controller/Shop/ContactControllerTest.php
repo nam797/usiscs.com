@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Controller\Shop;
 
 use App\Controller\Shop\ContactController;
+use App\Entity\Contact\ContactMessage;
 use App\Form\Contact\ContactRequestType;
+use App\Lead\LeadNotifier;
 use App\RateLimiting\FormSubmissionThrottle;
 use App\Tests\Unit\Controller\ControllerTestCase;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
@@ -23,6 +26,9 @@ use Symfony\Component\Mime\RawMessage;
 
 final class ContactControllerTest extends ControllerTestCase
 {
+    /** @var list<object> */
+    private array $persisted = [];
+
     /** @var list<RawMessage> */
     private array $sent = [];
 
@@ -35,6 +41,7 @@ final class ContactControllerTest extends ControllerTestCase
 
     protected function setUp(): void
     {
+        $this->persisted = [];
         $this->sent = [];
         $this->logs = [];
         $this->mailerFailure = null;
@@ -51,7 +58,7 @@ final class ContactControllerTest extends ControllerTestCase
         self::assertSame([], $this->sent);
     }
 
-    public function testAValidSubmissionEmailsTheChannelAndRedirects(): void
+    public function testAValidSubmissionIsSavedEmailedAndRedirects(): void
     {
         $response = $this->handle($this->post(self::validSubmission()));
 
@@ -59,12 +66,22 @@ final class ContactControllerTest extends ControllerTestCase
         self::assertSame('/route/app_shop_contact', $response->getTargetUrl());
         self::assertCount(1, $this->flashes('success'));
 
+        self::assertCount(1, $this->persisted);
+        $message = $this->persisted[0];
+        self::assertInstanceOf(ContactMessage::class, $message);
+        self::assertSame('Jane Doe', $message->getFullName());
+        self::assertSame('jane@acme.example', $message->getEmail());
+        self::assertSame(ContactRequestType::TOPIC_SUPPLY_PROBLEM, $message->getTopic());
+        self::assertSame('Need hard hats.', $message->getMessage());
+        self::assertNull($message->getCompany(), 'Blank optional fields are saved as null.');
+        self::assertSame(ContactMessage::STATUS_NEW, $message->getStatus());
+
         self::assertCount(1, $this->sent);
         $email = $this->sent[0];
         self::assertInstanceOf(Email::class, $email);
         self::assertSame('sales@usiscs.example', $email->getTo()[0]->getAddress());
-        self::assertSame('sales@usiscs.example', $email->getFrom()[0]->getAddress());
-        self::assertSame('USISCS', $email->getFrom()[0]->getName());
+        self::assertSame('no-reply@usiscs.example', $email->getFrom()[0]->getAddress());
+        self::assertSame('jane@acme.example', $email->getReplyTo()[0]->getAddress());
         self::assertSame(
             'New contact request from Jane Doe: Supply Problem / Emergency Sourcing',
             $email->getSubject(),
@@ -72,20 +89,14 @@ final class ContactControllerTest extends ControllerTestCase
         self::assertSame('rendered:emails/contact_request.txt.twig', $email->getTextBody());
     }
 
-    public function testTheEmailTemplateGetsTheSubmittedFields(): void
+    public function testTheEmailTemplateGetsTheSavedMessage(): void
     {
         $this->handle($this->post(self::validSubmission()));
 
         $emailRender = $this->rendered[0];
         self::assertSame('emails/contact_request.txt.twig', $emailRender[0]);
         self::assertSame('Supply Problem / Emergency Sourcing', $emailRender[1]['topicLabel']);
-
-        $data = $emailRender[1]['data'];
-        self::assertIsArray($data);
-        self::assertSame('Jane Doe', $data['fullName']);
-        self::assertSame('jane@acme.example', $data['email']);
-        self::assertSame('Need hard hats.', $data['message']);
-        self::assertNull($data['company'], 'Blank optional fields reach the template as null.');
+        self::assertSame($this->persisted[0], $emailRender[1]['message']);
     }
 
     public function testAnInvalidSubmissionRedisplaysTheFormWithoutSending(): void
@@ -97,6 +108,7 @@ final class ContactControllerTest extends ControllerTestCase
 
         self::assertNotInstanceOf(RedirectResponse::class, $response);
         self::assertSame(['shop/contact/index.html.twig'], $this->renderedTemplates());
+        self::assertSame([], $this->persisted);
         self::assertSame([], $this->sent);
         self::assertSame([], $this->flashes('success'));
     }
@@ -147,20 +159,20 @@ final class ContactControllerTest extends ControllerTestCase
         self::assertCount(1, $this->sent);
     }
 
-    public function testWithoutAChannelContactEmailItLogsAndStillThanksTheVisitor(): void
+    public function testWithoutAChannelContactEmailTheMessageIsStillSaved(): void
     {
         $response = $this->handle($this->post(self::validSubmission()), contactEmail: null);
 
         self::assertInstanceOf(RedirectResponse::class, $response);
         self::assertCount(1, $this->flashes('success'));
+        self::assertCount(1, $this->persisted);
         self::assertSame([], $this->sent);
         self::assertCount(1, $this->logs);
         self::assertSame('warning', $this->logs[0][0]);
-        self::assertStringContainsString('Jane Doe <jane@acme.example>', $this->logs[0][1]);
-        self::assertStringContainsString('"default"', $this->logs[0][1]);
+        self::assertStringContainsString('"Jane Doe" <jane@acme.example>', $this->logs[0][1]);
     }
 
-    public function testAMailerFailureIsLoggedAndTheVisitorStillSeesSuccess(): void
+    public function testAMailerFailureNeverLosesTheSavedMessage(): void
     {
         $this->mailerFailure = new TransportException('SMTP down');
 
@@ -168,6 +180,7 @@ final class ContactControllerTest extends ControllerTestCase
 
         self::assertInstanceOf(RedirectResponse::class, $response);
         self::assertCount(1, $this->flashes('success'));
+        self::assertCount(1, $this->persisted);
         self::assertCount(1, $this->logs);
         self::assertSame('error', $this->logs[0][0]);
         self::assertStringContainsString('SMTP down', $this->logs[0][1]);
@@ -194,6 +207,11 @@ final class ContactControllerTest extends ControllerTestCase
 
     private function handle(Request $request, ?string $contactEmail = 'sales@usiscs.example'): Response
     {
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->method('persist')->willReturnCallback(function (object $entity): void {
+            $this->persisted[] = $entity;
+        });
+
         $channel = $this->createMock(ChannelInterface::class);
         $channel->method('getContactEmail')->willReturn($contactEmail);
         $channel->method('getName')->willReturn('USISCS');
@@ -218,7 +236,8 @@ final class ContactControllerTest extends ControllerTestCase
             $this->logs[] = ['error', (string) $message];
         });
 
-        $controller = new ContactController($mailer, $channelContext, $logger, $this->throttle);
+        $notifier = new LeadNotifier($mailer, $channelContext, $this->recordingTwig(), $logger, 'no-reply@usiscs.example');
+        $controller = new ContactController($entityManager, $notifier, $this->throttle);
         $this->wire($controller, $request);
 
         return $controller->index($request);

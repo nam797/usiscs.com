@@ -8,6 +8,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use App\Controller\Admin\RfqRequestCrudController;
+use App\Controller\Admin\ContactMessageCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -34,6 +35,7 @@ class DashboardController extends AbstractDashboardController
     {
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
         yield MenuItem::linkTo(RfqRequestCrudController::class, 'RFQ Requests', 'fa fa-file-invoice');
+        yield MenuItem::linkTo(ContactMessageCrudController::class, 'Contact Messages', 'fa fa-envelope');
         yield MenuItem::linkToUrl('Sylius Admin (catalog, orders)', 'fa fa-store', '/admin');
     }
 }

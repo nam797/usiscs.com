@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Controller\Admin;
 
+use App\Controller\Admin\ContactMessageCrudController;
 use App\Controller\Admin\DashboardController;
 use App\Controller\Admin\RfqRequestCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
@@ -27,7 +28,7 @@ final class DashboardControllerTest extends TestCase
         self::assertSame('USISCS', (new DashboardController())->configureDashboard()->getAsDto()->getTitle());
     }
 
-    public function testTheMenuLinksTheRfqQueueAndSyliusAdmin(): void
+    public function testTheMenuLinksTheLeadQueuesAndSyliusAdmin(): void
     {
         $items = [];
         foreach ((new DashboardController())->configureMenuItems() as $item) {
@@ -42,8 +43,9 @@ final class DashboardControllerTest extends TestCase
             $labels[] = $label;
         }
 
-        self::assertSame(['Dashboard', 'RFQ Requests', 'Sylius Admin (catalog, orders)'], $labels);
+        self::assertSame(['Dashboard', 'RFQ Requests', 'Contact Messages', 'Sylius Admin (catalog, orders)'], $labels);
         self::assertSame(RfqRequestCrudController::class, $items[1]->getRouteParameters()['crudControllerFqcn'] ?? null);
-        self::assertSame('/admin', $items[2]->getLinkUrl());
+        self::assertSame(ContactMessageCrudController::class, $items[2]->getRouteParameters()['crudControllerFqcn'] ?? null);
+        self::assertSame('/admin', $items[3]->getLinkUrl());
     }
 }

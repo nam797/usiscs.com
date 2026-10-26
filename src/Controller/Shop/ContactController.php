@@ -4,30 +4,24 @@ declare(strict_types=1);
 
 namespace App\Controller\Shop;
 
+use App\Entity\Contact\ContactMessage;
 use App\Form\Contact\ContactRequestType;
+use App\Lead\LeadNotifier;
 use App\RateLimiting\FormSubmissionThrottle;
-use Psr\Log\LoggerInterface;
-use Sylius\Component\Channel\Context\ChannelContextInterface;
-use Sylius\Component\Core\Model\ChannelInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
-use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
-use Webmozart\Assert\Assert;
 
 /**
- * The public "Get In Touch" form — usiscs.com's /contact page. Unlike
- * the RFQ flow, there's no admin queue here: a submission is validated
- * and emailed, same as Sylius's own built-in contact feature (which
- * this replaces, since the live site's form has more fields than that
- * one supports). A failed/unconfigured mailer still shows the success
- * message rather than losing the submission silently with no record at
- * all — see the open question in the project doc re: where Contact
- * submissions should really land (inbox/CRM) once that's decided.
+ * The public "Get In Touch" form — usiscs.com's /contact page. It replaces
+ * Sylius's own contact feature, since the live site's form has more fields
+ * than that one supports. A submission is saved as a ContactMessage (listed
+ * in /backoffice) and then emailed to the team, so a mail failure never
+ * loses it.
  */
 final class ContactController extends AbstractController
 {
@@ -37,9 +31,8 @@ final class ContactController extends AbstractController
     private const WINDOW_SECONDS = 600;
 
     public function __construct(
-        private readonly MailerInterface $mailer,
-        private readonly ChannelContextInterface $channelContext,
-        private readonly LoggerInterface $logger,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly LeadNotifier $notifier,
         private readonly FormSubmissionThrottle $throttle,
     ) {
     }
@@ -65,7 +58,18 @@ final class ContactController extends AbstractController
             $this->throttle->hit('contact', $clientIp, self::WINDOW_SECONDS);
 
             if ($form->isValid()) {
-                $this->sendNotification($this->submittedData($form));
+                $message = $this->createMessage($form);
+                $this->entityManager->persist($message);
+                $this->entityManager->flush();
+
+                $topicLabel = ContactRequestType::TOPIC_LABELS[$message->getTopic()] ?? $message->getTopic();
+                $this->notifier->notify(
+                    sprintf('Contact message #%d', $message->getId() ?? 0),
+                    sprintf('New contact request from %s: %s', $message->getFullName(), $topicLabel),
+                    'emails/contact_request.txt.twig',
+                    ['message' => $message, 'topicLabel' => $topicLabel],
+                    new Address($message->getEmail(), $message->getFullName()),
+                );
 
                 $this->addFlash(
                     'success',
@@ -83,69 +87,24 @@ final class ContactController extends AbstractController
     }
 
     /**
-     * The form has no data_class, so read each field's value directly
+     * The form has no data_class, so read each (already validated) field
      * rather than trusting the untyped array from $form->getData().
-     *
-     * @return array<string, string|null>
      */
-    private function submittedData(FormInterface $form): array
+    private function createMessage(FormInterface $form): ContactMessage
     {
-        $data = [];
+        $value = static function (string $name) use ($form): ?string {
+            $data = $form->get($name)->getData();
 
-        foreach ($form->all() as $name => $field) {
-            $value = $field->getData();
-            $data[$name] = is_string($value) ? $value : null;
-        }
+            return is_string($data) && '' !== $data ? $data : null;
+        };
 
-        return $data;
-    }
-
-    /** @param array<string, string|null> $data */
-    private function sendNotification(array $data): void
-    {
-        $channel = $this->channelContext->getChannel();
-        Assert::isInstanceOf($channel, ChannelInterface::class);
-
-        $contactEmail = $channel->getContactEmail();
-
-        if (null === $contactEmail) {
-            $this->logger->warning(sprintf(
-                'Contact request from %s <%s> not emailed: channel "%s" has no contact email configured.',
-                $data['fullName'] ?? '(no name)',
-                $data['email'] ?? '(no email)',
-                $channel->getCode(),
-            ));
-
-            return;
-        }
-
-        $topic = $data['howCanWeHelp'] ?? null;
-        $topicLabel = null !== $topic
-            ? (ContactRequestType::TOPIC_LABELS[$topic] ?? $topic)
-            : 'Unknown';
-
-        // Self-notify from/to the channel's own contact address, same
-        // reasoning as the RFQ notification: no dedicated transactional
-        // email provider is chosen yet, so this just needs a valid From
-        // header until that decision lands.
-        $email = (new Email())
-            ->from(new Address($contactEmail, $channel->getName() ?? 'USISCS Website'))
-            ->to(new Address($contactEmail))
-            ->subject(sprintf('New contact request from %s: %s', $data['fullName'] ?? 'Unknown', $topicLabel))
-            ->text($this->renderView('emails/contact_request.txt.twig', [
-                'data' => $data,
-                'topicLabel' => $topicLabel,
-            ]));
-
-        try {
-            $this->mailer->send($email);
-        } catch (\Throwable $exception) {
-            // Broad catch deliberate — see the matching comment in
-            // RfqController::sendNotification() for why.
-            $this->logger->error(sprintf(
-                'Failed to send contact request notification email: %s',
-                $exception->getMessage(),
-            ));
-        }
+        return new ContactMessage(
+            fullName: $value('fullName') ?? '',
+            email: $value('email') ?? '',
+            topic: $value('howCanWeHelp') ?? '',
+            message: $value('message') ?? '',
+            company: $value('company'),
+            phone: $value('phone'),
+        );
     }
 }

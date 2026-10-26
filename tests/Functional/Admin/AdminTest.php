@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Admin;
 
+use App\Entity\Contact\ContactMessage;
 use App\Entity\Rfq\RfqLineItem;
 use App\Entity\Rfq\RfqRequest;
 use App\Tests\Functional\FunctionalTestCase;
@@ -95,6 +96,33 @@ final class AdminTest extends FunctionalTestCase
 
         self::assertResponseRedirects();
         self::assertSame(RfqRequest::STATUS_QUOTED, $this->savedRfqs()[0]->getStatus());
+    }
+
+    public function testAnAdminCanReadAContactMessageAndMarkItHandled(): void
+    {
+        $message = new ContactMessage('Jane Doe', 'jane@acme.example', 'supply_problem', 'Need 200 hard hats by Friday.');
+        $entityManager = $this->entityManager();
+        $entityManager->persist($message);
+        $entityManager->flush();
+        $this->loginAsAdmin();
+
+        $this->client->request('GET', '/backoffice/contact-message');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('table', 'Jane Doe');
+
+        $this->client->request('GET', sprintf('/backoffice/contact-message/%d', $message->getId()));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Need 200 hard hats by Friday.');
+
+        $crawler = $this->client->request('GET', sprintf('/backoffice/contact-message/%d/edit', $message->getId()));
+        $form = $crawler->filter('form[name="ContactMessage"]')->form();
+        $form['ContactMessage[status]'] = ContactMessage::STATUS_HANDLED;
+        $this->client->submit($form);
+
+        self::assertResponseRedirects();
+        $saved = $this->savedContactMessages();
+        self::assertSame(ContactMessage::STATUS_HANDLED, $saved[0]->getStatus());
+        self::assertSame('Need 200 hard hats by Friday.', $saved[0]->getMessage());
     }
 
     private function loginAsAdmin(): void

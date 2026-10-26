@@ -59,6 +59,12 @@
   their servers, blocking) now load only on checkout and order-payment pages.
   Fixed a PR #34 bug: the old-link redirect was catching Mollie/Adyen/PayPal
   addresses, which still start with /en_US.
+- Lead emails (2026-10-26): contact messages are now saved (/backoffice →
+  Contact Messages, mark handled) as well as RFQs; both email the team from
+  MAILER_FROM (no-reply@usiscs.com) with Reply-To = customer and an admin
+  link. Sylius's own emails use the same sender (was no-reply@example.com).
+  Not live yet: needs a mail provider DSN on Upsun and the channel contact
+  email set (see local-setup.md "Lead emails").
 
 ## Decisions
 - Short shop URLs, no locale prefix: categories at the root (`/safety-ppe/hand-protection`,
@@ -94,7 +100,11 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- **Now: client review of the category tree** (link above). Then build it:
+- **Now: turn on lead emails** (the code is done): pick a
+  provider (recommended: Postmark), verify usiscs.com (SPF/DKIM DNS records),
+  set `env:MAILER_DSN` on Upsun, set the channel contact email in the Sylius
+  admin, then send a test quote.
+- **Client review of the category tree** (link above). Then build it:
   replace the 6 placeholder categories (setup-categories), brand pages and
   filters, per-category SEO title/description/intro.
 - **Full catalog load (2,737 ORS SKUs)** from the "ORS price feed" sheet in
@@ -114,6 +124,5 @@
     account # + 2 passwords.
 - Local dev DB has 60 sample ORS products (imported from the price feed sheet).
 - Backoffice upload page so staff can import without the CLI.
-- Then: Upsun deploy + switch build to `npm ci`; lead email delivery (channel
-  contact email unset, no mail provider); choose Stripe vs Adyen.
+- Then: Upsun deploy + switch build to `npm ci`; choose Stripe vs Adyen.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.

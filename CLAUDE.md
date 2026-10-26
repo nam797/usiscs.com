@@ -14,7 +14,9 @@ GitHub: nam797/usiscs.com
 - Shop pages: `src/Controller/Shop/` — About, Services, Contact, RFQ, Privacy, Terms, Sitemap
 - RFQ (request for quote): `src/Entity/Rfq`, `src/Form/Rfq`, `src/Repository/Rfq`,
   admin CRUD in `src/Controller/Admin/RfqRequestCrudController.php`
-- Contact form: `src/Form/Contact/`
+- Contact form: `src/Form/Contact/`, saved as `src/Entity/Contact/ContactMessage`,
+  admin list in `src/Controller/Admin/ContactMessageCrudController.php`
+- Lead emails (RFQ + contact): `src/Lead/LeadNotifier.php`
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`
 - Security headers: `src/EventListener/SecurityHeadersListener.php`
 - Templates: `templates/shop/`, overrides in `templates/bundles/SyliusShopBundle/`
