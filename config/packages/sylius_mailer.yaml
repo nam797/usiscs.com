@@ -1,0 +1,6 @@
+# Sylius's own emails (order confirmation, password reset, ...) come from
+# the same address as lead notifications instead of no-reply@example.com.
+sylius_mailer:
+    sender:
+        name: 'USISCS'
+        address: '%env(MAILER_FROM)%'

@@ -7,6 +7,9 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Lead and order emails are sent from this address. It must be on a
+    # domain the mail provider (MAILER_DSN) is verified to send for.
+    env(MAILER_FROM): 'no-reply@usiscs.com'
 
 services:
     # Default configuration for services in *this* file

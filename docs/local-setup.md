@@ -210,6 +210,28 @@ Behat inherits Sylius's entire upstream suite from
 `vendor/sylius/sylius/src/Sylius/Behat/Resources/config/suites.yml` —
 `features/` in this repo is empty. Those suites take ~45 minutes in CI.
 
+## Lead emails (RFQ and contact form)
+
+Every /quote and /contact submission is saved first (/backoffice → RFQ
+Requests / Contact Messages), then emailed to the team:
+
+- **To:** the channel's contact email (Sylius admin → Channels → Contact
+  email). If it's blank, nothing is emailed and a warning is logged.
+- **From:** `MAILER_FROM` (default `no-reply@usiscs.com`; set in
+  `config/services.yaml`). Sylius's own emails (order confirmation, password
+  reset) use it too.
+- **Reply-To:** the customer, so Reply answers them directly.
+- **Sent via:** `MAILER_DSN`. Locally `null://null` (dropped). To see real
+  emails locally, run Mailpit (`brew install mailpit && mailpit`), set
+  `MAILER_DSN=smtp://127.0.0.1:1025` in `.env.local`, and open
+  http://127.0.0.1:8025.
+
+On Upsun, set the provider's DSN as a sensitive variable
+(`upsun variable:create --level environment --name env:MAILER_DSN --sensitive true ...`).
+Without it, `symfony var:export` falls back to Upsun's own SMTP relay, which
+isn't set up for usiscs.com (no SPF/DKIM), so mail is likely to land in spam.
+The provider must be verified for the `MAILER_FROM` domain.
+
 ## Database platform
 
 This project is MySQL. `.upsun/config.yaml`, `.platform/services.yaml`,
@@ -220,7 +242,7 @@ itself on non-MySQL platforms).
 Sylius core and the Stripe plugin ship their own migrations and register them
 from `vendor/`, including separate PostgreSQL variants that are skipped at
 runtime. So `migrations/` in this repo should only ever contain **deltas for
-app-specific tables** (currently the two RFQ tables), never a full schema
+app-specific tables** (RFQ, contact message, import state), never a full schema
 baseline.
 
 ## Gotchas

@@ -39,13 +39,7 @@ abstract class ControllerTestCase extends TestCase
         $requestStack = new RequestStack();
         $requestStack->push($request);
 
-        $twig = $this->createMock(Environment::class);
-        $twig->method('render')->willReturnCallback(function (string $name, array $context = []): string {
-            /** @var array<string, mixed> $context */
-            $this->rendered[] = [$name, $context];
-
-            return 'rendered:'.$name;
-        });
+        $twig = $this->recordingTwig();
 
         $router = $this->createMock(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(static fn (string $name): string => '/route/'.$name);
@@ -62,6 +56,20 @@ abstract class ControllerTestCase extends TestCase
         $container->set('form.factory', $formFactory);
 
         $controller->setContainer($container);
+    }
+
+    /** A Twig stub that records each render in $this->rendered. */
+    protected function recordingTwig(): Environment
+    {
+        $twig = $this->createMock(Environment::class);
+        $twig->method('render')->willReturnCallback(function (string $name, array $context = []): string {
+            /** @var array<string, mixed> $context */
+            $this->rendered[] = [$name, $context];
+
+            return 'rendered:'.$name;
+        });
+
+        return $twig;
     }
 
     /** @return list<string> */

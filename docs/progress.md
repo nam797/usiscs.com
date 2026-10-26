@@ -64,6 +64,12 @@
   their servers, blocking) now load only on checkout and order-payment pages.
   Fixed a PR #34 bug: the old-link redirect was catching Mollie/Adyen/PayPal
   addresses, which still start with /en_US.
+- Lead emails (2026-10-26): contact messages are now saved (/backoffice →
+  Contact Messages, mark handled) as well as RFQs; both email the team from
+  MAILER_FROM (no-reply@usiscs.com) with Reply-To = customer and an admin
+  link. Sylius's own emails use the same sender (was no-reply@example.com).
+  Not live yet: needs a mail provider DSN on Upsun and the channel contact
+  email set (see local-setup.md "Lead emails").
 
 ## Decisions
 - Payments: Stripe only (flux-se/sylius-stripe-plugin). Mollie, Adyen, PayPal
@@ -104,7 +110,12 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- **Now: client review of the category tree** (link above). Then build it:
+- **Waiting on the client: lead emails** (the code is done). Client is setting
+  up Postmark (sent 2026-10-26). Then: verify usiscs.com (SPF/DKIM DNS
+  records), set `env:MAILER_DSN` on Upsun, set the channel contact email in
+  the Sylius admin, send a test quote.
+- **ORS sync: PR #37**, waiting on ORS credentials (see below).
+- **Client review of the category tree** (link above). Then build it:
   replace the 6 placeholder categories (setup-categories), brand pages and
   filters, per-category SEO title/description/intro.
 - **Full catalog load (2,737 ORS SKUs)** from the "ORS price feed" sheet in
@@ -124,10 +135,9 @@
     account # + 2 passwords.
 - Local dev DB has 60 sample ORS products (imported from the price feed sheet).
 - Backoffice upload page so staff can import without the CLI.
-- **Turn on Stripe** once PR is merged and deployed: needs the client's Stripe
-  account (see docs/local-setup.md "Payments (Stripe)"): publishable key, a
-  restricted secret key, and a webhook. Check Sylius admin → Payment methods
-  on production and disable anything that isn't Stripe.
-- Then: Upsun deploy + switch build to `npm ci`; lead email delivery (channel
-  contact email unset, no mail provider).
+- **Turn on Stripe** (merged in PR #38): needs the client's Stripe account
+  (see docs/local-setup.md "Payments (Stripe)"): publishable key, a restricted
+  secret key, and a webhook. Check Sylius admin → Payment methods on
+  production and disable anything that isn't Stripe.
+- Then: Upsun deploy + switch build to `npm ci`.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.
