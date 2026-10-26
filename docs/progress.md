@@ -55,6 +55,11 @@
 - Short shop URLs (2026-10-24, PR #34): no /en_US prefix, categories at the root
   (/safety-ppe), products at /products/{slug}, old links 301; trademark signs
   out of product slugs.
+- Stripe only (2026-10-26): removed the Mollie, Adyen, PayPal and Refund
+  plugins (code, routes, scripts, tables and columns: migration
+  Version20261026150000, irreversible). Stripe API keys are stored encrypted;
+  the key lives in an Upsun mount (config/encryption), made on first deploy.
+  Shop JS bundle 6.3 MB -> 1.3 MB (dev build).
 - Faster shop pages (2026-10-25): Mollie's and Adyen's scripts (~1.9s from
   their servers, blocking) now load only on checkout and order-payment pages.
   Fixed a PR #34 bug: the old-link redirect was catching Mollie/Adyen/PayPal
@@ -67,13 +72,18 @@
   email set (see local-setup.md "Lead emails").
 
 ## Decisions
+- Payments: Stripe only (flux-se/sylius-stripe-plugin). Mollie, Adyen, PayPal
+  and the Refund plugin were removed (2026-10-26). Use the "Stripe Checkout"
+  gateway (Stripe-hosted card page, smallest PCI scope). Refunds: the payment's
+  Refund button in the Sylius admin refunds in full through Stripe; partial
+  refunds are done in the Stripe dashboard.
 - Short shop URLs, no locale prefix: categories at the root (`/safety-ppe/hand-protection`,
   slugs without the root taxon's "products/"), products at `/products/{slug}`.
   `/en_US/...` links 301 to the new form. The catch-all category route in
   `config/routes.yaml` must stay last, and a category slug must not equal a page
   path (about, contact, cart, account, products...).
-  The old-link redirect must stay below plugin routes (no route priority):
-  Mollie, Adyen and PayPal addresses still start with /en_US.
+  The old-link redirect must stay below plugin routes (no route priority), in
+  case a plugin's addresses start with /en_US.
 - Catalog import: admin edits always win, per field; imports never change
   whether a product is live (except go_live=yes on brand-new products).
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
@@ -104,7 +114,7 @@
   up Postmark (sent 2026-10-26). Then: verify usiscs.com (SPF/DKIM DNS
   records), set `env:MAILER_DSN` on Upsun, set the channel contact email in
   the Sylius admin, send a test quote.
-- **Now: finish the ORS sync** (see below).
+- **ORS sync: PR #37**, waiting on ORS credentials (see below).
 - **Client review of the category tree** (link above). Then build it:
   replace the 6 placeholder categories (setup-categories), brand pages and
   filters, per-category SEO title/description/intro.
@@ -125,5 +135,9 @@
     account # + 2 passwords.
 - Local dev DB has 60 sample ORS products (imported from the price feed sheet).
 - Backoffice upload page so staff can import without the CLI.
-- Then: Upsun deploy + switch build to `npm ci`; choose Stripe vs Adyen.
+- **Turn on Stripe** (merged in PR #38): needs the client's Stripe account
+  (see docs/local-setup.md "Payments (Stripe)"): publishable key, a restricted
+  secret key, and a webhook. Check Sylius admin → Payment methods on
+  production and disable anything that isn't Stripe.
+- Then: Upsun deploy + switch build to `npm ci`.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.

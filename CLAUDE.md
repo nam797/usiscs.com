@@ -17,6 +17,8 @@ GitHub: nam797/usiscs.com
 - Contact form: `src/Form/Contact/`, saved as `src/Entity/Contact/ContactMessage`,
   admin list in `src/Controller/Admin/ContactMessageCrudController.php`
 - Lead emails (RFQ + contact): `src/Lead/LeadNotifier.php`
+- Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius
+  admin; see docs/local-setup.md "Payments (Stripe)")
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`
 - Security headers: `src/EventListener/SecurityHeadersListener.php`
 - Templates: `templates/shop/`, overrides in `templates/bundles/SyliusShopBundle/`

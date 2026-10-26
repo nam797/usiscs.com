@@ -39,6 +39,8 @@
 
 ###> lexik/jwt-authentication-bundle ###
 /config/jwt/*.pem
+# Payment gateway encryption key (Stripe keys are stored encrypted with it)
+/config/encryption/key
 !/config/jwt/*-test.pem
 ###< lexik/jwt-authentication-bundle ###
 

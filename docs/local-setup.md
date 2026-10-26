@@ -164,6 +164,33 @@ php -d memory_limit=-1 bin/console app:catalog:import products.xlsx             
 *Enabled: No* → tick products → **Go live** (or **Take offline**). Products that
 aren't ready are listed with the reason and left hidden.
 
+## Payments (Stripe)
+
+Stripe is the only card processor (`flux-se/sylius-stripe-plugin`). It's set
+up in the Sylius admin, not in env files: the keys are stored in the database,
+encrypted with the key at `SYLIUS_PAYMENT_ENCRYPTION_KEY_PATH` (locally the
+committed `config/encryption/test.key`; on Upsun a key generated on first
+deploy in the `config/encryption` mount).
+
+1. In Stripe (test mode first): Developers → API keys. Copy the publishable
+   key (`pk_test_...`) and create a **restricted** key (`rk_test_...`; the
+   plugin refuses `sk_` keys) with write access to Checkout Sessions, Payment
+   Intents and Refunds, and read access to Events and Invoices (what the
+   plugin calls).
+2. Sylius admin → Configuration → Payment methods → Create → **Stripe
+   Checkout**. Code `stripe`, enable it in the channel, paste both keys.
+3. In Stripe: Developers → Webhooks → Add endpoint
+   `https://usiscs.com/payment-methods/stripe` (the payment method's code at
+   the end) with the events `checkout.session.completed`,
+   `checkout.session.async_payment_succeeded`,
+   `checkout.session.async_payment_failed`, `checkout.session.expired` and
+   `charge.refunded`. Paste its signing secret (`whsec_...`) into the payment
+   method's webhook secret keys.
+4. Place a test order with card `4242 4242 4242 4242`. Repeat with live keys.
+
+Locally, forward webhooks with the Stripe CLI:
+`stripe listen --forward-to http://127.0.0.1:8000/payment-methods/stripe`.
+
 ## Catalog categories
 
 The category tree (the six categories on /services) is created by an
@@ -212,7 +239,7 @@ This project is MySQL. `.upsun/config.yaml`, `.platform/services.yaml`,
 migration is MySQL-only (it extends Sylius's `AbstractMigration`, which skips
 itself on non-MySQL platforms).
 
-Sylius core and the payment plugins ship their own migrations and register them
+Sylius core and the Stripe plugin ship their own migrations and register them
 from `vendor/`, including separate PostgreSQL variants that are skipped at
 runtime. So `migrations/` in this repo should only ever contain **deltas for
 app-specific tables** (RFQ, contact message, import state), never a full schema
