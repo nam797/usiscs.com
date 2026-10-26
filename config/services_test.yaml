@@ -3,3 +3,10 @@ imports:
 
 sylius_api:
     enabled: true
+
+services:
+    # Tests never call ORS Nasco; they tell this fake what to answer.
+    App\Tests\Fake\FakeOrsNasco:
+        public: true
+    App\Supplier\OrsNasco\BulkAvailabilityClientInterface: '@App\Tests\Fake\FakeOrsNasco'
+    App\Supplier\OrsNasco\PriceClientInterface: '@App\Tests\Fake\FakeOrsNasco'

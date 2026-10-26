@@ -11,9 +11,16 @@ use Sylius\Component\Core\Model\ProductVariantInterface;
  * What a product needs before it can be shown in the shop. Used by the
  * import's go_live column and by the admin "Go live" bulk action, so both
  * apply the same rule. Images are deliberately not required.
+ *
+ * When the supplier cost is known (ORS price sync), the selling price must
+ * also be above it, so nothing goes live at a loss.
  */
 final class ReadinessChecker
 {
+    public function __construct(private readonly ?SupplierCostLookupInterface $costs = null)
+    {
+    }
+
     /** @return list<string> human-readable reasons; empty means ready */
     public function problems(ProductInterface $product): array
     {
@@ -38,6 +45,35 @@ final class ReadinessChecker
             }
         }
 
+        if (null !== $this->costs) {
+            foreach ($product->getVariants() as $variant) {
+                $cost = null === $variant->getCode() ? null : $this->costs->costInCents($variant->getCode());
+                if (null !== $cost && $variant instanceof ProductVariantInterface) {
+                    array_push($problems, ...self::belowCost($product, $variant, $cost));
+                }
+            }
+        }
+
+        return $problems;
+    }
+
+    /**
+     * Channels where the variant sells at or below what it costs us.
+     *
+     * @return list<string>
+     */
+    public static function belowCost(ProductInterface $product, ProductVariantInterface $variant, int $costInCents): array
+    {
+        $problems = [];
+        foreach ($product->getChannels() as $channel) {
+            foreach ($variant->getChannelPricings() as $pricing) {
+                $price = $pricing->getPrice();
+                if ($pricing->getChannelCode() === $channel->getCode() && null !== $price && $price > 0 && $price <= $costInCents) {
+                    $problems[] = sprintf('price %s in channel "%s" is not above the supplier cost %s', self::money($price), $channel->getCode(), self::money($costInCents));
+                }
+            }
+        }
+
         return $problems;
     }
 
@@ -55,5 +91,10 @@ final class ReadinessChecker
         }
 
         return false;
+    }
+
+    private static function money(int $cents): string
+    {
+        return '$'.number_format($cents / 100, 2);
     }
 }

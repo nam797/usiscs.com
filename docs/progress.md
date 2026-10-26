@@ -55,6 +55,11 @@
 - Short shop URLs (2026-10-24, PR #34): no /en_US prefix, categories at the root
   (/safety-ppe), products at /products/{slug}, old links 301; trademark signs
   out of product slugs.
+- ORS Nasco sync (2026-10-26): `app:ors:sync-stock` (bulk REST, on hand = ORS
+  total) and `app:ors:sync-cost` (SOAP PriceOnlyV2, cost into
+  `app_supplier_item`); go-live refuses products priced at or below cost.
+  Dry-run, --sku, nothing written on an ORS failure. Crons committed but
+  commented out until credentials exist.
 - Stripe only (2026-10-26): removed the Mollie, Adyen, PayPal and Refund
   plugins (code, routes, scripts, tables and columns: migration
   Version20261026150000, irreversible). Stripe API keys are stored encrypted;
@@ -72,6 +77,9 @@
   email set (see local-setup.md "Lead emails").
 
 ## Decisions
+- ORS Nasco: selling price = ORS list price (from the price feed import); the
+  API "price" is our cost, used only as a never-sell-below guard. Stock always
+  follows ORS (orders change on-hand, so admin stock edits aren't kept).
 - Payments: Stripe only (flux-se/sylius-stripe-plugin). Mollie, Adyen, PayPal
   and the Refund plugin were removed (2026-10-26). Use the "Stripe Checkout"
   gateway (Stripe-hosted card page, smallest PCI scope). Refunds: the payment's
@@ -114,7 +122,7 @@
   up Postmark (sent 2026-10-26). Then: verify usiscs.com (SPF/DKIM DNS
   records), set `env:MAILER_DSN` on Upsun, set the channel contact email in
   the Sylius admin, send a test quote.
-- **ORS sync: PR #37**, waiting on ORS credentials (see below).
+- **ORS sync: merged (PR #37)**, waiting on ORS credentials (see below).
 - **Client review of the category tree** (link above). Then build it:
   replace the 6 placeholder categories (setup-categories), brand pages and
   filters, per-category SEO title/description/intro.
@@ -126,13 +134,11 @@
   - Rule for ORS SKUs with "." (Sylius codes allow only letters, digits, - and _).
   - Product images: none in ORS files, so a source is needed.
   - Selling price = ORS **list** price. The ORS API price is our *cost*.
-- **ORS sync** (branch `ors-nasco-sync`, local WIP commit, not pushed): clients
-  for the bulk stock REST API and the SOAP price service, `app:ors:sync-stock`,
-  `app:ors:sync-cost`, a below-cost go-live guard, migration
-  `Version20261023210000`.
-  - Still to do: rebase on main, tests, 4 phpstan fixes, docs, Upsun crons.
-  - Needs credentials from ORS: OAuth client/secret + token URL, and the SOAP
-    account # + 2 passwords.
+- **ORS sync: built, waiting on ORS credentials.** Get from ORS: OAuth
+  client ID/secret + token URL (stock API), and the SOAP account # + 2
+  passwords (price service). Then: dry runs against the ORS test endpoints
+  (docs/local-setup.md "ORS Nasco sync"), set Upsun variables, uncomment the
+  crons in `.upsun/config.yaml`.
 - Local dev DB has 60 sample ORS products (imported from the price feed sheet).
 - Backoffice upload page so staff can import without the CLI.
 - **Turn on Stripe** (merged in PR #38): needs the client's Stripe account

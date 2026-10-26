@@ -164,6 +164,39 @@ php -d memory_limit=-1 bin/console app:catalog:import products.xlsx             
 *Enabled: No* → tick products → **Go live** (or **Take offline**). Products that
 aren't ready are listed with the reason and left hidden.
 
+## ORS Nasco sync (stock and cost)
+
+Two commands keep imported products in step with ORS Nasco, the supplier.
+They only touch products created by an import, never change whether a
+product is live, and write nothing if an ORS call fails.
+
+```bash
+# Stock: on hand = ORS's total across all warehouses (one REST call).
+php -d memory_limit=-1 bin/console app:ors:sync-stock --dry-run -v
+# Cost: what ORS charges us per selling unit (SOAP, 40 SKUs per call).
+php -d memory_limit=-1 bin/console app:ors:sync-cost --dry-run --sku=037-1001
+```
+
+- Drop `--dry-run` to save. `--sku` (repeatable) limits the run; `-v` lists
+  every change.
+- Stock always follows ORS, even over an admin edit; SKUs ORS doesn't list
+  keep their stock.
+- Cost is stored in `app_supplier_item`. The selling price is never changed,
+  but products priced at or below cost are reported, and "Go live" refuses
+  them.
+
+Credentials go in `.env.local` (or Upsun variables), never `.env`. The
+defaults in `config/services.yaml` point at ORS's **test** endpoints.
+
+| Variable | What |
+|---|---|
+| `ORS_OAUTH_TOKEN_URL`, `ORS_OAUTH_CLIENT_ID`, `ORS_OAUTH_CLIENT_SECRET` | Stock API (Workato, OAuth 2 client credentials) |
+| `ORS_CUSTNO`, `ORS_PA_PASSWORD`, `ORS_PA_PASSWORD2` | Price service account # and its two passwords |
+| `ORS_AVAILABILITY_URL`, `ORS_PA_URL` | Production endpoints (drop `test`/`TEST` from the defaults) |
+
+On Upsun, the crons are in `.upsun/config.yaml`, commented out until the
+credentials are set.
+
 ## Payments (Stripe)
 
 Stripe is the only card processor (`flux-se/sylius-stripe-plugin`). It's set
@@ -242,7 +275,7 @@ itself on non-MySQL platforms).
 Sylius core and the Stripe plugin ship their own migrations and register them
 from `vendor/`, including separate PostgreSQL variants that are skipped at
 runtime. So `migrations/` in this repo should only ever contain **deltas for
-app-specific tables** (RFQ, contact message, import state), never a full schema
+app-specific tables** (RFQ, contact message, import state, supplier item), never a full schema
 baseline.
 
 ## Gotchas

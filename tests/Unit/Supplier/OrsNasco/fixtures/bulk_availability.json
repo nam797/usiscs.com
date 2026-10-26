@@ -1,0 +1,7 @@
+{
+  "products": [
+    { "orsProduct": "312-7", "uom": "EA", "totalAvailability": 12534 },
+    { "orsProduct": "680-11-921A", "uom": "PK", "totalAvailability": 4011 },
+    { "orsProduct": "037-1001", "uom": "BX", "totalAvailability": 0 }
+  ]
+}

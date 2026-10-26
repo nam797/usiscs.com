@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <GetPAResponse xmlns="http://webservices.orsnasco.com/ORSInventoryQueryToolWSV3/ORSInventoryQueryTool/">
+      <GetPAResult>
+        <Products xmlns="">
+          <ProductDetails>
+            <productCode>312-7</productCode>
+            <price>0.302</price>
+            <unitSell>EA</unitSell>
+            <unitConversion>1 EA/EA</unitConversion>
+          </ProductDetails>
+          <ProductDetails>
+            <productCode>680-11-921A</productCode>
+            <price>12.432</price>
+            <unitSell>PK</unitSell>
+            <unitConversion>100 EA/PK</unitConversion>
+          </ProductDetails>
+          <ProductDetails>
+            <productCode>DUMMYITEM</productCode>
+            <errorMessage>Invalid Product Number</errorMessage>
+            <price>0</price>
+            <unitSell/>
+            <unitConversion/>
+          </ProductDetails>
+        </Products>
+      </GetPAResult>
+    </GetPAResponse>
+  </soap:Body>
+</soap:Envelope>

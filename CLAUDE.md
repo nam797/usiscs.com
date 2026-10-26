@@ -17,6 +17,8 @@ GitHub: nam797/usiscs.com
 - Contact form: `src/Form/Contact/`, saved as `src/Entity/Contact/ContactMessage`,
   admin list in `src/Controller/Admin/ContactMessageCrudController.php`
 - Lead emails (RFQ + contact): `src/Lead/LeadNotifier.php`
+- ORS Nasco supplier sync: API clients in `src/Supplier/OrsNasco/`, syncs in
+  `src/Catalog/Sync/`, commands `app:ors:sync-stock` / `app:ors:sync-cost`
 - Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius
   admin; see docs/local-setup.md "Payments (Stripe)")
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`
