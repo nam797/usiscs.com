@@ -14,7 +14,9 @@ GitHub: nam797/usiscs.com
 - Shop pages: `src/Controller/Shop/` — About, Services, Contact, RFQ, Privacy, Terms, Sitemap
 - RFQ (request for quote): `src/Entity/Rfq`, `src/Form/Rfq`, `src/Repository/Rfq`,
   admin CRUD in `src/Controller/Admin/RfqRequestCrudController.php`
-- Contact form: `src/Form/Contact/`
+- Contact form: `src/Form/Contact/`, saved as `src/Entity/Contact/ContactMessage`,
+  admin list in `src/Controller/Admin/ContactMessageCrudController.php`
+- Lead emails (RFQ + contact): `src/Lead/LeadNotifier.php`
 - ORS Nasco supplier sync: API clients in `src/Supplier/OrsNasco/`, syncs in
   `src/Catalog/Sync/`, commands `app:ors:sync-stock` / `app:ors:sync-cost`
 - Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius

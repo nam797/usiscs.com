@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Controller\Shop;
 
 use App\Controller\Shop\RfqController;
 use App\Entity\Rfq\RfqRequest;
+use App\Lead\LeadNotifier;
 use App\RateLimiting\FormSubmissionThrottle;
 use App\Tests\Unit\Controller\ControllerTestCase;
 use Doctrine\ORM\EntityManagerInterface;
@@ -87,7 +88,9 @@ final class RfqControllerTest extends ControllerTestCase
         $email = $this->sent[0];
         self::assertInstanceOf(Email::class, $email);
         self::assertSame('sales@usiscs.example', $email->getTo()[0]->getAddress());
-        self::assertSame('sales@usiscs.example', $email->getFrom()[0]->getAddress());
+        self::assertSame('no-reply@usiscs.example', $email->getFrom()[0]->getAddress());
+        self::assertSame('jane@acme.example', $email->getReplyTo()[0]->getAddress());
+        self::assertSame('Jane Doe', $email->getReplyTo()[0]->getName());
         self::assertSame('New RFQ from Acme Construction (Jane Doe)', $email->getSubject());
         self::assertSame('rendered:emails/rfq_request.txt.twig', $email->getTextBody());
         self::assertSame($this->persisted[0], $this->rendered[0][1]['rfq']);
@@ -228,7 +231,8 @@ final class RfqControllerTest extends ControllerTestCase
             $this->logs[] = ['error', (string) $message];
         });
 
-        $controller = new RfqController($entityManager, $mailer, $channelContext, $logger, $this->throttle);
+        $notifier = new LeadNotifier($mailer, $channelContext, $this->recordingTwig(), $logger, 'no-reply@usiscs.example');
+        $controller = new RfqController($entityManager, $notifier, $this->throttle);
         $this->wire($controller, $request);
 
         return $controller->index($request);

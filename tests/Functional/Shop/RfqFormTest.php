@@ -49,6 +49,9 @@ final class RfqFormTest extends FunctionalTestCase
         self::assertEmailAddressContains($email, 'To', self::CHANNEL_CONTACT_EMAIL);
         self::assertEmailHeaderSame($email, 'Subject', 'New RFQ from Acme Construction (Jane Doe)');
         self::assertEmailTextBodyContains($email, 'Safety gloves');
+        self::assertEmailAddressContains($email, 'From', 'no-reply@usiscs.com');
+        self::assertEmailAddressContains($email, 'Reply-To', 'jane@acme.example');
+        self::assertEmailTextBodyContains($email, sprintf('http://localhost/backoffice/rfq-request/%d', $this->savedRfqs()[0]->getId()));
     }
 
     public function testARequestWithoutItemsTellsTheCustomerWhy(): void

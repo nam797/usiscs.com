@@ -22,4 +22,5 @@ Items needed:
 {{ rfq.additionalNotes }}
 {% endif %}
 
-View and manage this request in the admin: /backoffice/rfq-request/{{ rfq.id }}
+Reply to this email to answer {{ rfq.fullName }} directly.
+View and manage this request in the admin: {{ url('app_admin_dashboard_rfq_request_detail', {entityId: rfq.id}) }}

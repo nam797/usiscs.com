@@ -2,10 +2,13 @@ New contact request from usiscs.com/contact
 
 Topic: {{ topicLabel }}
 
-Name: {{ data.fullName }}
-Company: {{ data.company|default('(not provided)') }}
-Email: {{ data.email }}
-Phone: {{ data.phone|default('(not provided)') }}
+Name: {{ message.fullName }}
+Company: {{ message.company|default('(not provided)') }}
+Email: {{ message.email }}
+Phone: {{ message.phone|default('(not provided)') }}
 
 Message:
-{{ data.message }}
+{{ message.message }}
+
+Reply to this email to answer {{ message.fullName }} directly.
+View it in the admin: {{ url('app_admin_dashboard_contact_message_detail', {entityId: message.id}) }}

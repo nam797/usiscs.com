@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Entity\Channel\Channel;
+use App\Entity\Contact\ContactMessage;
 use App\Entity\Product\Product;
 use App\Entity\Rfq\RfqRequest;
 use App\Entity\Taxonomy\Taxon;
@@ -52,8 +53,9 @@ abstract class FunctionalTestCase extends WebTestCase
         self::assertInstanceOf(CacheItemPoolInterface::class, $cache);
         $cache->clear();
 
-        // Every test starts with an empty RFQ queue (line items cascade).
+        // Every test starts with empty lead queues (RFQ line items cascade).
         $this->entityManager()->createQuery('DELETE FROM '.RfqRequest::class)->execute();
+        $this->entityManager()->createQuery('DELETE FROM '.ContactMessage::class)->execute();
     }
 
     protected function entityManager(): EntityManagerInterface
@@ -73,6 +75,15 @@ abstract class FunctionalTestCase extends WebTestCase
         $entityManager->clear();
 
         return $entityManager->getRepository(RfqRequest::class)->findBy([], ['id' => 'ASC']);
+    }
+
+    /** @return list<ContactMessage> */
+    protected function savedContactMessages(): array
+    {
+        $entityManager = $this->entityManager();
+        $entityManager->clear();
+
+        return $entityManager->getRepository(ContactMessage::class)->findBy([], ['id' => 'ASC']);
     }
 
     /**

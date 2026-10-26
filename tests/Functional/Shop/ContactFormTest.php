@@ -25,6 +25,13 @@ final class ContactFormTest extends FunctionalTestCase
         self::assertEmailTextBodyContains($email, 'jane@acme.example');
         self::assertEmailTextBodyContains($email, 'Need 200 hard hats by Friday.');
         self::assertEmailTextBodyContains($email, '(not provided)');
+        self::assertEmailAddressContains($email, 'From', 'no-reply@usiscs.com');
+        self::assertEmailAddressContains($email, 'Reply-To', 'jane@acme.example');
+
+        $saved = $this->savedContactMessages();
+        self::assertCount(1, $saved);
+        self::assertSame('Need 200 hard hats by Friday.', $saved[0]->getMessage());
+        self::assertEmailTextBodyContains($email, sprintf('http://localhost/backoffice/contact-message/%d', $saved[0]->getId()));
 
         $this->client->followRedirect();
         self::assertSelectorTextContains('body', "Thanks for reaching out");
@@ -37,6 +44,7 @@ final class ContactFormTest extends FunctionalTestCase
         $values['contact_request[message]'] = '';
 
         $this->submit($values);
+        self::assertSame([], $this->savedContactMessages());
 
         self::assertResponseIsSuccessful();
         self::assertEmailCount(0);
