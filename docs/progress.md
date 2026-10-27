@@ -87,6 +87,15 @@
   sheet (list price, pack unit, families grouped, draft variant names,
   interim categories).
 
+- Catalog polish (2026-10-26): size/colour choices are listed in natural
+  order (Size 6 before Size 10); category pages show 24 products (48/96 on
+  the Show menu); the import summary counts choices added to an existing
+  product separately. The full ORS catalog (1,390 products) is loaded live on
+  the local dev DB for browsing.
+- Dark theme fixes (2026-10-26): cart summary, coupon box, checkout header
+  and summary column, login panel and light buttons no longer render as white
+  panels with near-white text (brand.scss maps Bootstrap's light-only classes
+  onto the dark panel colour; the logo keeps its white box via .logo-panel).
 - Fulfilment per SKU (2026-10-27): ORS direct / cross-dock (ORS ships to our
   warehouse, we ship on) / not confirmed, plus a shipping note. Import columns
   `fulfilment`, `shipping_note`; admin product and variant forms; admin list

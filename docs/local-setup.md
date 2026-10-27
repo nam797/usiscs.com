@@ -171,7 +171,8 @@ php -d memory_limit=-1 bin/console app:catalog:import products.xlsx             
   whose code is the group. Its name, category, description and manufacturer
   come from the group's first row; each SKU keeps its own price, stock, pack
   unit and `variant_name` ("Size 10, black"). A SKU that is already a product
-  of its own isn't moved into a group (delete it first).
+  of its own isn't moved into a group (delete it first). New choices are
+  slotted into natural order ("Size 6" before "Size 10").
 
 - **`fulfilment`**: how each SKU reaches the customer, `ORS direct` (ORS
   ships to them) or `cross-dock` (ORS ships to our warehouse, we ship on).

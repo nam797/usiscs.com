@@ -1,0 +1,6 @@
+# Category pages list 24 products by default (Sylius's 9 means ~90 pages for
+# Safety & PPE alone); 48 and 96 are on the "Show" menu.
+sylius_grid:
+    grids:
+        sylius_shop_product:
+            limits: [24, 48, 96]

@@ -80,7 +80,8 @@ final class PrepareOrsImportCommandTest extends FunctionalTestCase
         $report = $importer->import(new ExcelProductSource($this->dir.'/out.xlsx'), true);
 
         self::assertSame(0, $report->failed, implode("\n", array_column($report->messages(), 'message')));
-        self::assertSame(4, $report->created);
+        self::assertSame(2, $report->created, 'Allegro pads and the gloves product.');
+        self::assertSame(2, $report->added, 'The other two glove SKUs.');
     }
 
     public function testAMissingSheetIsExplained(): void

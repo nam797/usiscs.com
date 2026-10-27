@@ -106,12 +106,13 @@ final class ProductImportTest extends FunctionalTestCase
     public function testSkusInAGroupBecomeVariantsOfOneProduct(): void
     {
         $report = $this->importGrouped([
+            ['IMP-HF-10', 'HyFlex 11-600 Gloves', 'Safety & PPE', '622.22', 'yes', 'IMP-HYFLEX', 'Size 10', '144 PR = 1 CA'],
             ['IMP-HF-8', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', 'yes', 'IMP-HYFLEX', 'Size 8', '12 PR = 1 DZ'],
             ['IMP-HF-9', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', 'yes', 'IMP-HYFLEX', 'Size 9', '12 PR = 1 DZ'],
-            ['IMP-HF-10', 'HyFlex 11-600 Gloves', 'Safety & PPE', '622.22', 'yes', 'IMP-HYFLEX', 'Size 10', '144 PR = 1 CA'],
         ]);
 
-        self::assertSame(3, $report->created, implode("\n", array_column($report->messages(), 'message')));
+        self::assertSame(1, $report->created, implode("\n", array_column($report->messages(), 'message')));
+        self::assertSame(2, $report->added, 'The other two SKUs are choices of the new product.');
         $product = $this->product('IMP-HYFLEX');
         self::assertTrue($product->isEnabled());
         self::assertSame('HyFlex 11-600 Gloves', $product->getName());
@@ -120,13 +121,28 @@ final class ProductImportTest extends FunctionalTestCase
         foreach ($product->getVariants() as $variant) {
             $names[(string) $variant->getCode()] = $variant->getTranslation('en_US')->getName();
         }
-        self::assertSame(['IMP-HF-8' => 'Size 8', 'IMP-HF-9' => 'Size 9', 'IMP-HF-10' => 'Size 10'], $names);
+        self::assertSame(['IMP-HF-8' => 'Size 8', 'IMP-HF-9' => 'Size 9', 'IMP-HF-10' => 'Size 10'], $names, 'Listed in natural order.');
         self::assertNull($this->findProduct('IMP-HF-8'), 'No product of its own per SKU.');
 
         $this->client->request('GET', '/products/hyflex-11-600-gloves');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'Size 10');
         self::assertSelectorTextContains('body', 'per case of 144 pairs');
+    }
+
+    public function testChoicesAreListedInNaturalOrderWhateverTheSheetOrder(): void
+    {
+        $rows = [];
+        foreach (['White, Size 6', 'Black, Size 10', 'Black, Size 6', 'Black, Size 11', 'White, Size 10'] as $i => $name) {
+            $rows[] = ['IMP-NAT-'.$i, 'Natural gloves', 'Safety & PPE', '10', '', 'IMP-NATURAL', $name, ''];
+        }
+        $this->importGrouped($rows);
+
+        $names = [];
+        foreach ($this->product('IMP-NATURAL')->getVariants() as $variant) {
+            $names[] = $variant->getTranslation('en_US')->getName();
+        }
+        self::assertSame(['Black, Size 6', 'Black, Size 10', 'Black, Size 11', 'White, Size 6', 'White, Size 10'], $names);
     }
 
     public function testReimportingAGroupUpdatesItsSkusAndAddsNewOnes(): void
@@ -145,7 +161,7 @@ final class ProductImportTest extends FunctionalTestCase
         $rows[] = ['IMP-HF-10', 'HyFlex 11-600 Gloves', 'Safety & PPE', '51.85', '', 'IMP-HYFLEX', 'Size 10', ''];
         $report = $this->importGrouped($rows);
 
-        self::assertSame(1, $report->created);
+        self::assertSame(1, $report->added);
         self::assertSame(1, $report->updated);
         self::assertSame(1, $report->unchanged);
         $product = $this->product('IMP-HYFLEX');
@@ -376,7 +392,7 @@ final class ProductImportTest extends FunctionalTestCase
 
         self::assertSame(1, $exitCode);
         $display = $tester->getDisplay();
-        self::assertMatchesRegularExpression('/Created \(hidden drafts\)\s+1/', $display);
+        self::assertMatchesRegularExpression('/New products, hidden drafts\s+1/', $display);
         self::assertStringContainsString('price is required', $display);
         self::assertNotNull($this->findProduct('IMP-CMD-1'));
     }

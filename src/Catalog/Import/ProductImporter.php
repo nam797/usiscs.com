@@ -329,6 +329,7 @@ final class ProductImporter
             $variant->setFallbackLocale($this->defaultLocale);
             $variantFields = $this->variantFields($row, $channelCodes);
             $this->write($product, $variant, $variantFields);
+            $variant->setPosition($this->naturalPosition($product, $row->variantName));
             $product->addVariant($variant);
             $this->entityManager->persist($variant);
 
@@ -340,7 +341,10 @@ final class ProductImporter
                 $state->setSupplierSku($row->supplierSku);
             }
 
-            ++$report->created;
+            // Gedmo places one new position at a time reliably, not several in one flush.
+            $this->entityManager->flush();
+
+            ++$report->added;
             $report->add($rowNumber, $row->sku, ImportReport::INFO, sprintf('added to product "%s"%s', $group, $product->isEnabled() ? ' (live)' : ''));
 
             return;
@@ -365,6 +369,24 @@ final class ProductImporter
         if ([] !== $kept) {
             $report->add($rowNumber, $row->sku, ImportReport::INFO, sprintf('kept admin edits to %s', self::fieldList($kept)));
         }
+    }
+
+    /**
+     * Where a new choice goes so the list stays in natural order ("Size 6"
+     * before "Size 10") whatever order the sheet had. Positions are Gedmo
+     * sortable: setting the new one's makes room for it, and the others'
+     * order (including an admin's own) is left alone.
+     */
+    private function naturalPosition(ProductInterface $product, ?string $name): int
+    {
+        $position = 0;
+        foreach ($product->getVariants() as $variant) {
+            if (strnatcasecmp((string) $variant->getTranslation($this->defaultLocale)->getName(), (string) $name) <= 0) {
+                ++$position;
+            }
+        }
+
+        return $position;
     }
 
     private function stateOfAnyVariant(ProductInterface $product): ?ProductImportState

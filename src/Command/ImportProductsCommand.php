@@ -64,9 +64,10 @@ final class ImportProductsCommand extends Command
         }
 
         $io->title($dryRun ? 'Dry run: nothing was saved' : 'Import finished');
-        $io->table(['Result', 'Products'], [
-            ['Created (hidden drafts)', $report->created - $report->createdLive],
-            ['Created and live (go_live=yes)', $report->createdLive],
+        $io->table(['Result', 'SKUs'], [
+            ['New products, hidden drafts', $report->created - $report->createdLive],
+            ['New products, live (go_live=yes)', $report->createdLive],
+            ['Added as a choice to an existing product', $report->added],
             ['Updated', $report->updated],
             ['Unchanged', $report->unchanged],
             ['Left alone (made by hand)', $report->untouched],
