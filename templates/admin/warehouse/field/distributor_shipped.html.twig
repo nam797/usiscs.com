@@ -1,0 +1,10 @@
+{# When the distributor shipped to us (its first tracking number) and its tracking. #}
+{% set purchase_order = entity.instance %}
+{% if purchase_order.distributorShippedAt %}
+    {{ purchase_order.distributorShippedAt|date('D M j') }}
+    {% for shipment in field.value %}
+        <div class="text-secondary small">{{ shipment.carrier }} {{ shipment.trackingNumber }}</div>
+    {% endfor %}
+{% else %}
+    <span class="text-secondary">Not yet</span>
+{% endif %}

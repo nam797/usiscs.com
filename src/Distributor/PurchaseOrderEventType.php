@@ -34,6 +34,12 @@ enum PurchaseOrderEventType: string
     case Backordered = 'backordered';
     /** The customer's shop shipment was updated (tracking, shipped email). */
     case CustomerUpdated = 'customer_updated';
+    /** Cross-dock: the date it's expected at our warehouse was set or changed. */
+    case ExpectedDateChanged = 'expected_date_changed';
+    /** Cross-dock: our warehouse checked the delivery in. */
+    case Received = 'received';
+    /** Cross-dock: we shipped it on to the customer. */
+    case ShippedToCustomer = 'shipped_to_customer';
 
     public static function of(PurchaseOrderTransition $transition): self
     {
@@ -62,6 +68,9 @@ enum PurchaseOrderEventType: string
             self::Tracking => 'Tracking number',
             self::Backordered => 'Back-order',
             self::CustomerUpdated => 'Customer updated',
+            self::ExpectedDateChanged => 'Expected date',
+            self::Received => 'Received at warehouse',
+            self::ShippedToCustomer => 'Shipped to customer',
         };
     }
 }

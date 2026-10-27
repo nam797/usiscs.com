@@ -275,9 +275,10 @@ distributor and fulfilment (direct / cross-dock), numbered `{order}-1`,
     tracking numbers and invoice totals on the timeline.
   - It finds ORS orders staff placed by hand but didn't mark submitted, by
     our PO number.
-  - When every purchase order of an order ships direct, the customer's
-    shipment gets the tracking number and is marked shipped, and Sylius's
-    shipping email goes out. Cross-dock orders are left to staff.
+  - Direct purchase orders' tracking numbers go on the customer's
+    shipment. Once every part of the order has gone (direct ones shipped
+    by the distributor, cross-dock ones shipped on by us, see below), the
+    shipment is marked shipped and Sylius's shipping email goes out.
   - An ORS cancellation puts the purchase order in **Needs attention**.
   - It emails staff one list of purchase orders stuck too long, at most
     once a day each. The limits are in `PurchaseOrderWatchdog::LIMITS`.
@@ -287,6 +288,25 @@ distributor and fulfilment (direct / cross-dock), numbered `{order}-1`,
     `https://webservices.orsnasco.com/ORSOrderQueryV1/ORSOrderQuery.asmx`
     (the default is the TEST one). Until these are set, the command warns
     and skips ORS.
+- **Cross-dock (Backoffice → Warehouse):** cross-dock purchase orders ship
+  to our warehouse.
+  - When the first tracking number comes in, the expected date is set to
+    the ship date + `app.cross_dock_transit_days` business days (in
+    `config/services.yaml`, default 3). Staff can change it with **Set
+    expected date**.
+  - The warehouse clicks **Mark received** when it's checked in, then
+    **Ship to customer** with our carrier and tracking. That tracking goes on
+    the customer's order; the distributor's tracking (to us) never does.
+  - The Sylius admin order list has a **Delivery** column and filter
+    (Direct / Cross-dock / Mixed / Not confirmed).
+  - **Sample data:** `php -d memory_limit=-1 bin/console app:dev:demo-cross-dock`
+    (dev only) creates six paid orders, DEMO-001 to DEMO-006, with
+    purchase orders in every warehouse state (overdue, due soon, on its
+    way, not shipped yet, received, shipped on). It also adds a direct
+    purchase order awaiting manual entry.
+    - Running it again resets them. `--delete` removes them.
+    - Nothing is queued or emailed, and the catalog isn't changed.
+    - It needs the `checkout_shipping` fixtures, which give a shipping method.
 - **Trying it locally:**
   1. In the admin, set a variant's distributor to **Test distributor** (dev
      only).

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Distributor\EventListener;
 
+use App\Distributor\FulfilmentRoute;
 use App\Distributor\PurchaseOrderPlanner;
+use App\Entity\Order\Order;
 use App\Repository\Procurement\PurchaseOrderRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
@@ -15,6 +17,9 @@ use Symfony\Component\Workflow\Event\CompletedEvent;
  * An order is fully paid: create its purchase orders. They're persisted
  * here and saved by the flush that saves the payment (Sylius flushes after
  * every payment transition); PurchaseOrderOutbox then queues them.
+ *
+ * Also records on the order whether it ships direct, through our
+ * warehouse (cross-dock) or both, for the Sylius admin order list.
  *
  * Only once per order, so a refund-and-pay-again or a replayed webhook
  * doesn't order the goods twice.
@@ -36,8 +41,12 @@ final class PlanPurchaseOrdersOnPayment
             return;
         }
 
-        foreach ($this->planner->plan($order) as $purchaseOrder) {
+        $purchaseOrders = $this->planner->plan($order);
+        foreach ($purchaseOrders as $purchaseOrder) {
             $this->entityManager->persist($purchaseOrder);
+        }
+        if ($order instanceof Order) {
+            $order->setFulfilmentRoute(FulfilmentRoute::of($purchaseOrders));
         }
     }
 }

@@ -1,0 +1,8 @@
+{# The shop order (linking to the Sylius admin) and who it ships on to. #}
+{% set order = entity.instance.order %}
+{% set address = order.shippingAddress %}
+<a href="{{ path('sylius_admin_order_show', {id: order.id}) }}">#{{ order.number }}</a>
+{% if address %}
+    <div class="text-secondary">{{ address.fullName }}{% if address.company %}, {{ address.company }}{% endif %}</div>
+    <div class="text-secondary">{{ address.city }}{% if address.provinceCode or address.provinceName %}, {{ address.provinceName ?? address.provinceCode|split('-')|last }}{% endif %}</div>
+{% endif %}
