@@ -96,8 +96,17 @@
   and summary column, login panel and light buttons no longer render as white
   panels with near-white text (brand.scss maps Bootstrap's light-only classes
   onto the dark panel colour; the logo keeps its white box via .logo-panel).
+- Fulfilment per SKU (2026-10-27): ORS direct / cross-dock (ORS ships to our
+  warehouse, we ship on) / not confirmed, plus a shipping note. Import columns
+  `fulfilment`, `shipping_note`; admin product and variant forms; admin list
+  filter. Go live refuses a product while any SKU is not confirmed. The ORS
+  import sheet fills it from the direct-ship review (blank so far) and notes
+  the 306 priced SKUs its screen flagged.
 
 ## Decisions
+- Nothing goes live until its shipping is confirmed: every SKU needs a
+  fulfilment (ORS direct or cross-dock). ORS hasn't said which yet (the
+  direct-ship review columns are blank for all 2,737).
 - ORS Nasco: selling price = ORS list price (from the price feed import); the
   API "price" is our cost, used only as a never-sell-below guard. Stock always
   follows ORS (orders change on-hand, so admin stock edits aren't kept).

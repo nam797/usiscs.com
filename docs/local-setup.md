@@ -174,6 +174,14 @@ php -d memory_limit=-1 bin/console app:catalog:import products.xlsx             
   of its own isn't moved into a group (delete it first). New choices are
   slotted into natural order ("Size 6" before "Size 10").
 
+- **`fulfilment`**: how each SKU reaches the customer, `ORS direct` (ORS
+  ships to them) or `cross-dock` (ORS ships to our warehouse, we ship on).
+  Blank means not confirmed, and **a product can't go live until every SKU is
+  confirmed**. `shipping_note` holds why shipping needs a look ("Aerosol:
+  check carrier and hazmat rules"). Both are also on the admin product and
+  variant forms (shipping section), and the admin product list filters by
+  fulfilment.
+
 ### Loading the ORS catalog
 
 ```bash
@@ -187,7 +195,11 @@ It reads the "ORS price feed" sheet (and product families from "SKU review"):
 price = ORS list price per selling unit, `unit_of_measure` = ORS's conversion,
 families of 2+ priced SKUs become groups with variant names drafted from ORS's
 short descriptions (marked in the `review` column), all as hidden drafts.
-SKUs without an ORS price are listed on the "Skipped" sheet. Categories are a
+Fulfilment comes from the review sheet's "ORS direct ship?" column (Yes = ORS
+direct, No = cross-dock), which ORS hasn't filled in yet, so every SKU starts
+not confirmed; SKUs its preliminary screen flagged (chemicals, aerosols,
+batteries, oversize: 306 priced ones) get a shipping note. SKUs without an ORS
+price are listed on the "Skipped" sheet. Categories are a
 keyword stand-in (`src/Catalog/Ors/InterimCategory.php`) until the client
 approves the category tree. From the 2026-10-03 feed: 2,549 SKUs → 1,390
 products (525 with a choice of 2+), 188 skipped.

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Admin;
 
+use App\Catalog\Fulfilment\Fulfilment;
 use App\Controller\Admin\ProductGoLiveController;
 use App\Entity\Product\Product;
+use App\Entity\Product\ProductVariant;
 use App\Tests\Functional\FunctionalTestCase;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\ProductInterface;
@@ -50,6 +52,58 @@ final class ProductGoLiveTest extends FunctionalTestCase
 
         $this->client->request('GET', '/products/ready-drill');
         self::assertResponseIsSuccessful();
+    }
+
+    public function testAProductWhoseShippingIsntConfirmedStaysHidden(): void
+    {
+        $unconfirmed = $this->draft('GL-UNCONFIRMED', 'Unconfirmed drill', 'unconfirmed-drill', Fulfilment::Unconfirmed);
+        $this->loginAsAdmin();
+        $token = $this->tokenFromProductList();
+
+        $this->client->request('POST', '/admin/products/bulk/go-live', ['_token' => $token, 'ids' => [$unconfirmed->getId()]]);
+
+        self::assertFalse($this->reload($unconfirmed)->isEnabled());
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'GL-UNCONFIRMED (shipping not confirmed (ORS direct or cross-dock))');
+    }
+
+    public function testStaffSetFulfilmentOnTheProductForm(): void
+    {
+        $product = $this->draft('GL-FORM', 'Form drill', 'form-drill', Fulfilment::Unconfirmed);
+        $this->loginAsAdmin();
+
+        $crawler = $this->client->request('GET', sprintf('/admin/products/%d/edit', $product->getId()));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Fulfilment');
+        $form = $crawler->filter('form[name="sylius_admin_product"]')->form();
+        $form['sylius_admin_product[variant][fulfilment]'] = Fulfilment::OrsDirect->value;
+        $form['sylius_admin_product[variant][shippingNote]'] = 'Ships from ORS Dallas';
+        $this->client->submit($form);
+
+        self::assertResponseRedirects();
+        $variant = $this->reload($product)->getVariants()->first();
+        self::assertInstanceOf(ProductVariant::class, $variant);
+        self::assertSame(Fulfilment::OrsDirect, $variant->getFulfilment());
+        self::assertSame('Ships from ORS Dallas', $variant->getShippingNote());
+
+        // The same fields on a variant's own form (products with several choices).
+        $this->client->request('GET', sprintf('/admin/products/%d/variants/%d/edit', $product->getId(), $variant->getId()));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('select[name$="[fulfilment]"]');
+        self::assertSelectorExists('input[name$="[shippingNote]"]');
+    }
+
+    public function testTheProductListFiltersByFulfilment(): void
+    {
+        $this->draft('GL-FILTER-U', 'Unconfirmed filter drill', 'unconfirmed-filter-drill', Fulfilment::Unconfirmed);
+        $this->draft('GL-FILTER-C', 'Confirmed filter drill', 'confirmed-filter-drill', Fulfilment::CrossDock);
+        $this->loginAsAdmin();
+
+        $this->client->request('GET', '/admin/products/?criteria[fulfilment]=unconfirmed&criteria[search][value]=filter%20drill');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('table', 'Unconfirmed filter drill');
+        self::assertSelectorTextNotContains('table', 'Confirmed filter drill');
     }
 
     public function testTakeOfflineHidesProductsFromTheShop(): void
@@ -98,7 +152,7 @@ final class ProductGoLiveTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', 'Select at least one product first.');
     }
 
-    private function draft(string $code, string $name, string $slug): ProductInterface
+    private function draft(string $code, string $name, string $slug, Fulfilment $fulfilment = Fulfilment::CrossDock): ProductInterface
     {
         $product = $this->ensureProduct($code, $name, $slug, 'mro_materials', enabled: false);
         if (null === $this->firstPricing($product)) {
@@ -107,6 +161,10 @@ final class ProductGoLiveTest extends FunctionalTestCase
             $this->entityManager()->flush();
             $product = $this->ensureProduct($code, $name, $slug, 'mro_materials', enabled: false);
         }
+        $variant = $product->getVariants()->first();
+        self::assertInstanceOf(ProductVariant::class, $variant);
+        $variant->setFulfilment($fulfilment);
+        $this->entityManager()->flush();
 
         return $product;
     }

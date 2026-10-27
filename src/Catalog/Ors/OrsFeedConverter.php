@@ -16,6 +16,9 @@ use Symfony\Component\String\Slugger\AsciiSlugger;
  * - unit_of_measure = ORS's conversion ("12 PR = 1 DZ")
  * - SKUs of one product family with more than one priced SKU share a
  *   group, with a first-draft variant_name from VariantNamer
+ * - fulfilment from the review sheet's "ORS direct ship?" (Yes = ORS direct,
+ *   No = cross-dock, blank = not confirmed), and a shipping note for SKUs
+ *   its preliminary screen flagged (aerosols, chemicals, oversize, ...)
  * - everything arrives as a hidden draft (go_live = no)
  *
  * SKUs ORS has no price for are skipped and listed.
@@ -28,7 +31,7 @@ final class OrsFeedConverter
     /** Import columns, then columns for whoever reviews the sheet (the import ignores those). */
     public const COLUMNS = [
         'sku', 'name', 'category', 'price', 'manufacturer', 'part_number', 'unit_of_measure',
-        'group', 'variant_name', 'go_live',
+        'group', 'variant_name', 'go_live', 'fulfilment', 'shipping_note',
         'review', 'ors_description', 'segment', 'launch_tier',
     ];
 
@@ -71,6 +74,12 @@ final class OrsFeedConverter
                 'group' => '',
                 'variant_name' => '',
                 'go_live' => 'no',
+                'fulfilment' => match (strtolower($family['direct_ship'] ?? '')) {
+                    'yes', 'y' => 'ORS direct',
+                    'no', 'n' => 'cross-dock',
+                    default => '',
+                },
+                'shipping_note' => $family['shipping_note'] ?? '',
                 'review' => '',
                 'ors_description' => $row['ors feed description'] ?? '',
                 'segment' => $row['usiscs segment'] ?? '',
@@ -123,7 +132,7 @@ final class OrsFeedConverter
     }
 
     /**
-     * @return array<string, array{family: string, brand: string, tier: string}>
+     * @return array<string, array{family: string, brand: string, tier: string, direct_ship: string, shipping_note: string}>
      */
     private function families(string $path): array
     {
@@ -131,7 +140,13 @@ final class OrsFeedConverter
         foreach (self::sheetRows($path, self::REVIEW_SHEET) as $row) {
             $sku = $row['ors sku'] ?? '';
             if ('' !== $sku && '' !== ($row['product family'] ?? '')) {
-                $families[$sku] = ['family' => $row['product family'], 'brand' => $row['brand'] ?? '', 'tier' => $row['launch tier'] ?? ''];
+                $families[$sku] = [
+                    'family' => $row['product family'],
+                    'brand' => $row['brand'] ?? '',
+                    'tier' => $row['launch tier'] ?? '',
+                    'direct_ship' => $row['ors direct ship?'] ?? '',
+                    'shipping_note' => self::shippingNote($row),
+                ];
             }
         }
 
@@ -177,6 +192,28 @@ final class OrsFeedConverter
         }
 
         throw new \RuntimeException(sprintf('%s has no "%s" sheet', basename($path), $sheetName));
+    }
+
+    /**
+     * "Restricted-shipping review: Spray or compressed-gas product; check
+     * carrier and hazmat rules", plus any ship method or fee notes ORS gave.
+     *
+     * @param array<string, string> $row
+     */
+    private static function shippingNote(array $row): string
+    {
+        $parts = [];
+        $screen = $row['preliminary screen'] ?? '';
+        if ('' !== $screen && 'standard-shipping candidate' !== strtolower($screen)) {
+            $parts[] = trim($screen.': '.($row['reason for screen'] ?? ''), ': ');
+        }
+        foreach (['approved ship method' => 'Ship method', 'restriction / fee notes' => 'Notes'] as $column => $label) {
+            if ('' !== ($row[$column] ?? '')) {
+                $parts[] = $label.': '.$row[$column];
+            }
+        }
+
+        return mb_substr(implode('. ', $parts), 0, 255);
     }
 
     /** The review sheets show ™ as ¢ (an encoding slip upstream). */

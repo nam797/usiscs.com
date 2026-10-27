@@ -175,11 +175,11 @@ final class OrsSyncTest extends FunctionalTestCase
         $path = sys_get_temp_dir().'/usiscs-ors-e2e-'.bin2hex(random_bytes(4)).'.xlsx';
         $writer = new Writer();
         $writer->openToFile($path);
-        $writer->addRow(Row::fromValues(['sku', 'name', 'category', 'price', 'stock_qty', 'go_live']));
-        $writer->addRow(Row::fromValues(['ORS-T1', 'ORS test blades', 'Safety & PPE', '17.40', '25', 'yes']));
-        $writer->addRow(Row::fromValues(['ORS-T2', 'ORS test nut', 'Safety & PPE', '1.20', '25', 'yes']));
-        $writer->addRow(Row::fromValues(['ORS-T3', 'ORS test gloves', 'Safety & PPE', '9.50', '25', 'yes']));
-        $writer->addRow(Row::fromValues(['ORS-T4.5', 'ORS test dotted', 'Safety & PPE', '3.00', '25', 'yes']));
+        $writer->addRow(Row::fromValues(['sku', 'name', 'category', 'price', 'stock_qty', 'go_live', 'fulfilment']));
+        $writer->addRow(Row::fromValues(['ORS-T1', 'ORS test blades', 'Safety & PPE', '17.40', '25', 'yes', 'ORS direct']));
+        $writer->addRow(Row::fromValues(['ORS-T2', 'ORS test nut', 'Safety & PPE', '1.20', '25', 'yes', 'ORS direct']));
+        $writer->addRow(Row::fromValues(['ORS-T3', 'ORS test gloves', 'Safety & PPE', '9.50', '25', 'yes', 'ORS direct']));
+        $writer->addRow(Row::fromValues(['ORS-T4.5', 'ORS test dotted', 'Safety & PPE', '3.00', '25', 'yes', 'cross-dock']));
         $writer->close();
 
         try {
