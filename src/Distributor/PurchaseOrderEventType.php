@@ -28,6 +28,12 @@ enum PurchaseOrderEventType: string
     case Invoice = 'invoice';
     /** Staff changed the distributor or fulfilment, or left a note. */
     case Edited = 'edited';
+    /** The distributor reported a new tracking number. */
+    case Tracking = 'tracking';
+    /** The distributor's back-ordered quantity changed. */
+    case Backordered = 'backordered';
+    /** The customer's shop shipment was updated (tracking, shipped email). */
+    case CustomerUpdated = 'customer_updated';
 
     public static function of(PurchaseOrderTransition $transition): self
     {
@@ -53,6 +59,9 @@ enum PurchaseOrderEventType: string
             self::Ship => 'Shipped',
             self::Invoice => 'Invoiced',
             self::Edited => 'Edited',
+            self::Tracking => 'Tracking number',
+            self::Backordered => 'Back-order',
+            self::CustomerUpdated => 'Customer updated',
         };
     }
 }

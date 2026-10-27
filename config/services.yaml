@@ -21,6 +21,10 @@ parameters:
     env(ORS_CUSTNO): ''
     env(ORS_PA_PASSWORD): ''
     env(ORS_PA_PASSWORD2): ''
+    # Order Query web service (order status and tracking): its own password pair.
+    env(ORS_ORDER_QUERY_URL): 'https://webservices.orsnasco.com/ORSOrderQueryV1TEST/ORSOrderQuery.asmx'
+    env(ORS_OQ_PASSWORD): ''
+    env(ORS_OQ_PASSWORD2): ''
     # How the dev/test-only "Test distributor" behaves: accept, down, reject
     # or manual (src/Distributor/Fake/FakeDistributor.php).
     env(FAKE_DISTRIBUTOR_MODE): 'accept'

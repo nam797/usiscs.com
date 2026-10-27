@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Distributor;
 
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Distributor\DistributorInterface;
+use App\Distributor\DistributorOrderStatus;
 use App\Distributor\DistributorRegistry;
 use App\Distributor\DistributorUnavailableException;
 use App\Distributor\Fake\FakeDistributor;
@@ -180,6 +181,11 @@ final class PurchaseOrderSubmitterTest extends TestCase
             {
                 return $this->existing;
             }
+
+            public function fetchStatus(PurchaseOrder $purchaseOrder): ?DistributorOrderStatus
+            {
+                return null;
+            }
         };
     }
 
@@ -206,6 +212,11 @@ final class PurchaseOrderSubmitterTest extends TestCase
             public function manualEntryNeeded(PurchaseOrder $purchaseOrder): void
             {
                 $this->notified[] = 'manual';
+            }
+
+            public function stuck(array $stuck): void
+            {
+                $this->notified[] = 'stuck';
             }
         };
 

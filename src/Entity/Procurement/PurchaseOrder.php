@@ -79,10 +79,27 @@ class PurchaseOrder
     #[ORM\Column(name: 'submitted_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $submittedAt = null;
 
+    /** When it entered its current state; the watchdog measures how long it's been stuck from this. */
+    #[ORM\Column(name: 'state_changed_at', type: 'datetime_immutable')]
+    private \DateTimeImmutable $stateChangedAt;
+
+    /** Last time the distributor was asked for its status. */
+    #[ORM\Column(name: 'last_checked_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $lastCheckedAt = null;
+
+    /** Last time staff were emailed that it's stuck; at most once a day. */
+    #[ORM\Column(name: 'alerted_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $alertedAt = null;
+
     /** @var Collection<int, PurchaseOrderLine> */
     #[ORM\OneToMany(targetEntity: PurchaseOrderLine::class, mappedBy: 'purchaseOrder', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['id' => 'ASC'])]
     private Collection $lines;
+
+    /** @var Collection<int, PurchaseOrderShipment> */
+    #[ORM\OneToMany(targetEntity: PurchaseOrderShipment::class, mappedBy: 'purchaseOrder', cascade: ['persist', 'remove'])]
+    #[ORM\OrderBy(['id' => 'ASC'])]
+    private Collection $shipments;
 
     /** @var Collection<int, PurchaseOrderEvent> */
     #[ORM\OneToMany(targetEntity: PurchaseOrderEvent::class, mappedBy: 'purchaseOrder', cascade: ['persist', 'remove'])]
@@ -100,7 +117,9 @@ class PurchaseOrder
         $this->distributor = $distributor;
         $this->fulfilment = $fulfilment;
         $this->createdAt = new \DateTimeImmutable();
+        $this->stateChangedAt = $this->createdAt;
         $this->lines = new ArrayCollection();
+        $this->shipments = new ArrayCollection();
         $this->events = new ArrayCollection();
     }
 
@@ -147,12 +166,45 @@ class PurchaseOrder
     /** For the state machine's marking store only; use PurchaseOrderStateMachine. */
     public function setState(string $state): void
     {
+        if ($state !== $this->state) {
+            $this->stateChangedAt = new \DateTimeImmutable();
+        }
         $this->state = $state;
+    }
+
+    public function getStateChangedAt(): \DateTimeImmutable
+    {
+        return $this->stateChangedAt;
     }
 
     public function getReference(): ?string
     {
         return $this->reference;
+    }
+
+    public function setReference(?string $reference): void
+    {
+        $this->reference = null === $reference || '' === trim($reference) ? null : trim($reference);
+    }
+
+    public function getLastCheckedAt(): ?\DateTimeImmutable
+    {
+        return $this->lastCheckedAt;
+    }
+
+    public function markChecked(): void
+    {
+        $this->lastCheckedAt = new \DateTimeImmutable();
+    }
+
+    public function getAlertedAt(): ?\DateTimeImmutable
+    {
+        return $this->alertedAt;
+    }
+
+    public function markAlerted(): void
+    {
+        $this->alertedAt = new \DateTimeImmutable();
     }
 
     public function getAttempts(): int
@@ -210,7 +262,9 @@ class PurchaseOrder
     /** The distributor has it; $reference is their order number, when known. */
     public function markSubmitted(?string $reference): void
     {
-        $this->reference = null === $reference || '' === trim($reference) ? $this->reference : trim($reference);
+        if (null !== $reference && '' !== trim($reference)) {
+            $this->setReference($reference);
+        }
         $this->submittedAt = new \DateTimeImmutable();
         $this->lastError = null;
     }
@@ -226,6 +280,36 @@ class PurchaseOrder
         if (!$this->lines->contains($line)) {
             $this->lines->add($line);
         }
+    }
+
+    /** @return Collection<int, PurchaseOrderShipment> */
+    public function getShipments(): Collection
+    {
+        return $this->shipments;
+    }
+
+    /** @return bool false when this tracking number is already recorded */
+    public function addShipment(string $trackingNumber, string $carrier): bool
+    {
+        foreach ($this->shipments as $shipment) {
+            if ($shipment->getTrackingNumber() === $trackingNumber) {
+                return false;
+            }
+        }
+        $this->shipments->add(new PurchaseOrderShipment($this, $trackingNumber, $carrier));
+
+        return true;
+    }
+
+    public function getLineForSupplierSku(string $supplierSku): ?PurchaseOrderLine
+    {
+        foreach ($this->lines as $line) {
+            if (0 === strcasecmp($line->getSupplierSku(), $supplierSku)) {
+                return $line;
+            }
+        }
+
+        return null;
     }
 
     /** @return Collection<int, PurchaseOrderEvent> */

@@ -82,4 +82,14 @@ class PurchaseOrderRepository extends ServiceEntityRepository
     {
         return $this->findBy(['distributor' => $distributor, 'state' => PurchaseOrderState::QUEUED], ['id' => 'ASC']);
     }
+
+    /**
+     * @param list<string> $states
+     *
+     * @return list<PurchaseOrder>
+     */
+    public function findInStates(array $states): array
+    {
+        return $this->findBy(['state' => $states], ['id' => 'ASC']);
+    }
 }

@@ -56,6 +56,14 @@ class PurchaseOrderLine
     #[ORM\Column(name: 'unit_cost_in_cents', type: 'integer', nullable: true)]
     private ?int $unitCostInCents;
 
+    /** Shipped so far, from the distributor's order status. */
+    #[ORM\Column(name: 'quantity_shipped', type: 'integer', options: ['default' => 0])]
+    private int $quantityShipped = 0;
+
+    /** On back-order at the distributor right now. */
+    #[ORM\Column(name: 'quantity_backordered', type: 'integer', options: ['default' => 0])]
+    private int $quantityBackordered = 0;
+
     public function __construct(
         PurchaseOrder $purchaseOrder,
         ?OrderItemInterface $orderItem,
@@ -127,5 +135,25 @@ class PurchaseOrderLine
     public function getUnitCostInCents(): ?int
     {
         return $this->unitCostInCents;
+    }
+
+    public function getQuantityShipped(): int
+    {
+        return $this->quantityShipped;
+    }
+
+    public function getQuantityBackordered(): int
+    {
+        return $this->quantityBackordered;
+    }
+
+    /** @return bool whether the back-ordered quantity changed */
+    public function recordProgress(int $shipped, int $backordered): bool
+    {
+        $changed = $backordered !== $this->quantityBackordered;
+        $this->quantityShipped = max(0, $shipped);
+        $this->quantityBackordered = max(0, $backordered);
+
+        return $changed;
     }
 }

@@ -127,6 +127,23 @@
   - Found while building this: the ORS doc we have is the Order *Query*
     service only (look up status, tracking, invoice by our PO number).
     There's nothing for placing orders.
+- Distributor orders, part 2 (2026-10-27): order tracking.
+  - `app:distributor:sync-orders` (cron every 30 min) asks each distributor
+    for its open purchase orders' status. For ORS that's the Order Query
+    SOAP service by our PO number (`OrderQueryClient`); ORS's split
+    suffixes are mapped onto one status (`OrsOrderStatusMapper`).
+  - Recorded on the timeline: acknowledged, on hold, back-orders, shipped
+    quantities, tracking numbers, invoice totals (freight, surcharges).
+  - Orders staff placed by hand are found and marked submitted. An ORS
+    cancellation goes to "needs attention" with an email.
+  - Direct orders: the tracking number goes on the customer's shipment, and
+    once everything has shipped the shipment is marked shipped and Sylius's
+    shipping email is sent.
+  - A watchdog emails staff one list of stuck purchase orders, at most
+    daily each.
+  - The ORS client is built from the PDF's examples and isn't tested against
+    ORS yet. How ORS answers an unknown PO is a guess (an empty result, or an
+    error saying "not found").
 
 ## Decisions
 - Nothing goes live until its shipping is confirmed: every SKU needs a
@@ -179,13 +196,11 @@
 
 ## Next step
 - **Distributor orders, next:**
-  - Ask ORS how they take orders (an order-entry API, EDI 850, punchout) and
-    for Order Query web service passwords.
-  - Part 2: an ORS Order Query client, so `findExisting` and status sync
-    work (acknowledged / held / back-ordered / shipped with tracking →
-    Sylius shipment + customer email / invoiced with freight), plus alerts
-    for stuck orders.
-  - Part 3: ORS submit once they answer.
+  - Ask ORS for the Order Query web service passwords (`ORS_OQ_PASSWORD`,
+    `ORS_OQ_PASSWORD2`), then run `app:distributor:sync-orders -v` against
+    their TEST endpoint. Check: an unknown PO, a held order, a split order.
+  - Ask ORS how they take orders (an order-entry API, EDI 850, punchout).
+    Part 3 is ORS submit, once they answer.
   - Also to decide with the client: our warehouse address for cross-dock,
     blind drop-ship paperwork, shipping method → ORS ShipVia mapping,
     back-order/cancel policy, a cost guard at submit, and a customer PO
