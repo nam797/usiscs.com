@@ -92,6 +92,10 @@
   the Show menu); the import summary counts choices added to an existing
   product separately. The full ORS catalog (1,390 products) is loaded live on
   the local dev DB for browsing.
+- Dark theme fixes (2026-10-26): cart summary, coupon box, checkout header
+  and summary column, login panel and light buttons no longer render as white
+  panels with near-white text (brand.scss maps Bootstrap's light-only classes
+  onto the dark panel colour; the logo keeps its white box via .logo-panel).
 
 ## Decisions
 - ORS Nasco: selling price = ORS list price (from the price feed import); the

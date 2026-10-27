@@ -6,8 +6,10 @@
    panel rather than placing it directly on the dark header/footer
    background, where the white box would otherwise look like a
    rendering bug instead of a deliberate choice. Sharp corners, no
-   border-radius, matching the rest of the brand (see project doc). #}
-<span class="d-block bg-white p-2">
+   border-radius, matching the rest of the brand (see project doc).
+   .logo-panel rather than .bg-white: the dark theme turns .bg-white into a
+   dark panel (brand.scss). #}
+<span class="d-block logo-panel p-2">
     <img
         src="{{ asset('build/app/shop/images/logo.png', 'app.shop') }}"
         alt="US Industrial Supply Chain Solutions — The Products You Count On. Delivered."
