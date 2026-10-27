@@ -102,6 +102,10 @@
   filter. Go live refuses a product while any SKU is not confirmed. The ORS
   import sheet fills it from the direct-ship review (blank so far) and notes
   the 306 priced SKUs its screen flagged.
+- Test shipping method (2026-10-27): `checkout_shipping` fixture suite
+  (dev only, config/packages/app_dev_fixtures.yaml) adds the US country +
+  zone and a $15 flat-rate "Standard Shipping" on the default channel, so
+  checkout can be tested locally. Loaded into the local DB. Not real rates.
 
 ## Decisions
 - Nothing goes live until its shipping is confirmed: every SKU needs a
@@ -148,6 +152,10 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
+- **Real shipping rates** (decide with the client): the only method is the
+  $15 flat-rate test one, local only. Check production has a shipping method
+  and a US zone (Sylius admin → Shipping methods); checkout can't finish
+  without one.
 - **Waiting on the client: lead emails** (the code is done). Client is setting
   up Postmark (sent 2026-10-26). Then: verify usiscs.com (SPF/DKIM DNS
   records), set `env:MAILER_DSN` on Upsun, set the channel contact email in
