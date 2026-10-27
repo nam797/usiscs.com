@@ -1,2 +1,78 @@
+# The life of a purchase order to a distributor (src/Distributor). Places are
+# App\Distributor\PurchaseOrderState, transitions App\Distributor\PurchaseOrderTransition;
+# keep all three in step. Apply transitions through PurchaseOrderStateMachine,
+# which also logs them on the order's timeline.
+#
+#   bin/console workflow:dump purchase_order | dot -Tpng -o purchase_order.png
 framework:
-    workflows: null
+    workflows:
+        purchase_order:
+            type: state_machine
+            marking_store:
+                type: method
+                property: state
+            supports:
+                - App\Entity\Procurement\PurchaseOrder
+            initial_marking: queued
+            places:
+                - queued
+                - submitting
+                - awaiting_manual_entry
+                - submitted
+                - acknowledged
+                - on_hold
+                - partially_shipped
+                - shipped
+                - invoiced
+                - needs_attention
+                - cancelled
+            transitions:
+                # The worker picks it up.
+                start:
+                    from: queued
+                    to: submitting
+                submit:
+                    from: submitting
+                    to: submitted
+                # No order API (or switched to manual): staff enter it by hand.
+                request_manual_entry:
+                    from: submitting
+                    to: awaiting_manual_entry
+                # The attempt failed but can be retried (distributor down), or
+                # the worker died mid-attempt.
+                requeue:
+                    from: submitting
+                    to: queued
+                flag:
+                    from: [queued, submitting, awaiting_manual_entry, submitted, acknowledged, on_hold, partially_shipped]
+                    to: needs_attention
+                retry:
+                    from: needs_attention
+                    to: queued
+                # Staff placed it themselves and record the distributor's order number.
+                mark_submitted:
+                    from: [awaiting_manual_entry, needs_attention]
+                    to: submitted
+                cancel:
+                    from: [queued, awaiting_manual_entry, needs_attention, on_hold]
+                    to: cancelled
+
+                # Tracking (from the distributor's order status).
+                acknowledge:
+                    from: submitted
+                    to: acknowledged
+                hold:
+                    from: [submitted, acknowledged]
+                    to: on_hold
+                release:
+                    from: on_hold
+                    to: acknowledged
+                ship_partially:
+                    from: [submitted, acknowledged, partially_shipped]
+                    to: partially_shipped
+                ship:
+                    from: [submitted, acknowledged, partially_shipped]
+                    to: shipped
+                invoice:
+                    from: [shipped]
+                    to: invoiced

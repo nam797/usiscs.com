@@ -1,0 +1,14 @@
+{% set order = purchase_order.order %}
+Purchase order {{ purchase_order.number }} to {{ distributor_name }} (shop order #{{ order.number }}) needs attention.
+
+{{ reason }}
+
+{% if purchase_order.attempts > 0 %}Attempts so far: {{ purchase_order.attempts }}
+{% endif %}
+Items:
+{% for line in purchase_order.lines %}
+- Qty {{ line.quantity }}{% if line.unit %} {{ line.unit }}{% endif %} | {{ line.supplierSku }} | {{ line.name }}
+{% endfor %}
+
+Fix it, then click Retry (or Mark submitted if you placed it by hand):
+{{ url('app_admin_dashboard_purchase_order_detail', {entityId: purchase_order.id}) }}

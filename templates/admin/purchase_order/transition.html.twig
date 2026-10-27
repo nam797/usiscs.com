@@ -1,0 +1,32 @@
+{# Confirms Retry / Mark submitted / Cancel on a purchase order (PurchaseOrderCrudController::transition). #}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}{{ label }}: purchase order {{ purchase_order.number }}{% endblock %}
+
+{% block main %}
+    <p>{{ help }}</p>
+    <p>Now: <strong>{{ purchase_order_state_label(purchase_order.state) }}</strong>{% if purchase_order.lastError %}. Last error: {{ purchase_order.lastError }}{% endif %}</p>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('purchase_order_' ~ name ~ '_' ~ purchase_order.id) }}">
+
+        {% if name == 'mark_submitted' %}
+            <div class="mb-3">
+                <label class="form-label required" for="reference">Distributor's order number</label>
+                <input class="form-control" type="text" id="reference" name="reference" maxlength="64" required value="{{ app.request.request.get('reference') }}">
+            </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <label class="form-label" for="note">Note (optional, shown on the timeline)</label>
+            <textarea class="form-control" id="note" name="note" rows="3">{{ app.request.request.get('note') }}</textarea>
+        </div>
+
+        <button type="submit" class="btn {{ name == 'cancel' ? 'btn-danger' : 'btn-primary' }}">{{ label }}</button>
+        <a class="btn btn-secondary" href="{{ detail_url }}">Back</a>
+    </form>
+{% endblock %}

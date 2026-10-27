@@ -21,6 +21,9 @@ parameters:
     env(ORS_CUSTNO): ''
     env(ORS_PA_PASSWORD): ''
     env(ORS_PA_PASSWORD2): ''
+    # How the dev/test-only "Test distributor" behaves: accept, down, reject
+    # or manual (src/Distributor/Fake/FakeDistributor.php).
+    env(FAKE_DISTRIBUTOR_MODE): 'accept'
 
 services:
     # Default configuration for services in *this* file

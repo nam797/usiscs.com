@@ -106,6 +106,27 @@
   (dev only, config/packages/app_dev_fixtures.yaml) adds the US country +
   zone and a $15 flat-rate "Standard Shipping" on the default channel, so
   checkout can be tested locally. Loaded into the local DB. Not real rates.
+- Distributor orders, part 1 (2026-10-27): a paid order becomes purchase
+  orders, one per distributor + fulfilment (`src/Distributor/`).
+  - Patterns: one adapter per distributor (DistributorInterface); the
+    purchase order row is the outbox; sending goes through a Messenger
+    Doctrine queue with ~2 days of backoff; a state machine
+    (`config/packages/workflow.yaml`); an append-only event timeline.
+  - Never sent twice: each retry first asks the distributor if it already
+    has the PO. Failures end in "needs attention" plus an email to staff.
+  - ORS runs in manual mode (no order API): staff are emailed to place it,
+    then Mark submitted.
+  - Backoffice: Purchase Orders (timeline, Retry / Mark submitted / Cancel,
+    fix distributor/fulfilment) and Distributors (pause, manual entry). The
+    Sylius order page shows the order's purchase orders.
+  - New `distributor` on variants (imports and existing ORS SKUs:
+    ors_nasco).
+  - Upsun: a `distributor-queue` worker and an `app:distributor:dispatch`
+    cron every 15 min.
+  - Dev/test-only "Test distributor" (FAKE_DISTRIBUTOR_MODE).
+  - Found while building this: the ORS doc we have is the Order *Query*
+    service only (look up status, tracking, invoice by our PO number).
+    There's nothing for placing orders.
 
 ## Decisions
 - Nothing goes live until its shipping is confirmed: every SKU needs a
@@ -130,6 +151,11 @@
   whether a product is live (except go_live=yes on brand-new products).
 - MySQL 8.4 locally / MariaDB on Upsun; no PostgreSQL
 - FOSRestBundle removed: nothing in this app uses it (Sylius 2 uses API Platform)
+- Distributor orders: a purchase order is created only once the order is
+  fully paid, and only once per order. Orders with no distributor or an
+  unconfirmed fulfilment are never guessed: they go to "needs attention".
+  Our PO number `{order}-{n}` is the distributor's customer PO number (ORS
+  "custpo"), so we can look an order up by it.
 
 - Dependabot auto-merge: patch/minor bumps use GitHub auto-merge and only land
   once the required check "Static checks / PHP 8.4, Symfony ~7.4.0" passes
@@ -152,6 +178,19 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
+- **Distributor orders, next:**
+  - Ask ORS how they take orders (an order-entry API, EDI 850, punchout) and
+    for Order Query web service passwords.
+  - Part 2: an ORS Order Query client, so `findExisting` and status sync
+    work (acknowledged / held / back-ordered / shipped with tracking →
+    Sylius shipment + customer email / invoiced with freight), plus alerts
+    for stuck orders.
+  - Part 3: ORS submit once they answer.
+  - Also to decide with the client: our warehouse address for cross-dock,
+    blind drop-ship paperwork, shipping method → ORS ShipVia mapping,
+    back-order/cancel policy, a cost guard at submit, and a customer PO
+    field at checkout.
+  - On Upsun, check the worker's resources after the first deploy.
 - **Real shipping rates** (decide with the client): the only method is the
   $15 flat-rate test one, local only. Check production has a shipping method
   and a US zone (Sylius admin → Shipping methods); checkout can't finish

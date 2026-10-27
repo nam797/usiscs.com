@@ -1,0 +1,39 @@
+{# Purchase orders for this shop order, under Shipments on the Sylius admin
+   order page (config/packages/twig_hooks.yaml). The full timeline is in the
+   backoffice. #}
+{% set order = hookable_metadata.context.resource %}
+{% set purchase_orders = purchase_orders_for(order) %}
+
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="card-title">Purchase orders</div>
+    </div>
+    <div class="py-3">
+        {% if purchase_orders is empty %}
+            <span class="px-3 text-secondary">None yet: they're created when the order is paid.</span>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-vcenter table-borderless table-sm card-table">
+                    <tbody>
+                        {% for purchase_order in purchase_orders %}
+                            {% set last_event = purchase_order.lastEvent %}
+                            <tr>
+                                <td class="px-3">
+                                    <a href="{{ path('app_admin_dashboard_purchase_order_detail', {entityId: purchase_order.id}) }}">{{ purchase_order.number }}</a>
+                                    <div class="text-secondary">{{ distributor_name(purchase_order.distributor) }}, {{ purchase_order.fulfilment.label }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge {{ purchase_order.state == 'needs_attention' ? 'bg-danger' : 'bg-secondary' }} text-white">{{ purchase_order_state_label(purchase_order.state) }}</span>
+                                    {% if purchase_order.reference %}<div class="text-secondary">Order no. {{ purchase_order.reference }}</div>{% endif %}
+                                </td>
+                                <td class="text-secondary">
+                                    {% if last_event %}{{ last_event.occurredAt|date('Y-m-d H:i') }}: {{ last_event.message ?? last_event.type.label }}{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>

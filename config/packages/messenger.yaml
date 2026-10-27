@@ -1,22 +1,48 @@
 framework:
     messenger:
-        # Uncomment this (and the failed transport below) to send failed messages to this transport for later handling.
-        # failure_transport: failed
+        # Sylius's own transports and buses come from its bundle config
+        # (vendor/sylius/sylius/.../CoreBundle/Resources/config/app/messenger.yaml).
+
+        buses:
+            # Purchase orders to distributors (src/Distributor). Its own bus,
+            # without Sylius's doctrine_transaction middleware: the handler
+            # saves each failed attempt to the order's timeline before
+            # rethrowing, and a wrapping transaction would roll that back.
+            app.distributor_bus:
+                middleware:
+                    - doctrine_ping_connection
 
         transports:
-            # https://symfony.com/doc/current/messenger.html#transport-configuration
-            # async: '%env(MESSENGER_TRANSPORT_DSN)%'
-            # failed: 'doctrine://default?queue_name=failed'
-            sync: 'sync://'
+            # A table in our own database (messenger_messages), so queued
+            # orders survive a distributor, worker or deploy outage.
+            # Consumed by the Upsun worker (.upsun/config.yaml).
+            distributor:
+                dsn: 'doctrine://default?queue_name=distributor'
+                failure_transport: distributor_failed
+                # About 2 days in all: 1m, 3m, 9m, 27m, 81m, 4h, then 6h x6.
+                # After that FlagPurchaseOrderWhenRetriesRunOut sets the order
+                # to "needs attention" and emails staff. Keep max_delay below
+                # DispatchPurchaseOrdersCommand::LOST_AFTER.
+                retry_strategy:
+                    max_retries: 12
+                    delay: 60000
+                    multiplier: 3
+                    max_delay: 21600000
+            distributor_failed: 'doctrine://default?queue_name=distributor_failed'
 
         routing:
-            # Route your messages to the transports
-            # 'App\Message\YourMessage': async
+            App\Distributor\Message\SubmitPurchaseOrder: distributor
 
-# when@test:
-#    framework:
-#        messenger:
-#            transports:
-#                # replace with your transport name here (e.g., my_transport: 'in-memory://')
-#                # For more Messenger testing tools, see https://github.com/zenstruck/messenger-test
-#                async: 'in-memory://'
+when@test:
+    framework:
+        messenger:
+            transports:
+                distributor: 'in-memory://'
+                distributor_failed: 'in-memory://'
+
+when@test_cached:
+    framework:
+        messenger:
+            transports:
+                distributor: 'in-memory://'
+                distributor_failed: 'in-memory://'

@@ -6,6 +6,8 @@ namespace App\Tests\Unit\Controller\Admin;
 
 use App\Controller\Admin\ContactMessageCrudController;
 use App\Controller\Admin\DashboardController;
+use App\Controller\Admin\DistributorSettingCrudController;
+use App\Controller\Admin\PurchaseOrderCrudController;
 use App\Controller\Admin\RfqRequestCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Menu\MenuItemInterface;
@@ -43,9 +45,11 @@ final class DashboardControllerTest extends TestCase
             $labels[] = $label;
         }
 
-        self::assertSame(['Dashboard', 'RFQ Requests', 'Contact Messages', 'Sylius Admin (catalog, orders)'], $labels);
+        self::assertSame(['Dashboard', 'RFQ Requests', 'Contact Messages', 'Purchase Orders', 'Distributors', 'Sylius Admin (catalog, orders)'], $labels);
         self::assertSame(RfqRequestCrudController::class, $items[1]->getRouteParameters()['crudControllerFqcn'] ?? null);
         self::assertSame(ContactMessageCrudController::class, $items[2]->getRouteParameters()['crudControllerFqcn'] ?? null);
-        self::assertSame('/admin', $items[3]->getLinkUrl());
+        self::assertSame(PurchaseOrderCrudController::class, $items[3]->getRouteParameters()['crudControllerFqcn'] ?? null);
+        self::assertSame(DistributorSettingCrudController::class, $items[4]->getRouteParameters()['crudControllerFqcn'] ?? null);
+        self::assertSame('/admin', $items[5]->getLinkUrl());
     }
 }
