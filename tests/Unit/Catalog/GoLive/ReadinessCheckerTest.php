@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Catalog\GoLive;
 
+use App\Catalog\Fulfilment\Fulfilment;
 use App\Catalog\GoLive\ReadinessChecker;
 use App\Catalog\GoLive\SupplierCostLookupInterface;
 use App\Entity\Channel\Channel;
@@ -55,6 +56,23 @@ final class ReadinessCheckerTest extends TestCase
         self::assertSame(['no price in channel "default"'], (new ReadinessChecker())->problems($product));
     }
 
+    public function testItNeedsShippingConfirmed(): void
+    {
+        $product = $this->product(fulfilment: Fulfilment::Unconfirmed);
+
+        self::assertSame(['shipping not confirmed (ORS direct or cross-dock)'], (new ReadinessChecker())->problems($product));
+    }
+
+    public function testEveryChoiceNeedsShippingConfirmed(): void
+    {
+        $product = $this->product(fulfilment: Fulfilment::CrossDock);
+        $second = new ProductVariant();
+        $second->setCode('GLASSES-XL');
+        $product->addVariant($second);
+
+        self::assertSame(['shipping not confirmed (ORS direct or cross-dock) for GLASSES-XL'], (new ReadinessChecker())->problems($product));
+    }
+
     public function testItReportsEveryProblem(): void
     {
         $product = $this->product(name: '', withCategory: false, channels: ['default' => null]);
@@ -99,7 +117,7 @@ final class ReadinessCheckerTest extends TestCase
     }
 
     /** @param array<string, ?int> $channels channel code => price in cents (null: no pricing) */
-    private function product(string $name = 'Safety glasses', bool $withCategory = true, array $channels = ['default' => 1299]): Product
+    private function product(string $name = 'Safety glasses', bool $withCategory = true, array $channels = ['default' => 1299], Fulfilment $fulfilment = Fulfilment::OrsDirect): Product
     {
         $product = new Product();
         $product->setCurrentLocale('en_US');
@@ -114,6 +132,7 @@ final class ReadinessCheckerTest extends TestCase
 
         $variant = new ProductVariant();
         $variant->setCode('GLASSES');
+        $variant->setFulfilment($fulfilment);
         $product->addVariant($variant);
 
         foreach ($channels as $code => $price) {

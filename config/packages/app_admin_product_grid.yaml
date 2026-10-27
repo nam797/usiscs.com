@@ -9,6 +9,18 @@ sylius_grid:
             app_take_offline: 'admin/product/grid/bulk_action/take_offline.html.twig'
     grids:
         sylius_admin_product:
+            # Products with a SKU whose fulfilment is (or isn't) confirmed.
+            filters:
+                fulfilment:
+                    type: select
+                    label: 'Fulfilment'
+                    options:
+                        field: variants.fulfilment
+                    form_options:
+                        choices:
+                            'Not confirmed': unconfirmed
+                            'ORS direct': ors_direct
+                            'Cross-dock': cross_dock
             actions:
                 bulk:
                     app_go_live:

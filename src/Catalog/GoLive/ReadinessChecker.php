@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Catalog\GoLive;
 
+use App\Catalog\Fulfilment\Fulfilment;
+use App\Entity\Product\ProductVariant;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 
@@ -11,6 +13,8 @@ use Sylius\Component\Core\Model\ProductVariantInterface;
  * What a product needs before it can be shown in the shop. Used by the
  * import's go_live column and by the admin "Go live" bulk action, so both
  * apply the same rule. Images are deliberately not required.
+ *
+ * Every SKU's fulfilment (ORS direct or cross-dock) must be confirmed.
  *
  * When the supplier cost is known (ORS price sync), the selling price must
  * also be above it, so nothing goes live at a loss.
@@ -43,6 +47,19 @@ final class ReadinessChecker
             if (!$this->hasPriceIn($product, (string) $channel->getCode())) {
                 $problems[] = sprintf('no price in channel "%s"', $channel->getCode());
             }
+        }
+
+        // Nothing is sold until we know how it gets to the customer.
+        $unconfirmed = [];
+        foreach ($product->getVariants() as $variant) {
+            if ($variant instanceof ProductVariant && Fulfilment::Unconfirmed === $variant->getFulfilment()) {
+                $unconfirmed[] = (string) $variant->getCode();
+            }
+        }
+        if ([] !== $unconfirmed) {
+            $problems[] = 1 === $product->getVariants()->count()
+                ? 'shipping not confirmed (ORS direct or cross-dock)'
+                : sprintf('shipping not confirmed (ORS direct or cross-dock) for %s', implode(', ', $unconfirmed));
         }
 
         if (null !== $this->costs) {

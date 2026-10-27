@@ -41,6 +41,8 @@ final class ImportTemplateCommand extends Command
         'go_live' => ['Optional', 'yes = show in the shop straight away (new products only). Blank/no = hidden draft for review.'],
         'group' => ['Optional', 'SKUs with the same group are sold as one product with a choice (sizes, colours). The group is that product\'s code; name, category, description and manufacturer come from its first row.'],
         'variant_name' => ['Optional', 'Required with group: what this SKU is within the product, e.g. "Size 10, black".'],
+        'fulfilment' => ['Optional', 'How it reaches the customer: "ORS direct" (ORS ships to them) or "cross-dock" (ORS ships to our warehouse, we ship on). Blank = not confirmed; a product can\'t go live until every SKU is confirmed.'],
+        'shipping_note' => ['Optional', 'Why shipping needs a closer look, e.g. "Aerosol: check carrier and hazmat rules".'],
     ];
 
     protected function configure(): void

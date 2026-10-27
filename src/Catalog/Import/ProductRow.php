@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalog\Import;
 
+use App\Catalog\Fulfilment\Fulfilment;
 use App\Catalog\Unit\PackUnit;
 use App\Command\SetupCategoriesCommand;
 
@@ -30,6 +31,8 @@ final class ProductRow
         'go_live',
         'group',
         'variant_name',
+        'fulfilment',
+        'shipping_note',
     ];
 
     /** Supplier item numbers: letters, numbers and - _ . / + (ORS uses all of them). */
@@ -58,6 +61,9 @@ final class ProductRow
         public readonly ?string $group,
         /** what tells this SKU apart within its group, e.g. "Size 10, black" */
         public readonly ?string $variantName,
+        /** ORS direct / cross-dock; blank means not confirmed */
+        public readonly Fulfilment $fulfilment,
+        public readonly ?string $shippingNote,
         private readonly array $provided,
     ) {
     }
@@ -143,6 +149,16 @@ final class ProductRow
             $problems[] = 'variant_name is longer than 255 characters';
         }
 
+        $fulfilment = Fulfilment::Unconfirmed;
+        try {
+            $fulfilment = Fulfilment::parse($text('fulfilment'));
+        } catch (\InvalidArgumentException $e) {
+            $problems[] = sprintf('fulfilment: %s', $e->getMessage());
+        }
+        if (mb_strlen($text('shipping_note')) > 255) {
+            $problems[] = 'shipping_note is longer than 255 characters';
+        }
+
         $goLive = self::yesNo($text('go_live'));
         if (null === $goLive) {
             $problems[] = sprintf('go_live "%s" must be yes or no', $text('go_live'));
@@ -170,6 +186,8 @@ final class ProductRow
             $goLive,
             null === $group ? null : ProductCode::fromSku($group),
             $variantName,
+            $fulfilment,
+            $optional('shipping_note'),
             array_values(array_intersect(self::OPTIONAL_COLUMNS, array_keys($values))),
         );
     }

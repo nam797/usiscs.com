@@ -8,6 +8,7 @@ use App\Catalog\Import\ExcelProductSource;
 use App\Catalog\Import\ImportReport;
 use App\Catalog\Import\ProductImporter;
 use App\Entity\Catalog\ProductImportState;
+use App\Catalog\Fulfilment\Fulfilment;
 use App\Entity\Order\OrderItem;
 use App\Entity\Product\Product;
 use App\Entity\Product\ProductVariant;
@@ -186,6 +187,36 @@ final class ProductImportTest extends FunctionalTestCase
         $this->client->request('GET', '/products/gloves');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Gloves');
+    }
+
+    public function testGoLiveYesWaitsUntilShippingIsConfirmed(): void
+    {
+        $report = $this->import([['IMP-GL-2', 'Unconfirmed gloves', 'Safety & PPE', '9.50', '', '', '', 'yes']], fulfilment: '');
+
+        self::assertSame(0, $report->createdLive);
+        self::assertFalse($this->product('IMP-GL-2')->isEnabled());
+        self::assertStringContainsString('go_live needs: shipping not confirmed (ORS direct or cross-dock)', implode("\n", array_column($report->messages(), 'message')));
+    }
+
+    public function testFulfilmentAndShippingNoteAreImportedPerSku(): void
+    {
+        $path = $this->sheet([
+            ['IMP-FF-1', 'Aerosol cleaner', 'Maintenance Supplies', '9.50', 'cross-dock', 'Aerosol: check carrier and hazmat rules'],
+            ['IMP-FF-2', 'Gloves', 'Safety & PPE', '9.50', 'ORS direct', ''],
+            ['IMP-FF-3', 'Mystery', 'Safety & PPE', '9.50', 'by pigeon', ''],
+        ], ['sku', 'name', 'category', 'price', 'fulfilment', 'shipping_note']);
+        $report = $this->importer()->import(new ExcelProductSource($path));
+        $this->entityManager()->clear();
+
+        $aerosol = $this->variant($this->product('IMP-FF-1'));
+        self::assertInstanceOf(ProductVariant::class, $aerosol);
+        self::assertSame(Fulfilment::CrossDock, $aerosol->getFulfilment());
+        self::assertSame('Aerosol: check carrier and hazmat rules', $aerosol->getShippingNote());
+        $gloves = $this->variant($this->product('IMP-FF-2'));
+        self::assertInstanceOf(ProductVariant::class, $gloves);
+        self::assertSame(Fulfilment::OrsDirect, $gloves->getFulfilment());
+        self::assertSame(1, $report->failed);
+        self::assertStringContainsString('fulfilment: "by pigeon" is not a fulfilment', implode("\n", array_column($report->messages(), 'message')));
     }
 
     public function testDraftsStayOffTheStorefrontAndSitemap(): void
@@ -373,9 +404,11 @@ final class ProductImportTest extends FunctionalTestCase
     }
 
     /** @param list<list<string>> $rows */
-    private function import(array $rows, bool $dryRun = false): ImportReport
+    private function import(array $rows, bool $dryRun = false, string $fulfilment = 'cross-dock'): ImportReport
     {
-        $report = $this->importer()->import(new ExcelProductSource($this->sheet($rows)), $dryRun);
+        // Every row gets a fulfilment, so go_live=yes can publish.
+        $rows = array_map(static fn (array $row): array => [...$row, $fulfilment], $rows);
+        $report = $this->importer()->import(new ExcelProductSource($this->sheet($rows, [...self::HEADER, 'fulfilment'])), $dryRun);
         $this->entityManager()->clear();
 
         return $report;
@@ -384,7 +417,8 @@ final class ProductImportTest extends FunctionalTestCase
     /** @param list<list<string>> $rows rows with a unit_of_measure column at the end */
     private function importWithUnit(array $rows): ImportReport
     {
-        $path = $this->sheet($rows, [...self::HEADER, 'unit_of_measure']);
+        $rows = array_map(static fn (array $row): array => [...$row, 'cross-dock'], $rows);
+        $path = $this->sheet($rows, [...self::HEADER, 'unit_of_measure', 'fulfilment']);
         $report = $this->importer()->import(new ExcelProductSource($path));
         $this->entityManager()->clear();
 
@@ -394,7 +428,8 @@ final class ProductImportTest extends FunctionalTestCase
     /** @param list<list<string>> $rows sku, name, category, price, go_live, group, variant_name, unit_of_measure */
     private function importGrouped(array $rows): ImportReport
     {
-        $path = $this->sheet($rows, ['sku', 'name', 'category', 'price', 'go_live', 'group', 'variant_name', 'unit_of_measure']);
+        $rows = array_map(static fn (array $row): array => [...array_pad($row, 8, ''), 'ORS direct'], $rows);
+        $path = $this->sheet($rows, ['sku', 'name', 'category', 'price', 'go_live', 'group', 'variant_name', 'unit_of_measure', 'fulfilment']);
         $report = $this->importer()->import(new ExcelProductSource($path));
         $this->entityManager()->clear();
 

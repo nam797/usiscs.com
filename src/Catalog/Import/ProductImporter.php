@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalog\Import;
 
+use App\Catalog\Fulfilment\Fulfilment;
 use App\Catalog\GoLive\ReadinessChecker;
 use App\Catalog\Unit\PackUnit;
 use App\Entity\Catalog\ProductImportState;
@@ -472,6 +473,13 @@ final class ProductImporter
         if ($row->provides('stock_qty')) {
             $values['stock'] = $row->stockQty;
         }
+        if ($row->provides('fulfilment')) {
+            // "Not confirmed" is the absence of a value, like a blank cell.
+            $values['fulfilment'] = Fulfilment::Unconfirmed === $row->fulfilment ? null : $row->fulfilment->value;
+        }
+        if ($row->provides('shipping_note')) {
+            $values['shipping_note'] = $row->shippingNote;
+        }
         foreach ($channelCodes as $code) {
             $values['price:'.$code] = $row->priceInCents;
         }
@@ -497,6 +505,8 @@ final class ProductImporter
                 'category' === $field => $product->getMainTaxon()?->getCode(),
                 'stock' === $field => $variant->isTracked() ? $variant->getOnHand() : null,
                 'variant_name' === $field => $variant->getTranslation($this->defaultLocale)->getName(),
+                'fulfilment' === $field => $variant instanceof ProductVariant && Fulfilment::Unconfirmed !== $variant->getFulfilment() ? $variant->getFulfilment()->value : null,
+                'shipping_note' === $field => $variant instanceof ProductVariant ? $variant->getShippingNote() : null,
                 'unit_of_measure' === $field => $variant instanceof ProductVariant ? $variant->getPackUnit()?->toString() : null,
                 isset(self::ATTRIBUTES[$field]) => $this->attributeValue($product, $field),
                 str_starts_with($field, 'price:') => $this->pricing($variant, substr($field, 6))?->getPrice(),
@@ -520,6 +530,8 @@ final class ProductImporter
                 'category' === $field => $this->setCategory($product, (string) $text),
                 'stock' === $field => $this->setStock($variant, null === $value ? null : (int) $value),
                 'variant_name' === $field => $this->setVariantName($variant, $text),
+                'fulfilment' === $field => $variant instanceof ProductVariant ? $variant->setFulfilment(Fulfilment::tryFrom((string) $text) ?? Fulfilment::Unconfirmed) : null,
+                'shipping_note' === $field => $variant instanceof ProductVariant ? $variant->setShippingNote($text) : null,
                 'unit_of_measure' === $field => $variant instanceof ProductVariant ? $variant->setPackUnit(null === $text ? null : PackUnit::parse($text)) : null,
                 isset(self::ATTRIBUTES[$field]) => $this->setAttribute($product, $field, $text),
                 str_starts_with($field, 'price:') => $this->setPrice($variant, substr($field, 6), (int) $value),

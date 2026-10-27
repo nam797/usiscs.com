@@ -1,0 +1,11 @@
+{# Fulfilment and shipping note (ProductVariantFulfilmentExtension). The
+   variant form is the form itself; a simple product's form nests it as
+   "variant". #}
+{% set form = hookable_metadata.context.form.variant ?? hookable_metadata.context.form %}
+
+<div class="mb-3">
+    {{ form_row(form.fulfilment) }}
+</div>
+<div class="mb-3">
+    {{ form_row(form.shippingNote) }}
+</div>

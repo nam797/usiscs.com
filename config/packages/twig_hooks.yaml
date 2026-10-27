@@ -27,6 +27,26 @@ sylius_twig_hooks:
                 template: 'shop/product/pack_unit.html.twig'
                 priority: -100
 
+        # Fulfilment (ORS direct / cross-dock) and shipping note, in the
+        # shipping part of the admin variant form and of a simple product's
+        # form (templates/admin/product_variant/fulfilment.html.twig).
+        'sylius_admin.product_variant.create.content.form.sections.general.body.shipping':
+            fulfilment:
+                template: 'admin/product_variant/fulfilment.html.twig'
+                priority: -100
+        'sylius_admin.product_variant.update.content.form.sections.general.body.shipping':
+            fulfilment:
+                template: 'admin/product_variant/fulfilment.html.twig'
+                priority: -100
+        'sylius_admin.product.create.content.form.sections.shipping':
+            fulfilment:
+                template: 'admin/product_variant/fulfilment.html.twig'
+                priority: 500
+        'sylius_admin.product.update.content.form.sections.shipping':
+            fulfilment:
+                template: 'admin/product_variant/fulfilment.html.twig'
+                priority: 500
+
         # Static Contact / Request a Quote links, shown above the
         # taxon-driven navbar (which is empty/hidden until there are
         # taxons). Priority 50 is above the taxon menu's priority 0, so
