@@ -55,11 +55,6 @@ final class WarehouseStatusFilter implements FilterInterface
             return;
         }
 
-        $prefix = $filterDataDto->getParameterName().'_';
-        $condition = $status->condition($alias, $prefix);
-        $queryBuilder->andWhere($negate ? sprintf('NOT (%s)', $condition) : $condition);
-        foreach (WarehouseStatus::parameters($prefix, new \DateTimeImmutable('today')) as $name => $parameter) {
-            $queryBuilder->setParameter($name, $parameter);
-        }
+        $status->apply($queryBuilder, $alias, $filterDataDto->getParameterName().'_', new \DateTimeImmutable('today'), $negate);
     }
 }

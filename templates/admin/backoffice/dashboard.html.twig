@@ -1,0 +1,97 @@
+{# The backoffice home page (DashboardController::index, data from App\Admin\BackofficeSummary):
+   the warehouse's cross-dock deliveries, purchase orders staff must act on, and new leads.
+   Every number links to the list behind it. #}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% set warehouse_controller = 'App\\Controller\\Admin\\WarehouseCrudController' %}
+{% set purchase_order_controller = 'App\\Controller\\Admin\\PurchaseOrderCrudController' %}
+
+{% macro warehouse_url(filters) %}{{ ea_url().unsetAll().setController('App\\Controller\\Admin\\WarehouseCrudController').setAction('index').set('filters', filters) }}{% endmacro %}
+
+{% macro tile(label, count, url, colour, help) %}
+    <div class="col-6 col-lg-3">
+        <a href="{{ url }}" class="card h-100 text-decoration-none{% if count > 0 and colour == 'danger' %} border-danger{% endif %}">
+            <div class="card-body">
+                <div class="text-secondary small">{{ label }}</div>
+                <div class="fs-2 fw-bold{% if count > 0 %} text-{{ colour }}{% else %} text-secondary{% endif %}">{{ count }}</div>
+                <div class="text-secondary small">{{ help }}</div>
+            </div>
+        </a>
+    </div>
+{% endmacro %}
+
+{% block content_title %}Today, {{ today|date('l, F j') }}{% endblock %}
+
+{% block main %}
+    {% set not_received = {comparison: '=', value: constant('App\\Admin\\Filter\\WarehouseStatusFilter::NOT_RECEIVED')} %}
+
+    <h2 class="h5 mt-2 mb-3"><i class="fa fa-dolly"></i> Warehouse: cross-dock deliveries</h2>
+    <div class="row g-3 mb-4">
+        {{ _self.tile('Overdue', warehouse.overdue, _self.warehouse_url({warehouseStatus: {comparison: '=', value: 'overdue'}}), 'danger', 'expected before today, not received') }}
+        {{ _self.tile('Due in the next 7 days', dueThisWeek, _self.warehouse_url({warehouseStatus: not_received, expectedAt: {comparison: 'between', value: today|date('Y-m-d'), value2: weekEnd|date('Y-m-d')}}), 'primary', today|date('M j') ~ ' to ' ~ weekEnd|date('M j')) }}
+        {{ _self.tile('On its way, or not shipped yet', warehouse.in_transit + warehouse.awaiting_distributor, _self.warehouse_url({warehouseStatus: not_received}), 'info', warehouse.in_transit ~ ' shipped by the distributor, ' ~ warehouse.awaiting_distributor ~ ' not yet') }}
+        {{ _self.tile('Received, to ship on', warehouse.received, _self.warehouse_url({warehouseStatus: {comparison: '=', value: 'received'}}), 'warning', 'here; ship to the customer') }}
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header"><strong>Coming in</strong> <span class="text-secondary">soonest first</span></div>
+                {% if comingIn is empty %}
+                    <div class="card-body text-secondary">Nothing on its way to the warehouse.</div>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Expected</th><th>PO</th><th>Items</th><th>Status</th></tr></thead>
+                            <tbody>
+                                {% for purchase_order in comingIn %}
+                                    {% set status = purchase_order.warehouseStatus %}
+                                    <tr>
+                                        <td class="text-nowrap">{{ purchase_order.expectedAt ? purchase_order.expectedAt|date('D M j') : '<span class="text-secondary">not known</span>' }}</td>
+                                        <td class="text-nowrap"><a href="{{ path('app_admin_dashboard_warehouse_detail', {entityId: purchase_order.id}) }}">{{ purchase_order.number }}</a></td>
+                                        <td>{% for line in purchase_order.lines %}{{ line.quantity }}{% if line.unit %} {{ line.unit }}{% endif %} × {{ line.name }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+                                        <td>{% if status %}<span class="badge badge-{{ status.badge }}">{{ status.label }}</span>{% endif %}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header"><strong>Received, to ship on</strong> <span class="text-secondary">longest waiting first</span></div>
+                {% if toShipOn is empty %}
+                    <div class="card-body text-secondary">Nothing waiting to ship.</div>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Received</th><th>PO</th><th>Ship to</th><th></th></tr></thead>
+                            <tbody>
+                                {% for purchase_order in toShipOn %}
+                                    {% set address = purchase_order.order.shippingAddress %}
+                                    <tr>
+                                        <td class="text-nowrap">{{ purchase_order.receivedAt|date('D M j') }}</td>
+                                        <td class="text-nowrap"><a href="{{ path('app_admin_dashboard_warehouse_detail', {entityId: purchase_order.id}) }}">{{ purchase_order.number }}</a></td>
+                                        <td>{% if address %}{{ address.fullName }}, {{ address.city }}{% endif %}</td>
+                                        <td class="text-end"><a class="btn btn-sm btn-primary" href="{{ path('app_admin_dashboard_warehouse_ship_to_customer', {entityId: purchase_order.id}) }}">Ship to customer</a></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h5 mb-3"><i class="fa fa-truck"></i> Purchase orders and leads</h2>
+    <div class="row g-3 mb-4">
+        {% for state, count in purchaseOrders %}
+            {{ _self.tile(purchase_order_state_label(state), count, ea_url().unsetAll().setController(purchase_order_controller).setAction('index').set('filters', {state: {comparison: '=', value: state}}), state == 'needs_attention' ? 'danger' : 'warning', state == 'needs_attention' ? 'fix, then Retry' : (state == 'awaiting_manual_entry' ? 'place with the distributor' : 'held by the distributor')) }}
+        {% endfor %}
+        {{ _self.tile('New quote requests', newRfqs, ea_url().unsetAll().setController('App\\Controller\\Admin\\RfqRequestCrudController').setAction('index').set('filters', {status: {comparison: '=', value: 'new'}}), 'primary', 'not picked up yet') }}
+        {{ _self.tile('New contact messages', newContactMessages, ea_url().unsetAll().setController('App\\Controller\\Admin\\ContactMessageCrudController').setAction('index').set('filters', {status: {comparison: '=', value: 'new'}}), 'primary', 'not handled yet') }}
+    </div>
+{% endblock %}

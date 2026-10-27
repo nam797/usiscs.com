@@ -10,6 +10,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Menu\ControllerMenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use App\Controller\Admin\RfqRequestCrudController;
 use App\Controller\Admin\ContactMessageCrudController;
+use App\Admin\BackofficeSummary;
 use App\Admin\Filter\WarehouseStatusFilter;
 use App\Distributor\Warehouse\WarehouseStatus;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
@@ -23,9 +24,15 @@ use Symfony\Component\HttpFoundation\Response;
 #[AdminDashboard(routePath: '/backoffice', routeName: 'app_admin_dashboard')]
 class DashboardController extends AbstractDashboardController
 {
+    public function __construct(
+        private readonly BackofficeSummary $summary,
+    ) {
+    }
+
+    /** What needs doing: the warehouse's deliveries, purchase orders to act on, new leads. */
     public function index(): Response
     {
-        return parent::index();
+        return $this->render('admin/backoffice/dashboard.html.twig', $this->summary->build(new \DateTimeImmutable('today')));
     }
 
     public function configureDashboard(): Dashboard

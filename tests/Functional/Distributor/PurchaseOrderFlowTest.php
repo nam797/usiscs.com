@@ -273,9 +273,22 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', $crossDock->getNumber());
         self::assertSelectorTextContains('body', 'On its way to us');
         self::assertSelectorTextNotContains('body', $direct->getNumber());
-        $this->client->request('GET', '/backoffice/warehouse?'.http_build_query(['filters' => ['warehouseStatus' => ['comparison' => '=', 'value' => 'received']]]));
+        foreach (WarehouseStatus::cases() as $status) {
+            foreach (['=', '!='] as $comparison) {
+                $this->client->request('GET', '/backoffice/warehouse?'.http_build_query(['filters' => ['warehouseStatus' => ['comparison' => $comparison, 'value' => $status->value]]]));
+                self::assertResponseIsSuccessful(sprintf('filter %s %s', $comparison, $status->value));
+                $listed = str_contains((string) $this->client->getResponse()->getContent(), $crossDock->getNumber());
+                self::assertSame((WarehouseStatus::InTransit === $status) === ('=' === $comparison), $listed, sprintf('filter %s %s', $comparison, $status->value));
+            }
+        }
+
+        // The backoffice home page lists it as coming in, with links to the lists.
+        $crawler = $this->client->request('GET', '/backoffice');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextNotContains('body', $crossDock->getNumber());
+        self::assertSelectorTextContains('body', 'Warehouse: cross-dock deliveries');
+        self::assertSelectorTextContains('.card', 'Overdue');
+        self::assertSame(1, $crawler->filter('a[href*="/backoffice/warehouse/'.$crossDock->getId().'"]')->count(), 'in "Coming in"');
+        self::assertGreaterThan(0, $crawler->filter('a[href*="filters%5BwarehouseStatus%5D%5Bvalue%5D=overdue"]')->count());
 
         // Purchase Orders filters on fulfilment too.
         $this->client->request('GET', '/backoffice/purchase-order?'.http_build_query(['filters' => ['fulfilment' => ['comparison' => '=', 'value' => 'cross_dock']]]));
@@ -314,6 +327,10 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertEqualsCanonicalizing(['1ZDIRECT01', '1ZOURS0001'], explode(', ', (string) $shipment->getTracking()));
         self::assertSame(ShipmentInterface::STATE_SHIPPED, $shipment->getState());
         self::assertEmailCount(1);
+
+        $crawler = $this->client->request('GET', '/backoffice');
+        self::assertResponseIsSuccessful();
+        self::assertSame(0, $crawler->filter('a[href*="/backoffice/warehouse/'.$crossDock->getId().'"]')->count(), 'gone once shipped on');
     }
 
     public function testShipToCustomerIsRefusedBeforeItIsReceived(): void

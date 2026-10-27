@@ -6,12 +6,13 @@ namespace App\Distributor\Warehouse;
 
 use App\Distributor\PurchaseOrderState;
 use App\Entity\Procurement\PurchaseOrder;
+use Doctrine\ORM\QueryBuilder;
 
 /**
  * Where a cross-dock purchase order is from our warehouse's point of view.
  * Not stored: worked out from the distributor's state and the warehouse
- * fields, the same way in PHP (of()) and in DQL (condition(), for the
- * backoffice filter), so the badge and the filter always agree.
+ * fields, the same way in PHP (of()) and in DQL (apply(), for the
+ * backoffice filter and dashboard), so the badge and the filter always agree.
  */
 enum WarehouseStatus: string
 {
@@ -48,11 +49,26 @@ enum WarehouseStatus: string
     }
 
     /**
-     * The same rule as of(), as a DQL condition on purchase order $alias.
-     * Uses the parameters :{$prefix}today (a date) and :{$prefix}shipped
-     * (DISTRIBUTOR_SHIPPED); see parameters().
+     * Narrows a purchase order query (alias $alias) to this status: the same
+     * rule as of(), in DQL. $negate keeps everything else instead. $prefix
+     * keeps its parameter names apart from the query's others.
      */
-    public function condition(string $alias, string $prefix): string
+    public function apply(QueryBuilder $query, string $alias, string $prefix, \DateTimeImmutable $today, bool $negate = false): QueryBuilder
+    {
+        $condition = $this->condition($alias, $prefix);
+        $query->andWhere($negate ? sprintf('NOT (%s)', $condition) : $condition);
+        $parameters = [$prefix.'today' => $today->setTime(0, 0), $prefix.'shipped' => self::DISTRIBUTOR_SHIPPED];
+        foreach ($parameters as $name => $value) {
+            // Doctrine refuses parameters the query doesn't use.
+            if (str_contains($condition, ':'.$name)) {
+                $query->setParameter($name, $value);
+            }
+        }
+
+        return $query;
+    }
+
+    private function condition(string $alias, string $prefix): string
     {
         $open = sprintf('%1$s.forwardedAt IS NULL AND %1$s.receivedAt IS NULL', $alias);
         $notLate = sprintf('(%1$s.expectedAt IS NULL OR %1$s.expectedAt >= :%2$stoday)', $alias, $prefix);
@@ -64,15 +80,6 @@ enum WarehouseStatus: string
             self::InTransit => sprintf('%s AND %s AND %s.state IN (:%sshipped)', $open, $notLate, $alias, $prefix),
             self::AwaitingDistributor => sprintf('%s AND %s AND %s.state NOT IN (:%sshipped)', $open, $notLate, $alias, $prefix),
         };
-    }
-
-    /** @return array<string, mixed> the parameters condition() uses */
-    public static function parameters(string $prefix, \DateTimeImmutable $today): array
-    {
-        return [
-            $prefix.'today' => $today->setTime(0, 0),
-            $prefix.'shipped' => self::DISTRIBUTOR_SHIPPED,
-        ];
     }
 
     public function label(): string

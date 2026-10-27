@@ -28,13 +28,13 @@ final class DashboardControllerTest extends TestCase
 
     public function testItIsTitledForTheSite(): void
     {
-        self::assertSame('USISCS', (new DashboardController())->configureDashboard()->getAsDto()->getTitle());
+        self::assertSame('USISCS', self::controller()->configureDashboard()->getAsDto()->getTitle());
     }
 
     public function testTheMenuLinksTheLeadQueuesAndSyliusAdmin(): void
     {
         $items = [];
-        foreach ((new DashboardController())->configureMenuItems() as $item) {
+        foreach (self::controller()->configureMenuItems() as $item) {
             self::assertInstanceOf(MenuItemInterface::class, $item);
             $items[] = $item->getAsDto();
         }
@@ -59,5 +59,11 @@ final class DashboardControllerTest extends TestCase
             self::assertSame(WarehouseCrudController::class, $item->getRouteParameters()['crudControllerFqcn'] ?? null);
         }
         self::assertSame(['warehouseStatus' => ['comparison' => '=', 'value' => 'overdue']], $warehouse[2]->getRouteParameters()['filters'] ?? null);
+    }
+
+    /** The menu and title don't use the dashboard summary, so no need to build one. */
+    private static function controller(): DashboardController
+    {
+        return (new \ReflectionClass(DashboardController::class))->newInstanceWithoutConstructor();
     }
 }

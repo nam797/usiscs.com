@@ -164,6 +164,14 @@
     (`sylius_order.fulfilment_route`; existing orders backfilled by the
     migration). The order page shows each purchase order's warehouse status.
   - Purchase Orders: a fulfilment filter and badge.
+  - `/backoffice` now opens on a real dashboard (`BackofficeSummary`), not
+    EasyAdmin's welcome page. It shows:
+    - warehouse tiles: overdue, due in the next 7 days, on its way, received to ship on
+    - Coming in (soonest first) and Received, to ship on (each row has a Ship to customer button)
+    - purchase orders needing attention, awaiting manual entry or on hold
+    - new quote requests and new contact messages
+
+    Every number links to its filtered list.
 
 ## Decisions
 - Nothing goes live until its shipping is confirmed: every SKU needs a
