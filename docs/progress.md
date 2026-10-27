@@ -144,6 +144,26 @@
   - The ORS client is built from the PDF's examples and isn't tested against
     ORS yet. How ORS answers an unknown PO is a guess (an empty result, or an
     error saying "not found").
+- Cross-dock warehouse (2026-10-27): it's now clear which orders go through
+  our warehouse, and when they arrive.
+  - Backoffice → **Warehouse** (`WarehouseCrudController`): cross-dock
+    purchase orders, with quick links for Coming in, Due in the next 7 days,
+    Overdue, and Received, to ship on.
+    - Each shows the items, who it ships to, when the distributor shipped it
+      (and its tracking), the expected date and a warehouse status.
+    - Actions: Set expected date → Mark received (with a note) → Ship to
+      customer (our carrier + tracking).
+  - Expected date = the distributor's first tracking + 3 business days
+    (`app.cross_dock_transit_days`); staff can change it. ORS gives no
+    delivery date.
+  - Ship to customer puts our tracking on the customer's order. Mixed
+    orders (some direct, some cross-dock) are marked shipped and emailed
+    only once every part has gone.
+  - Sylius admin order list: a Delivery column and filter (Direct /
+    Cross-dock / Mixed / Not confirmed), stored on the order when it's paid
+    (`sylius_order.fulfilment_route`; existing orders backfilled by the
+    migration). The order page shows each purchase order's warehouse status.
+  - Purchase Orders: a fulfilment filter and badge.
 
 ## Decisions
 - Nothing goes live until its shipping is confirmed: every SKU needs a
@@ -173,6 +193,13 @@
   unconfirmed fulfilment are never guessed: they go to "needs attention".
   Our PO number `{order}-{n}` is the distributor's customer PO number (ORS
   "custpo"), so we can look an order up by it.
+- Cross-dock warehouse steps (expected, received, shipped to customer) are
+  fields on the purchase order, not states of its state machine: the
+  distributor's side (shipped → invoiced) moves on independently. The
+  warehouse status is worked out from them (`WarehouseStatus`, same rule
+  in PHP and in the list filter), never stored. A cross-dock purchase
+  order's distributor tracking is the parcel to our warehouse and is never
+  shown to the customer.
 
 - Dependabot auto-merge: patch/minor bumps use GitHub auto-merge and only land
   once the required check "Static checks / PHP 8.4, Symfony ~7.4.0" passes
@@ -195,6 +222,10 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
+- **Cross-dock warehouse (branch `cross-dock-warehouse`, not merged yet):** after
+  merging, ask the client for the warehouse address and a realistic ORS
+  transit time to the warehouse (the default is 3 business days), and
+  whether the warehouse should get an email when a delivery is due.
 - **Distributor orders, next:**
   - Ask ORS for the Order Query web service passwords (`ORS_OQ_PASSWORD`,
     `ORS_OQ_PASSWORD2`), then run `app:distributor:sync-orders -v` against

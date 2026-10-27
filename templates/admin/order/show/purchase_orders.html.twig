@@ -7,6 +7,9 @@
 <div class="card mb-3">
     <div class="card-header">
         <div class="card-title">Purchase orders</div>
+        {% if order.fulfilmentRoute %}
+            <div class="card-actions"><span class="badge {{ order.fulfilmentRoute.badge }}">{{ order.fulfilmentRoute.label }}</span></div>
+        {% endif %}
     </div>
     <div class="py-3">
         {% if purchase_orders is empty %}
@@ -21,6 +24,13 @@
                                 <td class="px-3">
                                     <a href="{{ path('app_admin_dashboard_purchase_order_detail', {entityId: purchase_order.id}) }}">{{ purchase_order.number }}</a>
                                     <div class="text-secondary">{{ distributor_name(purchase_order.distributor) }}, {{ purchase_order.fulfilment.label }}</div>
+                                    {% set warehouse_status = purchase_order.warehouseStatus %}
+                                    {% if warehouse_status %}
+                                        <div>
+                                            <a href="{{ path('app_admin_dashboard_warehouse_detail', {entityId: purchase_order.id}) }}" class="badge badge-{{ warehouse_status.badge }} bg-{{ warehouse_status.badge }}-lt">Warehouse: {{ warehouse_status.label }}</a>
+                                            {% if purchase_order.expectedAt and not purchase_order.receivedAt %}<span class="text-secondary">expected {{ purchase_order.expectedAt|date('D M j') }}</span>{% endif %}
+                                        </div>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <span class="badge {{ purchase_order.state == 'needs_attention' ? 'bg-danger' : 'bg-secondary' }} text-white">{{ purchase_order_state_label(purchase_order.state) }}</span>

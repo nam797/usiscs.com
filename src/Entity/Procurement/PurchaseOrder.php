@@ -7,6 +7,7 @@ namespace App\Entity\Procurement;
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Distributor\PurchaseOrderEventType;
 use App\Distributor\PurchaseOrderState;
+use App\Distributor\Warehouse\WarehouseStatus;
 use App\Entity\Order\Order;
 use App\Repository\Procurement\PurchaseOrderRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -90,6 +91,34 @@ class PurchaseOrder
     /** Last time staff were emailed that it's stuck; at most once a day. */
     #[ORM\Column(name: 'alerted_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $alertedAt = null;
+
+    /**
+     * Cross-dock only: when the distributor's delivery should reach our
+     * warehouse. Filled in from the ship date when tracking first arrives
+     * (PurchaseOrderTracker); staff can change it.
+     */
+    #[ORM\Column(name: 'expected_at', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $expectedAt = null;
+
+    /** Cross-dock only: when our warehouse checked the delivery in, and who did. */
+    #[ORM\Column(name: 'received_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $receivedAt = null;
+
+    #[ORM\Column(name: 'received_by', type: 'string', length: 180, nullable: true)]
+    private ?string $receivedBy = null;
+
+    /** Cross-dock only: when we shipped it on to the customer, how, and who did. */
+    #[ORM\Column(name: 'forwarded_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $forwardedAt = null;
+
+    #[ORM\Column(name: 'forwarded_by', type: 'string', length: 180, nullable: true)]
+    private ?string $forwardedBy = null;
+
+    #[ORM\Column(name: 'forwarded_carrier', type: 'string', length: 100, nullable: true)]
+    private ?string $forwardedCarrier = null;
+
+    #[ORM\Column(name: 'forwarded_tracking', type: 'string', length: 100, nullable: true)]
+    private ?string $forwardedTracking = null;
 
     /** @var Collection<int, PurchaseOrderLine> */
     #[ORM\OneToMany(targetEntity: PurchaseOrderLine::class, mappedBy: 'purchaseOrder', cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -299,6 +328,97 @@ class PurchaseOrder
         $this->shipments->add(new PurchaseOrderShipment($this, $trackingNumber, $carrier));
 
         return true;
+    }
+
+    /** When the distributor's first tracking number arrived: as near as we get to its ship date. */
+    public function getDistributorShippedAt(): ?\DateTimeImmutable
+    {
+        $first = $this->shipments->first();
+
+        return false === $first ? null : $first->getCreatedAt();
+    }
+
+    public function isCrossDock(): bool
+    {
+        return Fulfilment::CrossDock === $this->fulfilment;
+    }
+
+    /** Where it is for our warehouse, as of today; null unless it's a live cross-dock purchase order. */
+    public function getWarehouseStatus(): ?WarehouseStatus
+    {
+        return WarehouseStatus::of($this, new \DateTimeImmutable('today'));
+    }
+
+    public function getExpectedAt(): ?\DateTimeImmutable
+    {
+        return $this->expectedAt;
+    }
+
+    /** @return bool whether the date changed */
+    public function changeExpectedAt(?\DateTimeImmutable $expectedAt, string $actor = PurchaseOrderEvent::SYSTEM, ?string $note = null): bool
+    {
+        $expectedAt = $expectedAt?->setTime(0, 0);
+        if ($expectedAt?->format('Y-m-d') === $this->expectedAt?->format('Y-m-d')) {
+            return false;
+        }
+
+        $this->expectedAt = $expectedAt;
+        $message = null === $expectedAt ? 'Expected at the warehouse: not known.' : 'Expected at the warehouse on '.$expectedAt->format('D Y-m-d').'.';
+        $this->log(PurchaseOrderEventType::ExpectedDateChanged, $message.(null === $note || '' === $note ? '' : ' '.$note), $actor);
+
+        return true;
+    }
+
+    public function getReceivedAt(): ?\DateTimeImmutable
+    {
+        return $this->receivedAt;
+    }
+
+    public function getReceivedBy(): ?string
+    {
+        return $this->receivedBy;
+    }
+
+    /** Our warehouse checked the delivery in. */
+    public function markReceived(string $actor, ?string $note = null): void
+    {
+        $this->receivedAt = new \DateTimeImmutable();
+        $this->receivedBy = mb_substr($actor, 0, 180);
+        $this->log(PurchaseOrderEventType::Received, null === $note || '' === $note ? null : $note, $actor);
+    }
+
+    public function getForwardedAt(): ?\DateTimeImmutable
+    {
+        return $this->forwardedAt;
+    }
+
+    public function getForwardedBy(): ?string
+    {
+        return $this->forwardedBy;
+    }
+
+    public function getForwardedCarrier(): ?string
+    {
+        return $this->forwardedCarrier;
+    }
+
+    public function getForwardedTracking(): ?string
+    {
+        return $this->forwardedTracking;
+    }
+
+    /** We shipped it on from our warehouse to the customer. */
+    public function markForwarded(string $carrier, string $trackingNumber, string $actor, ?string $note = null): void
+    {
+        $this->forwardedAt = new \DateTimeImmutable();
+        $this->forwardedBy = mb_substr($actor, 0, 180);
+        $this->forwardedCarrier = mb_substr(trim($carrier), 0, 100);
+        $this->forwardedTracking = mb_substr(trim($trackingNumber), 0, 100);
+        $this->log(
+            PurchaseOrderEventType::ShippedToCustomer,
+            trim($this->forwardedCarrier.' '.$this->forwardedTracking).(null === $note || '' === $note ? '' : '. '.$note),
+            $actor,
+        );
     }
 
     public function getLineForSupplierSku(string $supplierSku): ?PurchaseOrderLine

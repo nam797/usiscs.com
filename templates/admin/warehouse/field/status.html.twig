@@ -1,0 +1,12 @@
+{# WarehouseStatus as a badge. #}
+{% set status = field.value %}
+{% if status %}
+    <span class="badge badge-{{ status.badge }}">{{ status.label }}</span>
+    {% if status.value == 'received' and entity.instance.receivedAt %}
+        <div class="text-secondary small">{{ entity.instance.receivedAt|date('D M j') }}</div>
+    {% elseif status.value == 'shipped_to_customer' %}
+        <div class="text-secondary small">{{ entity.instance.forwardedCarrier }} {{ entity.instance.forwardedTracking }}</div>
+    {% endif %}
+{% else %}
+    <span class="text-secondary">-</span>
+{% endif %}

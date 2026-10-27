@@ -13,6 +13,7 @@ use App\Distributor\PurchaseOrderNotifierInterface;
 use App\Distributor\PurchaseOrderState;
 use App\Distributor\PurchaseOrderTracker;
 use App\Distributor\PurchaseOrderTransition;
+use App\Distributor\Warehouse\ExpectedArrival;
 use App\Entity\Order\Order;
 use App\Entity\Procurement\PurchaseOrder;
 use App\Entity\Procurement\PurchaseOrderEvent;
@@ -135,6 +136,42 @@ final class PurchaseOrderTrackerTest extends TestCase
         self::assertFalse($this->tracker()->track($purchaseOrder));
         self::assertSame(PurchaseOrderState::SUBMITTED, $purchaseOrder->getState());
         self::assertNotNull($purchaseOrder->getLastCheckedAt());
+    }
+
+    public function testACrossDockOrderIsExpectedAtTheWarehouseAFewBusinessDaysAfterItShips(): void
+    {
+        $purchaseOrder = $this->submitted();
+        $purchaseOrder->setFulfilment(Fulfilment::CrossDock);
+        $this->report($purchaseOrder, PurchaseOrderState::SHIPPED, tracking: '1ZA');
+
+        self::assertTrue($this->tracker()->track($purchaseOrder));
+
+        $shippedAt = $purchaseOrder->getDistributorShippedAt();
+        self::assertNotNull($shippedAt);
+        self::assertSame(ExpectedArrival::after($shippedAt, 3)->format('Y-m-d'), $purchaseOrder->getExpectedAt()?->format('Y-m-d'));
+        self::assertContains(PurchaseOrderEventType::ExpectedDateChanged, self::eventTypes($purchaseOrder));
+    }
+
+    public function testADateStaffSetIsKept(): void
+    {
+        $purchaseOrder = $this->submitted();
+        $purchaseOrder->setFulfilment(Fulfilment::CrossDock);
+        $purchaseOrder->changeExpectedAt(new \DateTimeImmutable('2026-11-20'), 'staff@usiscs.test');
+        $this->report($purchaseOrder, PurchaseOrderState::SHIPPED, tracking: '1ZA');
+
+        $this->tracker()->track($purchaseOrder);
+
+        self::assertSame('2026-11-20', $purchaseOrder->getExpectedAt()?->format('Y-m-d'));
+    }
+
+    public function testADirectOrderGetsNoExpectedDate(): void
+    {
+        $purchaseOrder = $this->submitted();
+        $this->report($purchaseOrder, PurchaseOrderState::SHIPPED, tracking: '1ZA');
+
+        $this->tracker()->track($purchaseOrder);
+
+        self::assertNull($purchaseOrder->getExpectedAt());
     }
 
     public function testQueuedOrdersAreNotAsked(): void

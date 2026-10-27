@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Distributor;
 
+use App\Distributor\Warehouse\ExpectedArrival;
 use App\Entity\Procurement\PurchaseOrder;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Asks the distributor where a purchase order is and catches ours up:
@@ -13,7 +15,9 @@ use App\Entity\Procurement\PurchaseOrder;
  * timeline. Run for every open purchase order by app:distributor:sync-orders.
  *
  * Also finds orders staff placed by hand but never marked submitted, by
- * our PO number. A distributor cancelling an order we sent puts it in
+ * our PO number. For a cross-dock purchase order, the first tracking
+ * number also sets when it's expected at our warehouse (ExpectedArrival),
+ * unless staff already set a date. A distributor cancelling an order we sent puts it in
  * "needs attention": the customer has paid for it.
  *
  * Changes the purchase order only; the caller flushes.
@@ -49,6 +53,9 @@ final class PurchaseOrderTracker
         private readonly DistributorRegistry $distributors,
         private readonly PurchaseOrderStateMachine $stateMachine,
         private readonly PurchaseOrderNotifierInterface $notifier,
+        /** Business days from the distributor shipping to it reaching our warehouse. */
+        #[Autowire(param: 'app.cross_dock_transit_days')]
+        private readonly int $crossDockTransitDays = 3,
     ) {
     }
 
@@ -134,6 +141,11 @@ final class PurchaseOrderTracker
                 $purchaseOrder->log(PurchaseOrderEventType::Tracking, trim($shipment['carrier'].' '.$shipment['trackingNumber']));
                 $changed = true;
             }
+        }
+
+        $shippedAt = $purchaseOrder->getDistributorShippedAt();
+        if ($purchaseOrder->isCrossDock() && null === $purchaseOrder->getExpectedAt() && null === $purchaseOrder->getReceivedAt() && null !== $shippedAt) {
+            $changed = $purchaseOrder->changeExpectedAt(ExpectedArrival::after($shippedAt, $this->crossDockTransitDays)) || $changed;
         }
 
         return $changed;

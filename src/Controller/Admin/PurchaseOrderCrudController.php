@@ -6,11 +6,13 @@ namespace App\Controller\Admin;
 
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Distributor\DistributorRegistry;
+use App\Distributor\FulfilmentRoute;
 use App\Distributor\PurchaseOrderEventType;
 use App\Distributor\PurchaseOrderState;
 use App\Distributor\PurchaseOrderStateMachine;
 use App\Distributor\PurchaseOrderTransition;
 use App\Entity\Procurement\PurchaseOrder;
+use App\Repository\Procurement\PurchaseOrderRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -54,6 +56,7 @@ class PurchaseOrderCrudController extends AbstractCrudController
         private readonly DistributorRegistry $distributors,
         private readonly EntityManagerInterface $entityManager,
         private readonly AdminUrlGenerator $adminUrlGenerator,
+        private readonly PurchaseOrderRepository $purchaseOrders,
     ) {
     }
 
@@ -97,6 +100,7 @@ class PurchaseOrderCrudController extends AbstractCrudController
     {
         return $filters
             ->add(ChoiceFilter::new('state')->setChoices(array_flip(PurchaseOrderState::LABELS)))
+            ->add(ChoiceFilter::new('fulfilment')->setChoices(self::fulfilmentChoices()))
             ->add(ChoiceFilter::new('distributor')->setChoices($this->distributors->choices() + ['Not set' => PurchaseOrder::UNASSIGNED]))
             ->add('createdAt')
         ;
@@ -112,8 +116,13 @@ class PurchaseOrderCrudController extends AbstractCrudController
             ->setTemplatePath('admin/purchase_order/field/order.html.twig');
         yield ChoiceField::new('distributor')
             ->setChoices($this->distributors->choices() + ($editing ? [] : ['Not set' => PurchaseOrder::UNASSIGNED]));
-        yield ChoiceField::new('fulfilment')
+        $fulfilment = ChoiceField::new('fulfilment')
             ->setChoices(array_combine(array_map(static fn (Fulfilment $f): string => $f->label(), Fulfilment::cases()), Fulfilment::cases()));
+        yield $editing ? $fulfilment : $fulfilment->renderAsBadges([
+            Fulfilment::CrossDock->value => 'info',
+            Fulfilment::OrsDirect->value => 'secondary',
+            Fulfilment::Unconfirmed->value => 'danger',
+        ]);
         yield ChoiceField::new('state')->hideOnForm()
             ->setChoices(array_flip(PurchaseOrderState::LABELS))
             ->renderAsBadges([
@@ -132,6 +141,8 @@ class PurchaseOrderCrudController extends AbstractCrudController
         yield Field::new('lines')->onlyOnDetail()->setTemplatePath('admin/purchase_order/field/lines.html.twig');
         yield Field::new('shipments')->setLabel('Tracking')->onlyOnDetail()->setTemplatePath('admin/purchase_order/field/shipments.html.twig');
         yield DateTimeField::new('lastCheckedAt')->setLabel('Last checked with distributor')->onlyOnDetail();
+        yield Field::new('warehouseStatus')->setLabel('Warehouse')->onlyOnDetail()
+            ->setTemplatePath('admin/warehouse/field/status.html.twig');
         yield Field::new('events')->setLabel('Timeline')->onlyOnDetail()->setTemplatePath('admin/purchase_order/field/events.html.twig');
     }
 
@@ -155,6 +166,7 @@ class PurchaseOrderCrudController extends AbstractCrudController
         }
 
         parent::updateEntity($entityManager, $entityInstance);
+        $this->refreshFulfilmentRoute($entityInstance);
     }
 
     /** @param AdminContext<PurchaseOrder> $context */
@@ -216,6 +228,9 @@ class PurchaseOrderCrudController extends AbstractCrudController
                 }
                 $message = 'mark_submitted' === $name ? 'Distributor order no. '.$reference.('' === $note ? '' : '. '.$note) : ('' === $note ? null : $note);
                 $this->stateMachine->apply($purchaseOrder, $transition, $message, $this->actor());
+                if (PurchaseOrderTransition::Cancel === $transition) {
+                    $this->refreshFulfilmentRoute($purchaseOrder);
+                }
                 // A retried order is queued again by PurchaseOrderOutbox after this flush.
                 $this->entityManager->flush();
                 $this->addFlash('success', sprintf('Purchase order %s: %s.', $purchaseOrder->getNumber(), strtolower(PurchaseOrderEventType::of($transition)->label())));
@@ -232,6 +247,32 @@ class PurchaseOrderCrudController extends AbstractCrudController
             'error' => $error,
             'detail_url' => $detailUrl,
         ]);
+    }
+
+    /** The shop order's direct / cross-dock / mixed, after a purchase order's fulfilment changed or it was cancelled. */
+    private function refreshFulfilmentRoute(PurchaseOrder $purchaseOrder): void
+    {
+        $order = $purchaseOrder->getOrder();
+        $purchaseOrders = array_map(
+            static fn (PurchaseOrder $p): PurchaseOrder => $p->getId() === $purchaseOrder->getId() ? $purchaseOrder : $p,
+            $this->purchaseOrders->findForOrder($order),
+        );
+        $route = FulfilmentRoute::of($purchaseOrders);
+        if ($route !== $order->getFulfilmentRoute()) {
+            $order->setFulfilmentRoute($route);
+            $this->entityManager->flush();
+        }
+    }
+
+    /** @return array<string, string> */
+    private static function fulfilmentChoices(): array
+    {
+        $choices = [];
+        foreach (Fulfilment::cases() as $fulfilment) {
+            $choices[$fulfilment->label()] = $fulfilment->value;
+        }
+
+        return $choices;
     }
 
     private static function isEditable(PurchaseOrder $purchaseOrder): bool

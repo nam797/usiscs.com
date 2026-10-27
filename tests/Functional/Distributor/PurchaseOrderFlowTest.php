@@ -7,6 +7,9 @@ namespace App\Tests\Functional\Distributor;
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Distributor\DistributorOrderStatus;
 use App\Distributor\DistributorRegistry;
+use App\Distributor\FulfilmentRoute;
+use App\Distributor\Warehouse\WarehouseStatus;
+use App\Entity\Order\Order;
 use App\Distributor\Fake\FakeDistributor;
 use App\Distributor\Message\SubmitPurchaseOrder;
 use App\Distributor\Message\SubmitPurchaseOrderHandler;
@@ -227,7 +230,108 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertSame(PurchaseOrderState::NEEDS_ATTENTION, $this->entityManager()->find(PurchaseOrder::class, $purchaseOrder->getId())?->getState());
     }
 
-    private function paidOrder(Fulfilment $fulfilment, string $distributor = FakeDistributor::CODE): OrderInterface
+    public function testTheWarehouseReceivesCrossDockItemsAndShipsThemOn(): void
+    {
+        $order = $this->paidOrder(Fulfilment::OrsDirect, secondItem: Fulfilment::CrossDock);
+        self::assertInstanceOf(Order::class, $order);
+        self::assertSame(FulfilmentRoute::Mixed, $order->getFulfilmentRoute());
+        foreach ($this->transport()->getSent() as $envelope) {
+            $message = $envelope->getMessage();
+            self::assertInstanceOf(SubmitPurchaseOrder::class, $message);
+            $this->handler()($message);
+        }
+
+        $repository = $this->entityManager()->getRepository(PurchaseOrder::class);
+        $direct = $repository->findOneBy(['order' => $order, 'fulfilment' => Fulfilment::OrsDirect]);
+        $crossDock = $repository->findOneBy(['order' => $order, 'fulfilment' => Fulfilment::CrossDock]);
+        self::assertInstanceOf(PurchaseOrder::class, $direct);
+        self::assertInstanceOf(PurchaseOrder::class, $crossDock);
+
+        // The distributor ships both: the gloves to the customer, the helmet to us.
+        $fake = $this->fakeDistributor();
+        $fake->reportStatus($direct->getNumber(), new DistributorOrderStatus('FAKE-D', PurchaseOrderState::SHIPPED, 'shipped', [], [['trackingNumber' => '1ZDIRECT01', 'carrier' => 'UPS']]));
+        $fake->reportStatus($crossDock->getNumber(), new DistributorOrderStatus('FAKE-X', PurchaseOrderState::SHIPPED, 'shipped', [], [['trackingNumber' => '1ZINBOUND01', 'carrier' => 'UPS']]));
+        $tester = new CommandTester((new Application(self::$kernel ?? throw new \LogicException()))->find('app:distributor:sync-orders'));
+        $tester->execute(['--no-alerts' => true]);
+        $tester->assertCommandIsSuccessful();
+
+        $this->entityManager()->clear();
+        $crossDock = $repository->find($crossDock->getId());
+        self::assertInstanceOf(PurchaseOrder::class, $crossDock);
+        self::assertNotNull($crossDock->getExpectedAt(), 'the expected date comes from the ship date');
+        self::assertSame(WarehouseStatus::InTransit, $crossDock->getWarehouseStatus());
+        $shipment = $crossDock->getOrder()->getShipments()->first();
+        self::assertInstanceOf(ShipmentInterface::class, $shipment);
+        self::assertSame('1ZDIRECT01', $shipment->getTracking(), 'the parcel to our warehouse is not the customer\'s tracking');
+        self::assertNotSame(ShipmentInterface::STATE_SHIPPED, $shipment->getState(), 'the helmet hasn\'t shipped to the customer yet');
+        self::assertEmailCount(0);
+
+        // The warehouse list shows it coming in; the direct one isn't there.
+        $this->loginAsAdmin();
+        $this->client->request('GET', '/backoffice/warehouse?'.http_build_query(['filters' => ['warehouseStatus' => ['comparison' => '=', 'value' => 'not_received']]]));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', $crossDock->getNumber());
+        self::assertSelectorTextContains('body', 'On its way to us');
+        self::assertSelectorTextNotContains('body', $direct->getNumber());
+        $this->client->request('GET', '/backoffice/warehouse?'.http_build_query(['filters' => ['warehouseStatus' => ['comparison' => '=', 'value' => 'received']]]));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextNotContains('body', $crossDock->getNumber());
+
+        // Purchase Orders filters on fulfilment too.
+        $this->client->request('GET', '/backoffice/purchase-order?'.http_build_query(['filters' => ['fulfilment' => ['comparison' => '=', 'value' => 'cross_dock']]]));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', $crossDock->getNumber());
+        self::assertSelectorTextNotContains('body', $direct->getNumber());
+
+        // The Sylius order list filters on it, and the order page says where it is.
+        $this->client->request('GET', '/admin/orders/?'.http_build_query(['criteria' => ['fulfilmentRoute' => 'mixed', 'number' => ['value' => (string) $order->getNumber()]]]));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', (string) $order->getNumber());
+        self::assertSelectorTextContains('body', 'Mixed');
+        $this->client->request('GET', '/admin/orders/?'.http_build_query(['criteria' => ['fulfilmentRoute' => 'direct', 'number' => ['value' => (string) $order->getNumber()]]]));
+        self::assertSelectorTextNotContains('body', '#'.$order->getNumber());
+        $this->client->request('GET', sprintf('/admin/orders/%d', $order->getId()));
+        self::assertSelectorTextContains('body', 'Warehouse: On its way to us');
+
+        // Checked in, then shipped on with our tracking.
+        $crawler = $this->client->request('GET', sprintf('/backoffice/warehouse/%d/mark-received', $crossDock->getId()));
+        self::assertResponseIsSuccessful();
+        $this->client->submit($crawler->selectButton('Mark received')->form(['note' => 'Box dented, helmet fine']));
+        self::assertResponseRedirects();
+
+        $crawler = $this->client->request('GET', sprintf('/backoffice/warehouse/%d/ship-to-customer', $crossDock->getId()));
+        self::assertResponseIsSuccessful();
+        $this->client->submit($crawler->selectButton('Ship to customer')->form(['carrier' => 'UPS Ground', 'tracking' => '1ZOURS0001']));
+        self::assertResponseRedirects();
+
+        $this->entityManager()->clear();
+        $crossDock = $repository->find($crossDock->getId());
+        self::assertInstanceOf(PurchaseOrder::class, $crossDock);
+        self::assertSame(WarehouseStatus::ShippedToCustomer, $crossDock->getWarehouseStatus());
+        self::assertSame('admin@usiscs.test', $crossDock->getReceivedBy());
+        $shipment = $crossDock->getOrder()->getShipments()->first();
+        self::assertInstanceOf(ShipmentInterface::class, $shipment);
+        self::assertEqualsCanonicalizing(['1ZDIRECT01', '1ZOURS0001'], explode(', ', (string) $shipment->getTracking()));
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $shipment->getState());
+        self::assertEmailCount(1);
+    }
+
+    public function testShipToCustomerIsRefusedBeforeItIsReceived(): void
+    {
+        $order = $this->paidOrder(Fulfilment::CrossDock);
+        $purchaseOrder = $this->entityManager()->getRepository(PurchaseOrder::class)->findOneBy(['order' => $order]);
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+
+        $this->loginAsAdmin();
+        $this->client->request('GET', sprintf('/backoffice/warehouse/%d/ship-to-customer', $purchaseOrder->getId()));
+
+        self::assertResponseRedirects();
+        $this->entityManager()->clear();
+        self::assertNull($this->entityManager()->find(PurchaseOrder::class, $purchaseOrder->getId())?->getForwardedAt());
+    }
+
+    /** @param ?Fulfilment $secondItem when set, adds a helmet with this fulfilment */
+    private function paidOrder(Fulfilment $fulfilment, string $distributor = FakeDistributor::CODE, ?Fulfilment $secondItem = null): OrderInterface
     {
         $container = static::getContainer();
         $entityManager = $this->entityManager();
@@ -281,17 +385,35 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertInstanceOf(OrderItemQuantityModifierInterface::class, $quantityModifier);
         $quantityModifier->modify($item, 2);
         $order->addItem($item);
+        $items = [$item];
 
-        // One shipment, ready to ship, holding both units (as checkout makes it).
+        if (null !== $secondItem) {
+            $helmet = $this->ensureProduct('E2E_PO_HELMET', 'Purchase Order Test Helmet', 'purchase-order-test-helmet', 'safety_ppe');
+            $helmetVariant = $helmet->getVariants()->first();
+            self::assertInstanceOf(ProductVariant::class, $helmetVariant);
+            $helmetVariant->setDistributor($distributor);
+            $helmetVariant->setFulfilment($secondItem);
+            $helmetItem = $itemFactory->createNew();
+            self::assertInstanceOf(OrderItemInterface::class, $helmetItem);
+            $helmetItem->setVariant($helmetVariant);
+            $helmetItem->setUnitPrice(2499);
+            $quantityModifier->modify($helmetItem, 1);
+            $order->addItem($helmetItem);
+            $items[] = $helmetItem;
+        }
+
+        // One shipment, ready to ship, holding every unit (as checkout makes it).
         $shipmentFactory = $container->get('sylius.factory.shipment');
         self::assertInstanceOf(FactoryInterface::class, $shipmentFactory);
         $shipment = $shipmentFactory->createNew();
         self::assertInstanceOf(ShipmentInterface::class, $shipment);
         $shipment->setMethod($this->shippingMethod($channel));
         $shipment->setState(ShipmentInterface::STATE_READY);
-        foreach ($item->getUnits() as $unit) {
-            self::assertInstanceOf(ShipmentUnitInterface::class, $unit);
-            $shipment->addUnit($unit);
+        foreach ($items as $orderItem) {
+            foreach ($orderItem->getUnits() as $unit) {
+                self::assertInstanceOf(ShipmentUnitInterface::class, $unit);
+                $shipment->addUnit($unit);
+            }
         }
         $order->addShipment($shipment);
 

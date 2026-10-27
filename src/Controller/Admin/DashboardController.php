@@ -6,9 +6,12 @@ namespace App\Controller\Admin;
 
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Menu\ControllerMenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use App\Controller\Admin\RfqRequestCrudController;
 use App\Controller\Admin\ContactMessageCrudController;
+use App\Admin\Filter\WarehouseStatusFilter;
+use App\Distributor\Warehouse\WarehouseStatus;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -36,8 +39,28 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
         yield MenuItem::linkTo(RfqRequestCrudController::class, 'RFQ Requests', 'fa fa-file-invoice');
         yield MenuItem::linkTo(ContactMessageCrudController::class, 'Contact Messages', 'fa fa-envelope');
+        yield MenuItem::subMenu('Warehouse', 'fa fa-dolly')->setSubItems([
+            self::warehouseLink('Coming in', 'fa fa-truck-ramp-box', ['warehouseStatus' => ['comparison' => '=', 'value' => WarehouseStatusFilter::NOT_RECEIVED]]),
+            self::warehouseLink('Due in the next 7 days', 'fa fa-calendar-week', [
+                'warehouseStatus' => ['comparison' => '=', 'value' => WarehouseStatusFilter::NOT_RECEIVED],
+                'expectedAt' => ['comparison' => 'between', 'value' => date('Y-m-d'), 'value2' => date('Y-m-d', strtotime('+6 days'))],
+            ]),
+            self::warehouseLink('Overdue', 'fa fa-triangle-exclamation', ['warehouseStatus' => ['comparison' => '=', 'value' => WarehouseStatus::Overdue->value]]),
+            self::warehouseLink('Received, to ship on', 'fa fa-box', ['warehouseStatus' => ['comparison' => '=', 'value' => WarehouseStatus::Received->value]]),
+            MenuItem::linkTo(WarehouseCrudController::class, 'All cross-dock', 'fa fa-list'),
+        ]);
         yield MenuItem::linkTo(PurchaseOrderCrudController::class, 'Purchase Orders', 'fa fa-truck');
         yield MenuItem::linkTo(DistributorSettingCrudController::class, 'Distributors', 'fa fa-warehouse');
         yield MenuItem::linkToUrl('Sylius Admin (catalog, orders)', 'fa fa-store', '/admin');
+    }
+
+    /**
+     * The warehouse list with filters already set.
+     *
+     * @param array<string, array<string, string>> $filters
+     */
+    private static function warehouseLink(string $label, string $icon, array $filters): ControllerMenuItem
+    {
+        return MenuItem::linkTo(WarehouseCrudController::class, $label, $icon)->setQueryParameter('filters', $filters);
     }
 }

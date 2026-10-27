@@ -1,0 +1,26 @@
+# Whether an order ships straight from the distributor, through our
+# warehouse (cross-dock) or both, on the Sylius admin order list: a column
+# and a filter. Set from the order's purchase orders when it's paid
+# (App\Distributor\FulfilmentRoute); empty before that.
+sylius_grid:
+    grids:
+        sylius_admin_order:
+            fields:
+                fulfilmentRoute:
+                    type: twig
+                    label: 'Delivery'
+                    path: .
+                    options:
+                        template: 'admin/order/grid/field/fulfilment_route.html.twig'
+            filters:
+                fulfilmentRoute:
+                    type: select
+                    label: 'Delivery'
+                    options:
+                        field: fulfilmentRoute
+                    form_options:
+                        choices:
+                            'Direct': direct
+                            'Cross-dock': cross_dock
+                            'Mixed': mixed
+                            'Not confirmed': unconfirmed

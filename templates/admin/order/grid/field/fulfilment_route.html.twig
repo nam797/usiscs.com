@@ -1,0 +1,5 @@
+{# Direct / Cross-dock / Mixed on the Sylius admin order list (config/packages/app_admin_order_grid.yaml). #}
+{% set route = data.fulfilmentRoute %}
+{% if route %}
+    <span class="badge {{ route.badge }}">{{ route.label }}</span>
+{% endif %}

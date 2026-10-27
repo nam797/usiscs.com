@@ -1,0 +1,44 @@
+{# Confirms Set expected date / Mark received / Ship to customer on a cross-dock purchase order (WarehouseCrudController::act). #}
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}{{ label }}: purchase order {{ purchase_order.number }}{% endblock %}
+
+{% block main %}
+    <p>{{ help }}</p>
+    <p>
+        Shop order #{{ purchase_order.order.number }}.
+        {% for line in purchase_order.lines %}{{ line.quantity }}{% if line.unit %} {{ line.unit }}{% endif %} × {{ line.name }}{% if not loop.last %}; {% endif %}{% endfor %}
+    </p>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('warehouse_' ~ name ~ '_' ~ purchase_order.id) }}">
+
+        {% if name == 'set_expected_date' %}
+            <div class="mb-3">
+                <label class="form-label required" for="expected_at">Expected at the warehouse</label>
+                <input class="form-control" type="date" id="expected_at" name="expected_at" required value="{{ app.request.request.get('expected_at', purchase_order.expectedAt ? purchase_order.expectedAt|date('Y-m-d') : '') }}">
+            </div>
+        {% elseif name == 'ship_to_customer' %}
+            <div class="mb-3">
+                <label class="form-label required" for="carrier">Carrier</label>
+                <input class="form-control" type="text" id="carrier" name="carrier" maxlength="100" required placeholder="UPS Ground" value="{{ app.request.request.get('carrier') }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label required" for="tracking">Tracking number</label>
+                <input class="form-control" type="text" id="tracking" name="tracking" maxlength="100" required value="{{ app.request.request.get('tracking') }}">
+            </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <label class="form-label" for="note">Note (optional, shown on the timeline)</label>
+            <textarea class="form-control" id="note" name="note" rows="3">{{ app.request.request.get('note') }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">{{ label }}</button>
+        <a class="btn btn-secondary" href="{{ detail_url }}">Back</a>
+    </form>
+{% endblock %}
