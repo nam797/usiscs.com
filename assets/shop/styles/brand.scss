@@ -359,3 +359,53 @@ $brand-chevron: "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' vi
   --bs-accordion-btn-icon: url("#{$brand-chevron}") !important;
   --bs-accordion-btn-active-icon: url("#{$brand-chevron}") !important;
 }
+
+// The logo PNG has a white background, so it sits in a white box.
+.logo-panel {
+  background-color: #fff;
+}
+
+// Light-only utilities: Sylius uses Bootstrap's fixed light classes in a few
+// places (cart summary and coupon box, checkout header, login page, the
+// light buttons), and Bootstrap's dark mode doesn't adapt them, so they
+// showed as white panels with the dark theme's near-white text on top.
+// They become the same panel colour as cards instead.
+:root[data-bs-theme='dark'] {
+  .bg-white,
+  .bg-light {
+    background-color: var(--bs-tertiary-bg) !important;
+  }
+
+  .text-bg-light {
+    background-color: var(--bs-tertiary-bg) !important;
+    color: var(--bs-body-color) !important;
+  }
+
+  // The "|" between Login and Register in the header.
+  .text-black {
+    color: var(--bs-secondary-color) !important;
+  }
+
+  // "Back to store", "Clear cart" (.btn-light) and "Apply coupon"
+  // (Sylius's .btn-outline-gray): outlined in light grey instead of solid
+  // white or dark-on-dark.
+  .btn-light,
+  .btn-outline-gray {
+    --bs-btn-color: #F5F5F5 !important;
+    --bs-btn-bg: transparent !important;
+    --bs-btn-border-color: var(--bs-border-color) !important;
+    --bs-btn-hover-color: #F5F5F5 !important;
+    --bs-btn-hover-bg: var(--bs-tertiary-bg) !important;
+    --bs-btn-hover-border-color: #8A9BB0 !important;
+    --bs-btn-active-color: #F5F5F5 !important;
+    --bs-btn-active-bg: var(--bs-tertiary-bg) !important;
+    --bs-btn-active-border-color: #8A9BB0 !important;
+  }
+
+  // Checkout summary column: Sylius paints a hard-coded #F8F9FA band
+  // behind it with a pseudo-element.
+  .checkout-sidebar::before {
+    background: var(--bs-tertiary-bg) !important;
+    border-left: 1px solid var(--bs-border-color);
+  }
+}

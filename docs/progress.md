@@ -87,6 +87,11 @@
   sheet (list price, pack unit, families grouped, draft variant names,
   interim categories).
 
+- Dark theme fixes (2026-10-26): cart summary, coupon box, checkout header
+  and summary column, login panel and light buttons no longer render as white
+  panels with near-white text (brand.scss maps Bootstrap's light-only classes
+  onto the dark panel colour; the logo keeps its white box via .logo-panel).
+
 ## Decisions
 - ORS Nasco: selling price = ORS list price (from the price feed import); the
   API "price" is our cost, used only as a never-sell-below guard. Stock always
