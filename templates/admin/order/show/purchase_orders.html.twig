@@ -25,6 +25,7 @@
                                 <td>
                                     <span class="badge {{ purchase_order.state == 'needs_attention' ? 'bg-danger' : 'bg-secondary' }} text-white">{{ purchase_order_state_label(purchase_order.state) }}</span>
                                     {% if purchase_order.reference %}<div class="text-secondary">Order no. {{ purchase_order.reference }}</div>{% endif %}
+                                    {% for shipment in purchase_order.shipments %}<div class="text-secondary">{{ shipment.carrier }} {{ shipment.trackingNumber }}</div>{% endfor %}
                                 </td>
                                 <td class="text-secondary">
                                     {% if last_event %}{{ last_event.occurredAt|date('Y-m-d H:i') }}: {{ last_event.message ?? last_event.type.label }}{% endif %}

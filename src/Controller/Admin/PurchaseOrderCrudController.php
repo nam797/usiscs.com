@@ -130,6 +130,8 @@ class PurchaseOrderCrudController extends AbstractCrudController
         yield DateTimeField::new('createdAt')->setLabel('Created')->hideOnForm();
         yield DateTimeField::new('submittedAt')->setLabel('Submitted')->hideOnForm()->hideOnIndex();
         yield Field::new('lines')->onlyOnDetail()->setTemplatePath('admin/purchase_order/field/lines.html.twig');
+        yield Field::new('shipments')->setLabel('Tracking')->onlyOnDetail()->setTemplatePath('admin/purchase_order/field/shipments.html.twig');
+        yield DateTimeField::new('lastCheckedAt')->setLabel('Last checked with distributor')->onlyOnDetail();
         yield Field::new('events')->setLabel('Timeline')->onlyOnDetail()->setTemplatePath('admin/purchase_order/field/events.html.twig');
     }
 

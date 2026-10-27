@@ -6,6 +6,8 @@
             <th>Distributor SKU</th>
             <th>Item</th>
             <th class="text-end">Qty</th>
+            <th class="text-end">Shipped</th>
+            <th class="text-end">Back-ordered</th>
             <th class="text-end">Customer paid / unit</th>
             <th class="text-end">Our cost / unit</th>
         </tr>
@@ -17,6 +19,8 @@
                 <td>{{ line.supplierSku }}</td>
                 <td>{{ line.name }}</td>
                 <td class="text-end">{{ line.quantity }}{% if line.unit %} {{ line.unit }}{% endif %}</td>
+                <td class="text-end">{{ line.quantityShipped }}</td>
+                <td class="text-end">{% if line.quantityBackordered > 0 %}<span class="badge badge-warning">{{ line.quantityBackordered }}</span>{% else %}0{% endif %}</td>
                 <td class="text-end">${{ (line.unitPriceInCents / 100)|number_format(2) }}</td>
                 <td class="text-end">{{ line.unitCostInCents is null ? 'unknown' : '$' ~ (line.unitCostInCents / 100)|number_format(2) }}</td>
             </tr>

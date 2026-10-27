@@ -1,0 +1,9 @@
+These purchase orders have been in the same state for too long:
+
+{% for row in stuck %}
+{% set purchase_order = row.purchaseOrder %}
+- {{ purchase_order.number }} ({{ distributor_name(purchase_order.distributor) }}{% if purchase_order.reference %}, order {{ purchase_order.reference }}{% endif %}): {{ row.reason }}
+  {{ url('app_admin_dashboard_purchase_order_detail', {entityId: purchase_order.id}) }}
+{% endfor %}
+
+You'll be reminded once a day while they stay like this.

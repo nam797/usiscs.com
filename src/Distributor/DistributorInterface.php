@@ -49,4 +49,13 @@ interface DistributorInterface
      * @throws DistributorUnavailableException
      */
     public function findExisting(PurchaseOrder $purchaseOrder): ?string;
+
+    /**
+     * Where the distributor says this purchase order is (looked up by our
+     * PO number), for PurchaseOrderTracker; null when the distributor has
+     * no such order or can't report status.
+     *
+     * @throws DistributorUnavailableException
+     */
+    public function fetchStatus(PurchaseOrder $purchaseOrder): ?DistributorOrderStatus;
 }

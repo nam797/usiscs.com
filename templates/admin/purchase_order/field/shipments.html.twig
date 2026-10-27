@@ -1,0 +1,10 @@
+{# Tracking numbers the distributor reported (PurchaseOrderShipment). #}
+{% if field.value is empty %}
+    <span class="text-secondary">None yet</span>
+{% else %}
+    <ul class="mb-0">
+        {% for shipment in field.value %}
+            <li>{{ shipment.carrier }} {{ shipment.trackingNumber }} <span class="text-secondary">({{ shipment.createdAt|date('Y-m-d H:i') }})</span></li>
+        {% endfor %}
+    </ul>
+{% endif %}

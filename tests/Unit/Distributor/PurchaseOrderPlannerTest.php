@@ -13,6 +13,7 @@ use App\Distributor\PurchaseOrderPlanner;
 use App\Distributor\PurchaseOrderState;
 use App\Distributor\SupplierSkuLookupInterface;
 use App\Entity\Procurement\PurchaseOrder;
+use App\Supplier\OrsNasco\OrderQueryClientInterface;
 use PHPUnit\Framework\TestCase;
 
 final class PurchaseOrderPlannerTest extends TestCase
@@ -94,6 +95,11 @@ final class PurchaseOrderPlannerTest extends TestCase
             }
         };
 
-        return new PurchaseOrderPlanner(new DistributorRegistry([new OrsNascoDistributor(), new FakeDistributor()]), $skus);
+        return new PurchaseOrderPlanner(new DistributorRegistry([new OrsNascoDistributor(new class implements OrderQueryClientInterface {
+            public function findByCustomerPo(string $customerPo, ?\DateTimeImmutable $placedAfter = null): array
+            {
+                return [];
+            }
+        }), new FakeDistributor()]), $skus);
     }
 }

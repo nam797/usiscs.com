@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Not in the ORS doc: our guess at an unknown PO (a result with no orders). Check against ORS's test service. -->
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <GetOrderResponse xmlns="http://webservices.orsnasco.com/ORSOrderQueryV1/ORSOrderQuery/">
+      <GetOrderResult>
+        <OrderQuery/>
+      </GetOrderResult>
+    </GetOrderResponse>
+  </soap:Body>
+</soap:Envelope>

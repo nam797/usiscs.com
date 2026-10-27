@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- From the ORS doc, page 5: invalid input. -->
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <GetOrderResponse xmlns="http://webservices.orsnasco.com/ORSOrderQueryV1/ORSOrderQuery/">
+      <GetOrderResult>
+        <OrderQuery>
+          <Error>Orderno format must be 8-digit number</Error>
+        </OrderQuery>
+      </GetOrderResult>
+    </GetOrderResponse>
+  </soap:Body>
+</soap:Envelope>

@@ -49,6 +49,16 @@ final class PurchaseOrderNotifier implements PurchaseOrderNotifierInterface
         );
     }
 
+    public function stuck(array $stuck): void
+    {
+        $this->send(
+            $stuck[0]['purchaseOrder'],
+            sprintf('%d purchase order%s need%s a look', count($stuck), 1 === count($stuck) ? '' : 's', 1 === count($stuck) ? 's' : ''),
+            'emails/purchase_orders_stuck.txt.twig',
+            ['stuck' => $stuck],
+        );
+    }
+
     /** @param array<string, mixed> $context */
     private function send(PurchaseOrder $purchaseOrder, string $subject, string $template, array $context = []): void
     {

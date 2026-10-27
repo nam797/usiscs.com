@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Distributor\Fake;
 
 use App\Distributor\DistributorInterface;
+use App\Distributor\DistributorOrderStatus;
 use App\Distributor\DistributorUnavailableException;
 use App\Distributor\OrderRejectedException;
 use App\Distributor\SubmissionResult;
@@ -21,6 +22,8 @@ use Symfony\Component\DependencyInjection\Attribute\When;
  *   down    always unavailable, so orders retry and finally need attention
  *   reject  refuses every order
  *   manual  has no order API, like ORS today
+ *
+ * It reports no order status, except what a test sets with reportStatus().
  */
 #[When(env: 'dev')]
 #[When(env: 'test')]
@@ -28,6 +31,9 @@ use Symfony\Component\DependencyInjection\Attribute\When;
 final class FakeDistributor implements DistributorInterface
 {
     public const CODE = 'fake';
+
+    /** @var array<string, DistributorOrderStatus> by purchase order number */
+    private array $statuses = [];
 
     public function __construct(
         #[Autowire(env: 'FAKE_DISTRIBUTOR_MODE')]
@@ -62,5 +68,16 @@ final class FakeDistributor implements DistributorInterface
     public function findExisting(PurchaseOrder $purchaseOrder): ?string
     {
         return null;
+    }
+
+    public function fetchStatus(PurchaseOrder $purchaseOrder): ?DistributorOrderStatus
+    {
+        return $this->statuses[$purchaseOrder->getNumber()] ?? null;
+    }
+
+    /** For tests: what fetchStatus() reports for this purchase order from now on. */
+    public function reportStatus(string $purchaseOrderNumber, DistributorOrderStatus $status): void
+    {
+        $this->statuses[$purchaseOrderNumber] = $status;
     }
 }

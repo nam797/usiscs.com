@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Distributor;
 
 use App\Catalog\Fulfilment\Fulfilment;
+use App\Distributor\DistributorOrderStatus;
+use App\Distributor\DistributorRegistry;
 use App\Distributor\Fake\FakeDistributor;
 use App\Distributor\Message\SubmitPurchaseOrder;
 use App\Distributor\Message\SubmitPurchaseOrderHandler;
 use App\Distributor\PurchaseOrderEventType;
 use App\Distributor\PurchaseOrderState;
 use App\Entity\Catalog\SupplierItem;
+use App\Entity\Addressing\Zone;
 use App\Entity\Channel\Channel;
+use App\Entity\Shipping\ShippingMethod;
 use App\Entity\Procurement\PurchaseOrder;
 use App\Entity\Procurement\PurchaseOrderEvent;
 use App\Entity\Product\ProductVariant;
@@ -22,12 +26,18 @@ use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
+use Sylius\Component\Core\Model\ShipmentInterface;
+use Sylius\Component\Core\Model\ShippingMethodInterface;
+use Sylius\Component\Shipping\Model\ShipmentUnitInterface;
 use Sylius\Component\Core\OrderCheckoutStates;
 use Sylius\Component\Core\OrderPaymentStates;
+use Sylius\Component\Core\OrderShippingStates;
 use Sylius\Component\Core\OrderPaymentTransitions;
 use Sylius\Component\Order\Modifier\OrderItemQuantityModifierInterface;
 use Sylius\Component\User\Repository\UserRepositoryInterface;
 use Sylius\Resource\Factory\FactoryInterface;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
@@ -41,6 +51,8 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
     {
         parent::setUp();
         $this->transport()->reset();
+        // Each test starts with no purchase orders (lines, events and tracking cascade in the database).
+        $this->entityManager()->createQuery('DELETE FROM '.PurchaseOrder::class)->execute();
     }
 
     public function testAPaidOrderIsQueuedSentAndLogged(): void
@@ -74,6 +86,49 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
             [PurchaseOrderEventType::Created, PurchaseOrderEventType::Start, PurchaseOrderEventType::Submit],
             array_values($purchaseOrder->getEvents()->map(static fn (PurchaseOrderEvent $e): PurchaseOrderEventType => $e->getType())->toArray()),
         );
+    }
+
+    public function testWhenTheDistributorShipsTheCustomerGetsTrackingAndTheShippedEmail(): void
+    {
+        $order = $this->paidOrder(Fulfilment::OrsDirect);
+        $message = $this->transport()->getSent()[0]->getMessage();
+        self::assertInstanceOf(SubmitPurchaseOrder::class, $message);
+        $this->handler()($message);
+        $purchaseOrder = $this->entityManager()->getRepository(PurchaseOrder::class)->findOneBy(['order' => $order]);
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+
+        $fake = $this->fakeDistributor();
+        $fake->reportStatus($purchaseOrder->getNumber(), new DistributorOrderStatus(
+            'FAKE-1',
+            PurchaseOrderState::SHIPPED,
+            'Test distributor: shipped',
+            ['E2E_PO_GLOVES' => ['shipped' => 2, 'backordered' => 0]],
+            [['trackingNumber' => '1ZTEST0001', 'carrier' => 'UPS GRD COML']],
+        ));
+
+        $tester = new CommandTester((new Application(self::$kernel ?? throw new \LogicException()))->find('app:distributor:sync-orders'));
+        $tester->execute(['--no-alerts' => true]);
+        $tester->assertCommandIsSuccessful();
+
+        $this->entityManager()->clear();
+        $purchaseOrder = $this->entityManager()->find(PurchaseOrder::class, $purchaseOrder->getId());
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        self::assertSame(PurchaseOrderState::SHIPPED, $purchaseOrder->getState());
+        self::assertSame(2, $purchaseOrder->getLines()->first() ? $purchaseOrder->getLines()->first()->getQuantityShipped() : null);
+        $customerOrder = $purchaseOrder->getOrder();
+        $shipment = $customerOrder->getShipments()->first();
+        self::assertInstanceOf(ShipmentInterface::class, $shipment);
+        self::assertSame('1ZTEST0001', $shipment->getTracking());
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $shipment->getState());
+
+        self::assertEmailCount(1);
+        $email = self::getMailerMessage();
+        self::assertNotNull($email);
+        self::assertEmailAddressContains($email, 'To', (string) $customerOrder->getCustomer()?->getEmail());
+
+        // Running again changes nothing and sends nothing more.
+        $tester->execute(['--no-alerts' => true]);
+        self::assertEmailCount(1);
     }
 
     public function testWithoutAnOrderApiStaffAreEmailedToPlaceItByHand(): void
@@ -226,11 +281,26 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertInstanceOf(OrderItemQuantityModifierInterface::class, $quantityModifier);
         $quantityModifier->modify($item, 2);
         $order->addItem($item);
+
+        // One shipment, ready to ship, holding both units (as checkout makes it).
+        $shipmentFactory = $container->get('sylius.factory.shipment');
+        self::assertInstanceOf(FactoryInterface::class, $shipmentFactory);
+        $shipment = $shipmentFactory->createNew();
+        self::assertInstanceOf(ShipmentInterface::class, $shipment);
+        $shipment->setMethod($this->shippingMethod($channel));
+        $shipment->setState(ShipmentInterface::STATE_READY);
+        foreach ($item->getUnits() as $unit) {
+            self::assertInstanceOf(ShipmentUnitInterface::class, $unit);
+            $shipment->addUnit($unit);
+        }
+        $order->addShipment($shipment);
+
         // A placed order (Sylius's admin hides carts), not paid yet.
         $order->setState(OrderInterface::STATE_NEW);
         $order->setCheckoutState(OrderCheckoutStates::STATE_COMPLETED);
         $order->setCheckoutCompletedAt(new \DateTime());
         $order->setPaymentState(OrderPaymentStates::STATE_AWAITING_PAYMENT);
+        $order->setShippingState(OrderShippingStates::STATE_READY);
 
         $entityManager->persist($order);
         $entityManager->flush();
@@ -243,12 +313,49 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         return $order;
     }
 
+    private function shippingMethod(Channel $channel): ShippingMethodInterface
+    {
+        $entityManager = $this->entityManager();
+        $method = $entityManager->getRepository(ShippingMethod::class)->findOneBy(['code' => 'e2e_standard']);
+        if ($method instanceof ShippingMethodInterface) {
+            return $method;
+        }
+
+        $zone = $entityManager->getRepository(Zone::class)->findOneBy(['code' => 'US']);
+        self::assertInstanceOf(Zone::class, $zone, 'Load the "e2e" fixture suite first.');
+        $factory = static::getContainer()->get('sylius.factory.shipping_method');
+        self::assertInstanceOf(FactoryInterface::class, $factory);
+        $method = $factory->createNew();
+        self::assertInstanceOf(ShippingMethodInterface::class, $method);
+        $method->setCode('e2e_standard');
+        $method->setCurrentLocale('en_US');
+        $method->setFallbackLocale('en_US');
+        $method->setName('Standard');
+        $method->setZone($zone);
+        $method->setCalculator('flat_rate');
+        $method->setConfiguration(['default' => ['amount' => 1500]]);
+        $method->addChannel($channel);
+        $entityManager->persist($method);
+
+        return $method;
+    }
+
     private function transport(): InMemoryTransport
     {
         $transport = static::getContainer()->get('messenger.transport.distributor');
         self::assertInstanceOf(InMemoryTransport::class, $transport);
 
         return $transport;
+    }
+
+    private function fakeDistributor(): FakeDistributor
+    {
+        $registry = static::getContainer()->get(DistributorRegistry::class);
+        self::assertInstanceOf(DistributorRegistry::class, $registry);
+        $fake = $registry->get(FakeDistributor::CODE);
+        self::assertInstanceOf(FakeDistributor::class, $fake);
+
+        return $fake;
     }
 
     private function handler(): SubmitPurchaseOrderHandler

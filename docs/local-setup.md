@@ -269,6 +269,24 @@ distributor and fulfilment (direct / cross-dock), numbered `{order}-1`,
   - The Sylius admin order page also lists the order's purchase orders.
 - **Safety net:** `app:distributor:dispatch` (an Upsun cron, every 15 min)
   re-sends any order whose queue message was lost.
+- **Tracking:** `app:distributor:sync-orders` (an Upsun cron, every 30
+  min) asks each distributor where its open purchase orders are.
+  - It records acknowledged, on hold, back-orders, shipped quantities,
+    tracking numbers and invoice totals on the timeline.
+  - It finds ORS orders staff placed by hand but didn't mark submitted, by
+    our PO number.
+  - When every purchase order of an order ships direct, the customer's
+    shipment gets the tracking number and is marked shipped, and Sylius's
+    shipping email goes out. Cross-dock orders are left to staff.
+  - An ORS cancellation puts the purchase order in **Needs attention**.
+  - It emails staff one list of purchase orders stuck too long, at most
+    once a day each. The limits are in `PurchaseOrderWatchdog::LIMITS`.
+  - For ORS it uses the **Order Query** web service, which has its own
+    password pair: set `ORS_OQ_PASSWORD`, `ORS_OQ_PASSWORD2` (and
+    `ORS_CUSTNO`). Production: set `ORS_ORDER_QUERY_URL` to
+    `https://webservices.orsnasco.com/ORSOrderQueryV1/ORSOrderQuery.asmx`
+    (the default is the TEST one). Until these are set, the command warns
+    and skips ORS.
 - **Trying it locally:**
   1. In the admin, set a variant's distributor to **Test distributor** (dev
      only).
