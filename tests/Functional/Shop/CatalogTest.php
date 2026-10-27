@@ -33,6 +33,14 @@ final class CatalogTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', 'Safety Glasses');
     }
 
+    public function testACategoryPageShows24ProductsAndOffersMore(): void
+    {
+        $this->client->request('GET', '/safety-ppe');
+
+        self::assertSelectorExists('a[href="/safety-ppe?limit=48"]');
+        self::assertSelectorExists('a[href="/safety-ppe?limit=96"]');
+    }
+
     public function testAnEmptyCategoryPageStillLoads(): void
     {
         $this->client->request('GET', '/specialty-hard-to-find');

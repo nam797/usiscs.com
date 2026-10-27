@@ -87,6 +87,12 @@
   sheet (list price, pack unit, families grouped, draft variant names,
   interim categories).
 
+- Catalog polish (2026-10-26): size/colour choices are listed in natural
+  order (Size 6 before Size 10); category pages show 24 products (48/96 on
+  the Show menu); the import summary counts choices added to an existing
+  product separately. The full ORS catalog (1,390 products) is loaded live on
+  the local dev DB for browsing.
+
 ## Decisions
 - ORS Nasco: selling price = ORS list price (from the price feed import); the
   API "price" is our cost, used only as a never-sell-below guard. Stock always
