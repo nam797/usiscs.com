@@ -299,6 +299,14 @@ distributor and fulfilment (direct / cross-dock), numbered `{order}-1`,
     the customer's order; the distributor's tracking (to us) never does.
   - The Sylius admin order list has a **Delivery** column and filter
     (Direct / Cross-dock / Mixed / Not confirmed).
+  - **Sample data:** `php -d memory_limit=-1 bin/console app:dev:demo-cross-dock`
+    (dev only) creates six paid orders, DEMO-001 to DEMO-006, with
+    purchase orders in every warehouse state (overdue, due soon, on its
+    way, not shipped yet, received, shipped on). It also adds a direct
+    purchase order awaiting manual entry.
+    - Running it again resets them. `--delete` removes them.
+    - Nothing is queued or emailed, and the catalog isn't changed.
+    - It needs the `checkout_shipping` fixtures, which give a shipping method.
 - **Trying it locally:**
   1. In the admin, set a variant's distributor to **Test distributor** (dev
      only).

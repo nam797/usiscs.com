@@ -172,6 +172,8 @@
     - new quote requests and new contact messages
 
     Every number links to its filtered list.
+  - `app:dev:demo-cross-dock` (dev only) loads sample DEMO orders in every
+    warehouse state. They're loaded into the local dev DB.
 
 ## Decisions
 - Nothing goes live until its shipping is confirmed: every SKU needs a
