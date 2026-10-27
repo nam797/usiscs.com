@@ -22,6 +22,10 @@ GitHub: nam797/usiscs.com
   (`app:catalog:prepare-ors-import`)
 - ORS Nasco supplier sync: API clients in `src/Supplier/OrsNasco/`, syncs in
   `src/Catalog/Sync/`, commands `app:ors:sync-stock` / `app:ors:sync-cost`
+- Distributor orders (paid order → purchase orders → queued to ORS etc.):
+  `src/Distributor/` (one adapter per distributor), entities in
+  `src/Entity/Procurement/`, state machine in `config/packages/workflow.yaml`,
+  worker `messenger:consume distributor`; see docs/local-setup.md
 - Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius
   admin; see docs/local-setup.md "Payments (Stripe)")
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`

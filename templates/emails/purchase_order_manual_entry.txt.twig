@@ -1,0 +1,29 @@
+{% set order = purchase_order.order %}
+Please place this order with {{ distributor_name }}. Their order system isn't connected to the website yet.
+
+Our PO number (use it as the customer PO number): {{ purchase_order.number }}
+Shop order: #{{ order.number }}
+{% if purchase_order.fulfilment.value == 'cross_dock' %}
+Ship to: OUR WAREHOUSE (cross-dock). We ship it on to the customer.
+{% else %}
+{% set address = order.shippingAddress %}
+Ship direct to the customer:
+{% if address %}
+{{ address.fullName }}{% if address.company %}, {{ address.company }}{% endif %}
+
+{{ address.street }}
+{{ address.city }}, {{ address.provinceCode ?? address.provinceName }} {{ address.postcode }} {{ address.countryCode }}
+{% if address.phoneNumber %}Phone: {{ address.phoneNumber }}
+{% endif %}
+{% else %}
+(no shipping address on the order: check it in the admin)
+{% endif %}
+{% endif %}
+
+Items:
+{% for line in purchase_order.lines %}
+- Qty {{ line.quantity }}{% if line.unit %} {{ line.unit }}{% endif %} | {{ line.supplierSku }} | {{ line.name }}
+{% endfor %}
+
+When it's placed, open the purchase order and click "Mark submitted" with {{ distributor_name }}'s order number:
+{{ url('app_admin_dashboard_purchase_order_detail', {entityId: purchase_order.id}) }}

@@ -5,20 +5,26 @@ declare(strict_types=1);
 namespace App\Form\Extension;
 
 use App\Catalog\Fulfilment\Fulfilment;
+use App\Distributor\DistributorRegistry;
 use Sylius\Bundle\ProductBundle\Form\Type\ProductVariantType;
 use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Validator\Constraints\Length;
 
 /**
- * Fulfilment and shipping note on the admin variant form (and the variant
+ * Distributor, fulfilment and shipping note on the admin variant form (and the variant
  * part of a simple product's form). Shown in the shipping section, see
  * config/packages/twig_hooks.yaml.
  */
 final class ProductVariantFulfilmentExtension extends AbstractTypeExtension
 {
+    public function __construct(private readonly DistributorRegistry $distributors)
+    {
+    }
+
     public static function getExtendedTypes(): iterable
     {
         return [ProductVariantType::class];
@@ -27,6 +33,13 @@ final class ProductVariantFulfilmentExtension extends AbstractTypeExtension
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            ->add('distributor', ChoiceType::class, [
+                'label' => 'Distributor',
+                'choices' => $this->distributors->choices(),
+                'required' => false,
+                'placeholder' => 'Not set',
+                'help' => 'Who we order it from when it sells. Orders for SKUs without one wait for staff.',
+            ])
             ->add('fulfilment', EnumType::class, [
                 'class' => Fulfilment::class,
                 'label' => 'Fulfilment',

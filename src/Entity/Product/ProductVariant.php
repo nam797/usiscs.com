@@ -31,6 +31,10 @@ class ProductVariant extends BaseProductVariant
     #[ORM\Column(name: 'shipping_note', type: 'string', length: 255, nullable: true)]
     private ?string $shippingNote = null;
 
+    /** Who we order it from (a DistributorInterface code, e.g. "ors_nasco"); null = not set. */
+    #[ORM\Column(name: 'distributor', type: 'string', length: 50, nullable: true)]
+    private ?string $distributor = null;
+
     public function getPackUnit(): ?PackUnit
     {
         return null === $this->sellUnit ? null : PackUnit::of($this->sellUnit, $this->packQuantity ?? 1, $this->packUnit);
@@ -61,6 +65,16 @@ class ProductVariant extends BaseProductVariant
     public function setShippingNote(?string $shippingNote): void
     {
         $this->shippingNote = '' === $shippingNote ? null : $shippingNote;
+    }
+
+    public function getDistributor(): ?string
+    {
+        return $this->distributor;
+    }
+
+    public function setDistributor(?string $distributor): void
+    {
+        $this->distributor = '' === $distributor ? null : $distributor;
     }
 
     protected function createTranslation(): ProductVariantTranslationInterface

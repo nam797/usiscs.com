@@ -8,6 +8,7 @@ use App\Catalog\Fulfilment\Fulfilment;
 use App\Catalog\GoLive\ReadinessChecker;
 use App\Catalog\Unit\PackUnit;
 use App\Entity\Catalog\ProductImportState;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Channel\Channel;
 use App\Entity\Locale\Locale;
 use App\Entity\Product\Product;
@@ -226,6 +227,7 @@ final class ProductImporter
         \assert($variant instanceof ProductVariantInterface);
         $variant->setCode($row->sku);
         $variant->setTracked(false);
+        self::setDistributor($variant);
 
         $channelCodes = [];
         foreach ($this->entityManager->getRepository(Channel::class)->findAll() as $channel) {
@@ -325,6 +327,7 @@ final class ProductImporter
             $variant = $this->variantFactory->createForProduct($product);
             $variant->setCode($row->sku);
             $variant->setTracked(false);
+            self::setDistributor($variant);
             $variant->setCurrentLocale($this->defaultLocale);
             $variant->setFallbackLocale($this->defaultLocale);
             $variantFields = $this->variantFields($row, $channelCodes);
@@ -791,5 +794,16 @@ final class ProductImporter
         }
 
         return implode(', ', array_keys($labels));
+    }
+
+    /**
+     * Every import sheet so far is ORS Nasco's catalog. Set on new SKUs only,
+     * so a distributor changed in the admin sticks.
+     */
+    private static function setDistributor(ProductVariantInterface $variant): void
+    {
+        if ($variant instanceof ProductVariant && null === $variant->getDistributor()) {
+            $variant->setDistributor(SupplierItem::ORS_NASCO);
+        }
     }
 }

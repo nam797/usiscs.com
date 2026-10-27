@@ -241,6 +241,47 @@ defaults in `config/services.yaml` point at ORS's **test** endpoints.
 On Upsun, the crons are in `.upsun/config.yaml`, commented out until the
 credentials are set.
 
+## Distributor orders (purchase orders)
+
+When an order is fully paid, it is split into **purchase orders**: one per
+distributor and fulfilment (direct / cross-dock), numbered `{order}-1`,
+`{order}-2`... Each variant's distributor is set in the admin variant form
+(imports set ORS Nasco). The code is in `src/Distributor/`.
+
+- A worker sends each one to its distributor:
+  `php -d memory_limit=-1 bin/console messenger:consume distributor -vv`.
+  The queue is a table in the database, so nothing is lost while a
+  distributor, the worker or the site is down.
+- **Retries:** if the distributor is down, it retries for about 2 days
+  (1 min, growing to every 6 h). After that the order goes to **Needs
+  attention** and staff get an email at the channel contact email. Before
+  every retry the worker asks the distributor whether it already has the
+  order, so nothing is ordered twice.
+- **Manual entry:** ORS Nasco has no order API yet. Its orders go to
+  **Awaiting manual entry** and staff get an email with the items and ship-to.
+  They place the order in the ORS portal, then click **Mark submitted** and
+  enter ORS's order number.
+- **Backoffice** (`/backoffice`):
+  - **Purchase Orders** lists every purchase order and its timeline, with
+    Retry, Mark submitted and Cancel buttons.
+  - **Distributors** lets staff pause a distributor (its orders wait until it
+    is resumed) or switch it to manual entry.
+  - The Sylius admin order page also lists the order's purchase orders.
+- **Safety net:** `app:distributor:dispatch` (an Upsun cron, every 15 min)
+  re-sends any order whose queue message was lost.
+- **Trying it locally:**
+  1. In the admin, set a variant's distributor to **Test distributor** (dev
+     only).
+  2. Pick its behaviour with `FAKE_DISTRIBUTOR_MODE` in `.env.local`:
+     `accept`, `down`, `reject` or `manual`.
+  3. Buy the product, pay with Stripe's test card, and run the worker.
+- **Failed messages:** `bin/console messenger:failed:show --transport=distributor_failed`
+  lists them. The purchase order itself shows what happened.
+
+Adding a distributor: write a class implementing
+`App\Distributor\DistributorInterface` (it's picked up automatically) and put
+its credentials in `.env.local` or Upsun variables.
+
 ## Payments (Stripe)
 
 Stripe is the only card processor (`flux-se/sylius-stripe-plugin`). It's set

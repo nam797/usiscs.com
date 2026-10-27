@@ -36,6 +36,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
         yield MenuItem::linkTo(RfqRequestCrudController::class, 'RFQ Requests', 'fa fa-file-invoice');
         yield MenuItem::linkTo(ContactMessageCrudController::class, 'Contact Messages', 'fa fa-envelope');
+        yield MenuItem::linkTo(PurchaseOrderCrudController::class, 'Purchase Orders', 'fa fa-truck');
+        yield MenuItem::linkTo(DistributorSettingCrudController::class, 'Distributors', 'fa fa-warehouse');
         yield MenuItem::linkToUrl('Sylius Admin (catalog, orders)', 'fa fa-store', '/admin');
     }
 }

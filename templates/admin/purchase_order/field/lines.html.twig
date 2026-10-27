@@ -1,0 +1,25 @@
+{# What we order (PurchaseOrderLine), on the purchase order's detail page. #}
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th>SKU</th>
+            <th>Distributor SKU</th>
+            <th>Item</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Customer paid / unit</th>
+            <th class="text-end">Our cost / unit</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for line in field.value %}
+            <tr>
+                <td>{{ line.variantCode }}</td>
+                <td>{{ line.supplierSku }}</td>
+                <td>{{ line.name }}</td>
+                <td class="text-end">{{ line.quantity }}{% if line.unit %} {{ line.unit }}{% endif %}</td>
+                <td class="text-end">${{ (line.unitPriceInCents / 100)|number_format(2) }}</td>
+                <td class="text-end">{{ line.unitCostInCents is null ? 'unknown' : '$' ~ (line.unitCostInCents / 100)|number_format(2) }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

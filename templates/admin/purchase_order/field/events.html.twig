@@ -1,0 +1,28 @@
+{# The purchase order's timeline (PurchaseOrderEvent), oldest first. #}
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th>When</th>
+            <th>What</th>
+            <th>Details</th>
+            <th>State after</th>
+            <th>By</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for event in field.value %}
+            <tr>
+                <td class="text-nowrap">{{ event.occurredAt|date('Y-m-d H:i:s') }}</td>
+                <td class="text-nowrap">{{ event.type.label }}</td>
+                <td>
+                    {{ event.message }}
+                    {% if event.payload is not empty %}
+                        <details><summary>Data</summary><pre class="mb-0">{{ event.payload|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES')) }}</pre></details>
+                    {% endif %}
+                </td>
+                <td class="text-nowrap">{{ purchase_order_state_label(event.state) }}</td>
+                <td>{{ event.actor }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

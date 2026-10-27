@@ -106,6 +106,19 @@ applications:
             # ors-sync-cost:
             #     spec: "30 3 * * *"
             #     cmd: "php bin/console --env=prod app:ors:sync-cost"
+            # Safety net for the purchase order queue: re-sends orders whose
+            # message never reached the queue or was lost, and attempts the
+            # worker died in the middle of (src/Command/DispatchPurchaseOrdersCommand.php).
+            distributor-dispatch:
+                spec: "*/15 * * * *"
+                cmd: "php bin/console --env=prod app:distributor:dispatch"
+        workers:
+            # Sends paid orders' purchase orders to distributors, retrying
+            # with backoff when one is down (config/packages/messenger.yaml).
+            # Exits hourly to free memory; Upsun starts it again.
+            distributor-queue:
+                commands:
+                    start: "php bin/console --env=prod messenger:consume distributor --time-limit=3600 --memory-limit=256M"
         hooks:
             build: |
                 set -e
