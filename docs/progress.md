@@ -232,10 +232,10 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- **Cross-dock warehouse (branch `cross-dock-warehouse`, not merged yet):** after
-  merging, ask the client for the warehouse address and a realistic ORS
-  transit time to the warehouse (the default is 3 business days), and
-  whether the warehouse should get an email when a delivery is due.
+- **Cross-dock warehouse (merged, PR #46):** ask the client for the
+  warehouse address and a realistic ORS transit time to the warehouse (the
+  default is 3 business days), and whether the warehouse should get an
+  email when a delivery is due.
 - **Distributor orders, next:**
   - Ask ORS for the Order Query web service passwords (`ORS_OQ_PASSWORD`,
     `ORS_OQ_PASSWORD2`), then run `app:distributor:sync-orders -v` against
