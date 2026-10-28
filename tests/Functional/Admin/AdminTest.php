@@ -134,6 +134,8 @@ final class AdminTest extends FunctionalTestCase
         $offered = $this->client->getCrawler()->filter('a[href*="/admin/payment-methods/new/"]')->each(
             static fn ($link): string => basename((string) $link->attr('href')),
         );
+        // The page can list the "Create" options more than once.
+        $offered = array_values(array_unique($offered));
         sort($offered);
         self::assertSame(['offline', 'stripe_checkout', 'stripe_web_elements'], $offered);
 

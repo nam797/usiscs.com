@@ -115,6 +115,11 @@ applications:
             # Purchase order status from distributors (ORS Order Query: needs
             # ORS_OQ_PASSWORD/ORS_OQ_PASSWORD2, warns until set), tracking to
             # customers, and a daily-at-most email about stuck orders.
+            # Card payments still only authorized after 6 days are charged before
+            # Stripe releases the hold (src/Command/CaptureDuePaymentsCommand.php).
+            payments-capture-due:
+                spec: "15 * * * *"
+                cmd: "php bin/console --env=prod app:payments:capture-due"
             distributor-sync-orders:
                 spec: "20,50 * * * *"
                 cmd: "php bin/console --env=prod app:distributor:sync-orders"

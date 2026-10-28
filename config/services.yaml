@@ -32,6 +32,10 @@ parameters:
     # reaching our warehouse. Sets each purchase order's expected date when
     # its first tracking number arrives; staff can change the date.
     app.cross_dock_transit_days: 3
+    # Card payments are only authorized at checkout and charged when the first
+    # purchase order ships; one still held after this many days is charged
+    # anyway (app:payments:capture-due), before Stripe releases it at ~7.
+    app.capture_authorized_after_days: 6
 
 services:
     # Default configuration for services in *this* file

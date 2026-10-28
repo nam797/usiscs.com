@@ -273,11 +273,47 @@
     and Open Graph tags ("Safety &amp;amp; PPE"). The meta-description
     block also no longer prints inside an HTML comment.
 
+- Checkout and account fixed (2026-10-28): Sylius's
+  `sylius.security.shop_regex` assumed a `/en_US` prefix, which the short
+  URLs (PR #34) removed. Two things broke:
+  - The checkout address step crashed ("route sylius_order_index does not
+    exist") because the redirect to the next step never ran.
+  - `/account` pages weren't login-protected: guests got a 500 instead of
+    the login page.
+
+  Now overridden in `config/packages/sylius_shop.yaml` with the same
+  exclusions and no prefix. `tests/Functional/Shop/CheckoutTest.php` covers
+  both.
+
+- Card payments held until shipping (2026-10-28): the Stripe payment
+  method authorizes at checkout ("use authorize" on), so Stripe holds the
+  money.
+  - **Purchase orders go out on the authorization**
+    (`PlanPurchaseOrdersOnPayment` also listens to the order's `authorize`).
+  - **Charged** (`App\Distributor\Payment\AuthorizedPaymentHandler`) when
+    the first purchase order ships: partly, fully, or straight to invoiced.
+    That's `SettleAuthorizedPayment`, on `PurchaseOrderTransitioned`, so it
+    lands on the timeline after the move. The whole amount is charged once.
+  - **Charged anyway** when it's still held after
+    `app.capture_authorized_after_days` (6), by `app:payments:capture-due`
+    (an Upsun cron, hourly at :15). Stripe releases holds at about 7 days,
+    and ORS can't report shipments yet.
+  - **Released** when every purchase order of the order is cancelled.
+  - **If Stripe refuses:** nothing is saved, the hold stays, the purchase
+    order's timeline says why, and staff are emailed.
+  - Each capture and release is on the purchase orders' timelines.
+
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
   checked against known breached passwords (Symfony's
   NotCompromisedPassword asks the haveibeenpwned API); decide before
   launch.
+- Payments: cards are authorized at checkout and charged when the first
+  purchase order ships, or on day 6 at the latest, for the whole order.
+  When every purchase order is cancelled, the hold is released instead.
+  If one part is cancelled after the charge, refund that part by hand
+  (the payment's Refund button refunds in full; partial refunds in
+  Stripe).
 - Several distributors per SKU: orders go to the cheapest switched-on
   source that has the stock, never at or below cost, never split. The
   first distributor's sheet owns the product's details; later sheets only
@@ -341,8 +377,15 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
-- **SEO batch 2 (category titles and descriptions, structured data):** on
-  branch `seo-batch-2`. After merging, check the pages with Google's Rich
+- **Stripe test checkout:** the client's Stripe account is set up locally
+  (payment method `stripe`, "use authorize" on). Test order #000000001 went
+  through: authorized at checkout, then captured from the admin, which
+  created its purchase order (needs attention: fulfilment not confirmed).
+  Next, test the new flow end to end: a new order should get its purchase
+  order at checkout, and be charged when it ships or after 6 days. Webhooks
+  (customer closes the tab, refunds from the Stripe dashboard) need the
+  Stripe CLI, which needs the client to enable CLI access.
+- **SEO batch 2 (merged, PR #55):** check the pages with Google's Rich
   Results Test once there's a public URL. Then the rest of the review list
   under "SEO, first batch" in Done.
 - **Cross-dock warehouse (merged, PR #46):** ask the client for the

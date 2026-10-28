@@ -40,6 +40,12 @@ enum PurchaseOrderEventType: string
     case Received = 'received';
     /** Cross-dock: we shipped it on to the customer. */
     case ShippedToCustomer = 'shipped_to_customer';
+    /** The customer's card payment was charged (it was only held until something shipped). */
+    case PaymentCaptured = 'payment_captured';
+    /** The hold on the customer's card was released: nothing will ship. */
+    case PaymentReleased = 'payment_released';
+    /** Charging or releasing the card payment failed; staff were emailed. */
+    case PaymentProblem = 'payment_problem';
 
     public static function of(PurchaseOrderTransition $transition): self
     {
@@ -71,6 +77,9 @@ enum PurchaseOrderEventType: string
             self::ExpectedDateChanged => 'Expected date',
             self::Received => 'Received at warehouse',
             self::ShippedToCustomer => 'Shipped to customer',
+            self::PaymentCaptured => 'Payment captured',
+            self::PaymentReleased => 'Payment released',
+            self::PaymentProblem => 'Payment problem',
         };
     }
 }
