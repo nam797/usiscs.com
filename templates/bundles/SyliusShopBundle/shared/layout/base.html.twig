@@ -23,38 +23,44 @@
             overridden the same way by a page that merely extends this
             layout. Each page template sets {% block meta_description %};
             this falls back to a site-wide default when a page doesn't.
-            The block tag below is wrapped in an HTML comment on purpose:
-            a {% block %} tag always renders its own content in place,
-            wherever it physically sits, in addition to being reusable via
-            block(). Left bare, that printed the raw description text as
-            loose text in <head>, which broke HTML parsing (browsers end
-            <head> on the first non-whitespace text and move everything
-            after -- including the following <meta property="og:..."> tags
-            -- into <body>, where the stray text then rendered visibly at
-            the top of every page). The comment hides that in-place render
-            while leaving the block fully overridable per page and still
-            usable via block('meta_description') below.
+            The meta_description block below sits inside {% if false %} on
+            purpose: a {% block %} tag always renders its own content in
+            place, wherever it physically sits, as well as being reusable via
+            block(). Left bare, the description text would print loose in
+            <head> (browsers then end <head> early and move the tags after it
+            into <body>). {% if false %} skips that in-place render while
+            block('meta_description') still works. (It used to be wrapped in
+            an HTML comment, which broke on a description containing "--".)
+
+            block(...) output is printed |raw: whatever the page's block
+            printed with {{ }} is already escaped once (a category called
+            "Safety & PPE" arrives as "Safety &amp; PPE"), so escaping it
+            again would show "&amp;" to search engines and in link previews.
+            Fixed text in a block is ours.
         #}
-        <meta name="description" content="{{ block('meta_description')|striptags|trim }}">
+        <meta name="description" content="{{ block('meta_description')|striptags|trim|raw }}">
         {# Without sorting/limit/search parameters: see App\Twig\SeoExtension. #}
         <link rel="canonical" href="{{ seo_canonical_url() }}">
 
         {% include 'shared/favicon.html.twig' %}
 
-        <!-- {% block meta_description %}US Industrial Supply Chain Solutions protects customer uptime with just-in-time industrial supply, emergency sourcing, and dedicated account support for construction and industrial contractors nationwide.{% endblock %} -->
+        {% if false %}{% block meta_description %}US Industrial Supply Chain Solutions protects customer uptime with just-in-time industrial supply, emergency sourcing, and dedicated account support for construction and industrial contractors nationwide.{% endblock %}{% endif %}
 
         {% block og_tags %}
             <meta property="og:type" content="{% block og_type %}website{% endblock %}">
             <meta property="og:site_name" content="{{ sylius.channel.name }}">
-            <meta property="og:title" content="{{ block('title')|striptags|trim }}">
-            <meta property="og:description" content="{{ block('meta_description')|striptags|trim }}">
+            <meta property="og:title" content="{{ block('title')|striptags|trim|raw }}">
+            <meta property="og:description" content="{{ block('meta_description')|striptags|trim|raw }}">
             <meta property="og:url" content="{{ seo_canonical_url() }}">
             {% block og_extra %}{% endblock %}
 
             <meta name="twitter:card" content="summary">
-            <meta name="twitter:title" content="{{ block('title')|striptags|trim }}">
-            <meta name="twitter:description" content="{{ block('meta_description')|striptags|trim }}">
+            <meta name="twitter:title" content="{{ block('title')|striptags|trim|raw }}">
+            <meta name="twitter:description" content="{{ block('meta_description')|striptags|trim|raw }}">
         {% endblock %}
+
+        {# schema.org JSON-LD, per page type (App\Twig\StructuredDataExtension). #}
+        {% block structured_data %}{% endblock %}
 
         {% block stylesheets %}
             {% hook '#stylesheets' with { _prefixes: prefixes } %}
