@@ -174,6 +174,10 @@
     Every number links to its filtered list.
   - `app:dev:demo-cross-dock` (dev only) loads sample DEMO orders in every
     warehouse state. They're loaded into the local dev DB.
+  - Fixed (2026-10-28, PR #48): a delivery's page in Warehouse crashed in
+    dev ("Variable "ea" does not exist"). The tests missed it because Twig
+    wasn't strict about undefined variables in tests (APP_DEBUG=0). It's
+    strict in the test env now.
 
 ## Decisions
 - Nothing goes live until its shipping is confirmed: every SKU needs a
@@ -221,6 +225,9 @@
   `upsun ssh -- bin/console sylius:fixtures:load -n` (wipes data; never on prod).
 
 ## Gotchas
+- Tests run with APP_DEBUG=0, so Twig doesn't recompile changed templates
+  in the test env. After editing a template, `rm -rf var/cache/test`
+  before running phpunit, or the tests use the old version.
 - Dependency bumps can pull in a Sylius minor upgrade. When sylius/sylius
   changes in composer.lock, read vendor/sylius/sylius/UPGRADE-2.x.md and run
   `npm install && npm run build`.
