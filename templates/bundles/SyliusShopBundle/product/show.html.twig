@@ -1,0 +1,24 @@
+{# Sylius's product page, plus its own meta description and Open Graph product tags
+   (App\Twig\SeoExtension::productMetaDescription), instead of the site-wide default. #}
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% set prefixes = ['sylius_shop.product.show'] %}
+
+{% block title %}{{ product.name }} | {{ parent() }}{% endblock %}
+
+{% block meta_description %}{{ product_meta_description(product, sylius.channel) }}{% endblock %}
+
+{% block og_type %}product{% endblock %}
+
+{% block og_extra %}
+    {% set variant = product.enabledVariants.first ?: product.variants.first %}
+    {% set pricing = variant ? variant.channelPricingForChannel(sylius.channel) : null %}
+    {% if pricing and pricing.price %}
+        <meta property="product:price:amount" content="{{ (pricing.price / 100)|number_format(2, '.', '') }}">
+        <meta property="product:price:currency" content="{{ sylius.channel.baseCurrency.code }}">
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% hook 'sylius_shop.product.show' with { product, configuration } %}
+{% endblock %}

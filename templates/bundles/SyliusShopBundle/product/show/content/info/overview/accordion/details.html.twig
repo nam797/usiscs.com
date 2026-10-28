@@ -1,0 +1,7 @@
+{# Sylius's "Details" section, left out when the product has no description: "No description."
+   on hundreds of pages reads as an unfinished store and is thin, repeated text to search engines. #}
+{% if hookable_metadata.context.product.description is not empty %}
+    <div class="accordion-item">
+        {% hook 'details' %}
+    </div>
+{% endif %}

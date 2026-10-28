@@ -1,8 +1,29 @@
 # www.robotstxt.org/
 # www.google.com/support/webmasters/bin/answer.py?hl=en&answer=156449
+#
+# Private and transactional pages are also sent with "X-Robots-Tag: noindex"
+# (App\EventListener\RobotsTagListener). Category pages re-sorted, resized or
+# searched are the same products as the plain page: kept out so crawlers
+# spend their time on real pages. Plain pagination (?page=2) stays crawlable.
 
 User-agent: *
 Disallow: /admin
 Disallow: /backoffice
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /order
+Disallow: /login
+Disallow: /register
+Disallow: /forgotten-password
+Disallow: /verify
+Disallow: /payment
+Disallow: /payment-request
+Disallow: /express-checkout
+Disallow: /_components/
+Disallow: /products/*/reviews
+Disallow: /*?*sorting
+Disallow: /*?*limit=
+Disallow: /*?*criteria
 
 Sitemap: https://usiscs.com/sitemap.xml
