@@ -216,7 +216,20 @@
   pages. Sylius showed the root as plain text (overrides in
   `templates/bundles/SyliusShopBundle/product/`).
 
+- Strong passwords (2026-10-28): every place a password is set needs at
+  least 12 characters that aren't easy to guess (Symfony PasswordStrength
+  "medium"). That covers shop sign-up, change password, reset password, the
+  same three in the API, and admin users. Sylius only asked for 4.
+  - Rule: `App\Validator\StrongPassword`, applied in
+    `config/validator/password.yaml`.
+  - A hint under the new-password field says what's needed.
+  - Existing passwords still work; the rule applies when one is set.
+
 ## Decisions
+- Passwords: at least 12 characters and not easy to guess. Not yet
+  checked against known breached passwords (Symfony's
+  NotCompromisedPassword asks the haveibeenpwned API); decide before
+  launch.
 - Several distributors per SKU: orders go to the cheapest switched-on
   source that has the stock, never at or below cost, never split. The
   first distributor's sheet owns the product's details; later sheets only
