@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace App\Catalog\Sync;
 
 use App\Catalog\Import\ImportReport;
+use App\Catalog\Stock\VariantStockTotal;
 use App\Entity\Catalog\ProductImportState;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Product\ProductVariant;
 use App\Supplier\OrsNasco\BulkAvailabilityClientInterface;
 use Doctrine\ORM\EntityManagerInterface;
-use Sylius\Component\Core\Model\ProductVariantInterface;
 
 /**
- * Copies ORS Nasco stock onto imported products: on hand = ORS's total
- * available across all warehouses, and the variant is tracked.
+ * Records ORS Nasco's stock on each SKU's ORS source (its total available
+ * across all warehouses), then sets the shop's on hand to the total over
+ * the SKU's sources (VariantStockTotal), so another distributor's stock
+ * counts too. The variant is tracked.
  *
  * Unlike the import's other fields, stock always follows ORS: orders change
  * on-hand counts in Sylius, so "differs from what the sync wrote" can't mean
@@ -30,7 +33,7 @@ final class StockSync
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly BulkAvailabilityClientInterface $client,
-        private readonly ImportedSkus $importedSkus,
+        private readonly DistributorSkus $distributorSkus,
     ) {
     }
 
@@ -51,7 +54,7 @@ final class StockSync
         }
 
         try {
-            foreach (array_chunk($this->importedSkus->all($only), self::BATCH_SIZE, true) as $skus) {
+            foreach (array_chunk($this->distributorSkus->all(SupplierItem::ORS_NASCO, $only), self::BATCH_SIZE, true) as $skus) {
                 $this->syncBatch($skus, $available, $report);
                 $this->entityManager->flush();
                 $this->entityManager->clear();
@@ -74,7 +77,7 @@ final class StockSync
     {
         $variants = [];
         foreach ($this->entityManager->getRepository(ProductVariant::class)->findBy(['code' => array_keys($skus)]) as $variant) {
-            if ($variant instanceof ProductVariantInterface) {
+            if ($variant instanceof ProductVariant) {
                 $variants[(string) $variant->getCode()] = $variant;
             }
         }
@@ -86,7 +89,7 @@ final class StockSync
         foreach ($skus as $sku => $orsSku) {
             $sku = (string) $sku; // PHP turns an all-digit code key into an int
             $variant = $variants[$sku] ?? null;
-            if (!$variant instanceof ProductVariantInterface) {
+            if (!$variant instanceof ProductVariant) {
                 ++$report->untouched;
                 $report->add(0, $sku, ImportReport::WARNING, 'no variant with this SKU; left as it is');
                 continue;
@@ -99,23 +102,26 @@ final class StockSync
                 continue;
             }
 
-            if ($variant->isTracked() && $variant->getOnHand() === $row->totalAvailable) {
+            $variant->sourceFor(SupplierItem::ORS_NASCO)->recordStock($row->totalAvailable);
+            $before = $variant->isTracked() ? $variant->getOnHand() : null;
+            $total = VariantStockTotal::apply($variant) ?? $row->totalAvailable;
+
+            if ($before === $total) {
                 ++$report->unchanged;
             } else {
                 $report->add(0, $sku, ImportReport::INFO, sprintf(
-                    'stock %s -> %d %s',
-                    $variant->isTracked() ? (string) $variant->getOnHand() : 'not tracked',
-                    $row->totalAvailable,
+                    'stock %s -> %d %s%s',
+                    null === $before ? 'not tracked' : (string) $before,
+                    $total,
                     $row->unitOfMeasure,
+                    $total === $row->totalAvailable ? '' : sprintf(' (ORS %d, other sources %d)', $row->totalAvailable, $total - $row->totalAvailable),
                 ));
-                $variant->setTracked(true);
-                $variant->setOnHand($row->totalAvailable);
                 ++$report->updated;
             }
 
             $state = $states[$sku] ?? null;
-            if (null !== $state && ($state->getImportedValues()['stock'] ?? null) !== $row->totalAvailable) {
-                $state->recordImport($state->getSource(), ['stock' => $row->totalAvailable] + $state->getImportedValues());
+            if (null !== $state && ($state->getImportedValues()['stock'] ?? null) !== $total) {
+                $state->recordImport($state->getSource(), ['stock' => $total] + $state->getImportedValues());
             }
         }
     }

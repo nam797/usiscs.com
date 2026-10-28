@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Admin;
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Controller\Admin\ProductGoLiveController;
 use App\Entity\Product\Product;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Product\ProductVariant;
 use App\Tests\Functional\FunctionalTestCase;
 use Sylius\Component\Core\Model\AdminUserInterface;
@@ -67,29 +68,48 @@ final class ProductGoLiveTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', 'GL-UNCONFIRMED (shipping not confirmed (ORS direct or cross-dock))');
     }
 
-    public function testStaffSetFulfilmentOnTheProductForm(): void
+    public function testTheProductFormShowsItsSourcesAndStaffConfirmFulfilmentInTheBackoffice(): void
     {
         $product = $this->draft('GL-FORM', 'Form drill', 'form-drill', Fulfilment::Unconfirmed);
         $this->loginAsAdmin();
 
         $crawler = $this->client->request('GET', sprintf('/admin/products/%d/edit', $product->getId()));
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('body', 'Fulfilment');
+        self::assertSelectorTextContains('body', 'Sources');
+        self::assertSelectorTextContains('body', 'ORS Nasco');
+        self::assertSelectorTextContains('body', 'Not confirmed');
         $form = $crawler->filter('form[name="sylius_admin_product"]')->form();
-        $form['sylius_admin_product[variant][fulfilment]'] = Fulfilment::OrsDirect->value;
         $form['sylius_admin_product[variant][shippingNote]'] = 'Ships from ORS Dallas';
         $this->client->submit($form);
 
         self::assertResponseRedirects();
         $variant = $this->reload($product)->getVariants()->first();
         self::assertInstanceOf(ProductVariant::class, $variant);
-        self::assertSame(Fulfilment::OrsDirect, $variant->getFulfilment());
         self::assertSame('Ships from ORS Dallas', $variant->getShippingNote());
+        $source = $variant->getSource(SupplierItem::ORS_NASCO);
+        self::assertInstanceOf(SupplierItem::class, $source);
 
-        // The same fields on a variant's own form (products with several choices).
+        // The backoffice lists the SKU's sources.
+        $this->client->request('GET', '/backoffice/supplier-item?query=GL-FORM');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'GL-FORM');
+
+        // Fulfilment is set on the source, in the backoffice.
+        $crawler = $this->client->request('GET', sprintf('/backoffice/supplier-item/%d/edit', $source->getId()));
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('form[name="SupplierItem"]')->form();
+        $option = $crawler->filter('select[name="SupplierItem[fulfilment]"] option')->reduce(static fn ($o): bool => Fulfilment::OrsDirect->label() === trim($o->text()));
+        self::assertCount(1, $option);
+        $form['SupplierItem[fulfilment]'] = (string) $option->attr('value');
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+        $this->entityManager()->clear();
+        self::assertSame(Fulfilment::OrsDirect, $this->entityManager()->find(SupplierItem::class, $source->getId())?->getFulfilment());
+
+        // The same on a variant's own form (products with several choices).
         $this->client->request('GET', sprintf('/admin/products/%d/variants/%d/edit', $product->getId(), $variant->getId()));
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('select[name$="[fulfilment]"]');
+        self::assertSelectorTextContains('body', 'Sources');
         self::assertSelectorExists('input[name$="[shippingNote]"]');
     }
 
@@ -163,7 +183,7 @@ final class ProductGoLiveTest extends FunctionalTestCase
         }
         $variant = $product->getVariants()->first();
         self::assertInstanceOf(ProductVariant::class, $variant);
-        $variant->setFulfilment($fulfilment);
+        $variant->sourceFor(SupplierItem::ORS_NASCO)->setFulfilment($fulfilment);
         $this->entityManager()->flush();
 
         return $product;

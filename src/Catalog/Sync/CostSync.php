@@ -12,10 +12,10 @@ use App\Supplier\OrsNasco\PriceClientInterface;
 use App\Supplier\OrsNasco\PriceRow;
 use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Core\Model\ProductInterface;
-use Sylius\Component\Core\Model\ProductVariantInterface;
 
 /**
- * Records what ORS Nasco charges us for each imported SKU (SupplierItem).
+ * Records what ORS Nasco charges us for each SKU it carries, on the SKU's
+ * ORS source (SupplierItem); other distributors' sources are left alone.
  *
  * It never changes the selling price -- that stays the channel pricing from
  * the import or the admin -- but it reports every product that would sell
@@ -30,7 +30,7 @@ final class CostSync
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly PriceClientInterface $client,
-        private readonly ImportedSkus $importedSkus,
+        private readonly DistributorSkus $distributorSkus,
     ) {
     }
 
@@ -41,7 +41,7 @@ final class CostSync
      */
     public function sync(bool $dryRun = false, ?array $only = null): ImportReport
     {
-        $skus = $this->importedSkus->all($only);
+        $skus = $this->distributorSkus->all(SupplierItem::ORS_NASCO, $only);
         // Every request is made first: one failed call means nothing is written.
         $prices = [] === $skus ? [] : $this->client->fetch(array_values(array_unique($skus)));
 
@@ -73,13 +73,9 @@ final class CostSync
      */
     private function syncBatch(array $skus, array $prices, ImportReport $report): void
     {
-        $items = [];
-        foreach ($this->entityManager->getRepository(SupplierItem::class)->findBy(['sku' => array_keys($skus)]) as $item) {
-            $items[$item->getSku()] = $item;
-        }
         $variants = [];
         foreach ($this->entityManager->getRepository(ProductVariant::class)->findBy(['code' => array_keys($skus)]) as $variant) {
-            if ($variant instanceof ProductVariantInterface) {
+            if ($variant instanceof ProductVariant) {
                 $variants[(string) $variant->getCode()] = $variant;
             }
         }
@@ -93,11 +89,13 @@ final class CostSync
                 continue;
             }
 
-            $item = $items[$sku] ?? null;
-            if (null === $item) {
-                $item = new SupplierItem($sku, SupplierItem::ORS_NASCO);
-                $this->entityManager->persist($item);
+            $variant = $variants[$sku] ?? null;
+            if (!$variant instanceof ProductVariant) {
+                ++$report->untouched;
+                $report->add(0, $sku, ImportReport::WARNING, 'no variant with this SKU; left as it is');
+                continue;
             }
+            $item = $variant->sourceFor(SupplierItem::ORS_NASCO);
 
             $problem = $row->problem();
             $before = $item->getCostInCents();
@@ -113,9 +111,8 @@ final class CostSync
                 ++$report->unchanged;
             }
 
-            $variant = $variants[$sku] ?? null;
-            $product = $variant?->getProduct();
-            if (null !== $row->costInCents && null !== $variant && $product instanceof ProductInterface) {
+            $product = $variant->getProduct();
+            if (null !== $row->costInCents && $product instanceof ProductInterface) {
                 foreach (ReadinessChecker::belowCost($product, $variant, $row->costInCents) as $belowCost) {
                     $report->add(0, $sku, ImportReport::WARNING, $belowCost.($product->isEnabled() ? ' (product is live)' : ''));
                 }

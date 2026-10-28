@@ -104,7 +104,8 @@ final class DemoCrossDockOrdersCommand extends Command
         $method = $this->entityManager->getRepository(ShippingMethod::class)->findOneBy([], ['id' => 'ASC']);
         /** @var list<ProductVariant> $variants */
         $variants = $this->entityManager->getRepository(ProductVariant::class)->createQueryBuilder('v')
-            ->addSelect('CASE WHEN v.distributor = :ors THEN 0 ELSE 1 END AS HIDDEN not_ors')
+            ->leftJoin('v.sources', 'src', 'WITH', 'src.supplier = :ors')
+            ->addSelect('CASE WHEN src.id IS NULL THEN 1 ELSE 0 END AS HIDDEN not_ors')
             ->join('v.channelPricings', 'cp')
             ->where('cp.channelCode = :channel AND cp.price > 0')
             ->setParameter('ors', 'ors_nasco')

@@ -1,13 +1,37 @@
-{# Distributor, fulfilment and shipping note (ProductVariantFulfilmentExtension). The
-   variant form is the form itself; a simple product's form nests it as
-   "variant". #}
+{# The SKU's sources (who we can order it from) and its shipping note (ProductVariantFulfilmentExtension).
+   The variant form is the form itself; a simple product's form nests it as "variant". Sources are
+   edited in the backoffice (SupplierItemCrudController). #}
 {% set form = hookable_metadata.context.form.variant ?? hookable_metadata.context.form %}
+{% set resource = hookable_metadata.context.resource %}
+{% set variant = resource.variants is defined ? resource.variants.first : resource %}
 
 <div class="mb-3">
-    {{ form_row(form.distributor) }}
-</div>
-<div class="mb-3">
-    {{ form_row(form.fulfilment) }}
+    <label class="form-label">Sources</label>
+    {% if variant and variant.code and variant.sources is not empty %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-1">
+                <thead><tr><th>Distributor</th><th>Their SKU</th><th>Fulfilment</th><th class="text-end">Cost</th><th class="text-end">Stock</th><th></th></tr></thead>
+                <tbody>
+                    {% for source in variant.sources %}
+                        <tr{% if not source.enabled %} class="text-secondary"{% endif %}>
+                            <td>{{ distributor_name(source.supplier) }}{% if not source.enabled %} (off){% endif %}</td>
+                            <td>{{ source.supplierSku }}</td>
+                            <td>{{ source.fulfilment.label }}</td>
+                            <td class="text-end">{{ source.costInCents is null ? 'unknown' : '$' ~ (source.costInCents / 100)|number_format(2) }}</td>
+                            <td class="text-end">{{ source.stock ?? 'unknown' }}</td>
+                            <td class="text-end"><a href="{{ path('app_admin_dashboard_supplier_item_edit', {entityId: source.id}) }}">Edit</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-secondary">None: orders for this SKU will wait for staff.</div>
+    {% endif %}
+    <div class="form-hint">
+        Each order goes to the cheapest switched-on source with stock (never below cost); products can't go live without one whose fulfilment is confirmed.
+        {% if variant and variant.code %}<a href="{{ path('app_admin_dashboard_supplier_item_index', {query: variant.code}) }}">Manage sources</a>{% endif %}
+    </div>
 </div>
 <div class="mb-3">
     {{ form_row(form.shippingNote) }}

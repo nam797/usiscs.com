@@ -110,7 +110,8 @@ final class OrsSyncTest extends FunctionalTestCase
         self::assertStringContainsString('Dry run: nothing was saved', $stock->getDisplay());
         self::assertStringContainsString('Dry run: nothing was saved', $cost->getDisplay());
         self::assertSame(25, $this->variant('ORS-T1')->getOnHand());
-        self::assertNull($this->supplierItem('ORS-T1'));
+        self::assertNull($this->supplierItem('ORS-T1')?->getCostInCents());
+        self::assertNull($this->supplierItem('ORS-T1')?->getStock());
     }
 
     public function testAFailedOrsCallChangesNothingAndFailsTheCommand(): void
@@ -223,6 +224,6 @@ final class OrsSyncTest extends FunctionalTestCase
 
     private function supplierItem(string $sku): ?SupplierItem
     {
-        return $this->entityManager()->getRepository(SupplierItem::class)->findOneBy(['sku' => $sku]);
+        return $this->entityManager()->getRepository(SupplierItem::class)->findOneBy(['sku' => $sku, 'supplier' => SupplierItem::ORS_NASCO]);
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalog\GoLive;
 
-use App\Catalog\Fulfilment\Fulfilment;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Product\ProductVariant;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
@@ -14,16 +14,15 @@ use Sylius\Component\Core\Model\ProductVariantInterface;
  * import's go_live column and by the admin "Go live" bulk action, so both
  * apply the same rule. Images are deliberately not required.
  *
- * Every SKU's fulfilment (ORS direct or cross-dock) must be confirmed.
+ * Every SKU needs a source it can be ordered from: a distributor that's
+ * switched on with a confirmed fulfilment (direct or cross-dock).
  *
- * When the supplier cost is known (ORS price sync), the selling price must
- * also be above it, so nothing goes live at a loss.
+ * The selling price must be above every switched-on source's known cost,
+ * so nothing goes live at a loss whichever distributor ends up with the
+ * order.
  */
 final class ReadinessChecker
 {
-    public function __construct(private readonly ?SupplierCostLookupInterface $costs = null)
-    {
-    }
 
     /** @return list<string> human-readable reasons; empty means ready */
     public function problems(ProductInterface $product): array
@@ -49,10 +48,10 @@ final class ReadinessChecker
             }
         }
 
-        // Nothing is sold until we know how it gets to the customer.
+        // Nothing is sold until we know who sends it and how it gets to the customer.
         $unconfirmed = [];
         foreach ($product->getVariants() as $variant) {
-            if ($variant instanceof ProductVariant && Fulfilment::Unconfirmed === $variant->getFulfilment()) {
+            if (!$variant instanceof ProductVariant || [] === array_filter($variant->getSources()->toArray(), static fn (SupplierItem $s): bool => $s->isUsable())) {
                 $unconfirmed[] = (string) $variant->getCode();
             }
         }
@@ -62,10 +61,13 @@ final class ReadinessChecker
                 : sprintf('shipping not confirmed (ORS direct or cross-dock) for %s', implode(', ', $unconfirmed));
         }
 
-        if (null !== $this->costs) {
-            foreach ($product->getVariants() as $variant) {
-                $cost = null === $variant->getCode() ? null : $this->costs->costInCents($variant->getCode());
-                if (null !== $cost && $variant instanceof ProductVariantInterface) {
+        foreach ($product->getVariants() as $variant) {
+            if (!$variant instanceof ProductVariant) {
+                continue;
+            }
+            foreach ($variant->getSources() as $source) {
+                $cost = $source->getCostInCents();
+                if ($source->isEnabled() && null !== $cost) {
                     array_push($problems, ...self::belowCost($product, $variant, $cost));
                 }
             }

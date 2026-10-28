@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Catalog\Import;
 
 use App\Catalog\Fulfilment\Fulfilment;
+use App\Entity\Catalog\SupplierItem;
 use App\Catalog\Unit\PackUnit;
 use App\Command\SetupCategoriesCommand;
 
@@ -33,6 +34,8 @@ final class ProductRow
         'variant_name',
         'fulfilment',
         'shipping_note',
+        'distributor',
+        'supplier_sku',
     ];
 
     /** Supplier item numbers: letters, numbers and - _ . / + (ORS uses all of them). */
@@ -64,6 +67,10 @@ final class ProductRow
         /** ORS direct / cross-dock; blank means not confirmed */
         public readonly Fulfilment $fulfilment,
         public readonly ?string $shippingNote,
+        /** who this sheet's SKU is from, as a distributor code ("ors_nasco"); ORS Nasco when blank */
+        public readonly string $distributor,
+        /** the distributor's own item number when it isn't the sheet's SKU (supplier_sku column) */
+        public readonly ?string $distributorSku,
         private readonly array $provided,
     ) {
     }
@@ -159,6 +166,17 @@ final class ProductRow
             $problems[] = 'shipping_note is longer than 255 characters';
         }
 
+        // "ORS Nasco" or "ors_nasco"; the importer checks it's a distributor we have.
+        $distributor = (string) preg_replace('/[^a-z0-9]+/', '_', strtolower($text('distributor')));
+        $distributor = '' === trim($distributor, '_') ? SupplierItem::ORS_NASCO : trim($distributor, '_');
+        if (strlen($distributor) > 50) {
+            $problems[] = 'distributor is longer than 50 characters';
+        }
+
+        if (strlen($text('supplier_sku')) > 255) {
+            $problems[] = 'supplier_sku is longer than 255 characters';
+        }
+
         $goLive = self::yesNo($text('go_live'));
         if (null === $goLive) {
             $problems[] = sprintf('go_live "%s" must be yes or no', $text('go_live'));
@@ -188,6 +206,8 @@ final class ProductRow
             $variantName,
             $fulfilment,
             $optional('shipping_note'),
+            $distributor,
+            $optional('supplier_sku'),
             array_values(array_intersect(self::OPTIONAL_COLUMNS, array_keys($values))),
         );
     }

@@ -245,8 +245,24 @@ credentials are set.
 
 When an order is fully paid, it is split into **purchase orders**: one per
 distributor and fulfilment (direct / cross-dock), numbered `{order}-1`,
-`{order}-2`... Each variant's distributor is set in the admin variant form
-(imports set ORS Nasco). The code is in `src/Distributor/`.
+`{order}-2`... The code is in `src/Distributor/`.
+
+**Sources:** a SKU can come from several distributors. Each one is a
+source (Backoffice → Sources): their SKU, fulfilment, cost, stock and an
+on/off switch. The variant form lists them.
+- **Routing:** each order line goes to the cheapest switched-on source that
+  has the stock, never at or below the price paid
+  (`src/Distributor/SourceSelector.php`). The purchase order's first
+  timeline entry says why.
+- **Shop stock** is the total over switched-on sources.
+- **Adding a distributor's catalog:** import its sheet with a `distributor`
+  column (its code or name) and, when its item numbers differ from ours,
+  `supplier_sku`.
+  - SKUs we already sell get the new distributor as a source only. Name,
+    price and description stay as they are.
+  - New SKUs become products, as usual.
+- **Cost and stock:** a distributor with no feed has its cost and stock
+  entered in Backoffice → Sources.
 
 - A worker sends each one to its distributor:
   `php -d memory_limit=-1 bin/console messenger:consume distributor -vv`.

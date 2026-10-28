@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Distributor;
 
 use App\Catalog\Fulfilment\Fulfilment;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Procurement\PurchaseOrder;
 use App\Entity\Procurement\PurchaseOrderLine;
 use App\Entity\Product\ProductVariant;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\OrderItemInterface;
 
 /**
  * Splits a paid order into purchase orders: one per distributor and
@@ -16,68 +18,78 @@ use Sylius\Component\Core\Model\OrderInterface;
  * one to our warehouse. Numbered "{order number}-1", "-2"... in a stable
  * order, so the same order always gets the same numbers.
  *
- * Nothing is guessed: items with no distributor, a distributor we have no
- * adapter for, or an unconfirmed fulfilment still get a purchase order, and
- * the worker sends it to "needs attention" (see problems()) and emails staff.
+ * Each line goes to the source SourceSelector picks (the cheapest with
+ * stock, never at a loss), with that distributor's SKU and cost; why is on
+ * the purchase order's timeline.
+ *
+ * Nothing is guessed: a line with no usable source still gets a purchase
+ * order, and the worker sends it to "needs attention" (see problems()) and
+ * emails staff. When the SKU has a single source that only lacks a
+ * confirmed fulfilment, that distributor is kept so staff just set it.
  */
 final class PurchaseOrderPlanner
 {
     public function __construct(
         private readonly DistributorRegistry $distributors,
-        private readonly SupplierSkuLookupInterface $supplierSkus,
+        private readonly SourceSelector $sources,
     ) {
     }
 
     /** @return list<PurchaseOrder> new, not persisted */
     public function plan(OrderInterface $order): array
     {
-        /** @var array<string, array{distributor: ?string, fulfilment: Fulfilment, items: list<\Sylius\Component\Core\Model\OrderItemInterface>}> $groups */
+        /** @var array<string, array{distributor: string, fulfilment: Fulfilment, lines: list<array{item: OrderItemInterface, source: ?SupplierItem, reason: string}>}> $groups */
         $groups = [];
-        $variantCodes = [];
         foreach ($order->getItems() as $item) {
             $variant = $item->getVariant();
-            $distributor = $variant instanceof ProductVariant ? $variant->getDistributor() : null;
-            $fulfilment = $variant instanceof ProductVariant ? $variant->getFulfilment() : Fulfilment::Unconfirmed;
-            $key = ($distributor ?? '~').'|'.$fulfilment->value;
+            $choice = $variant instanceof ProductVariant
+                ? $this->sources->choose($variant, $item->getQuantity(), $item->getDiscountedUnitPrice())
+                : new SourceChoice(null, 'no product variant');
 
-            $groups[$key] ??= ['distributor' => $distributor, 'fulfilment' => $fulfilment, 'items' => []];
-            $groups[$key]['items'][] = $item;
-            if (null !== $variant?->getCode()) {
-                $variantCodes[] = $variant->getCode();
-            }
+            [$distributor, $fulfilment] = null !== $choice->source
+                ? [$choice->source->getSupplier(), $choice->source->getFulfilment()]
+                : [self::onlyUnconfirmedSource($variant)?->getSupplier() ?? PurchaseOrder::UNASSIGNED, Fulfilment::Unconfirmed];
+            $key = $distributor.'|'.$fulfilment->value;
+
+            $groups[$key] ??= ['distributor' => $distributor, 'fulfilment' => $fulfilment, 'lines' => []];
+            $groups[$key]['lines'][] = ['item' => $item, 'source' => $choice->source, 'reason' => $choice->reason];
         }
         ksort($groups);
 
-        $supplierSkus = $this->supplierSkus->find(array_values(array_unique($variantCodes)));
         $orderNumber = $order->getNumber() ?? (string) $order->getId();
 
         $purchaseOrders = [];
         foreach (array_values($groups) as $index => $group) {
-            $purchaseOrder = new PurchaseOrder($order, sprintf('%s-%d', $orderNumber, $index + 1), $group['distributor'] ?? PurchaseOrder::UNASSIGNED, $group['fulfilment']);
+            $purchaseOrder = new PurchaseOrder($order, sprintf('%s-%d', $orderNumber, $index + 1), $group['distributor'], $group['fulfilment']);
 
-            foreach ($group['items'] as $item) {
+            $reasons = [];
+            foreach ($group['lines'] as ['item' => $item, 'source' => $source, 'reason' => $reason]) {
                 $variant = $item->getVariant();
                 $code = (string) $variant?->getCode();
                 $packUnit = $variant instanceof ProductVariant ? $variant->getPackUnit() : null;
+                // No usable source: the one that will be fixed, if there's just one.
+                $source ??= $variant instanceof ProductVariant ? $variant->getSource($group['distributor']) : null;
 
                 new PurchaseOrderLine(
                     $purchaseOrder,
                     $item,
                     $code,
-                    $supplierSkus[$code]['supplierSku'] ?? $code,
+                    $source?->getSupplierSku() ?? $code,
                     self::nameOf($item->getProductName(), $item->getVariantName()),
                     $item->getQuantity(),
                     $packUnit?->sellUnit,
                     $item->getDiscountedUnitPrice(),
-                    $supplierSkus[$code]['unitCostInCents'] ?? null,
+                    $source?->getCostInCents(),
                 );
+                $reasons[] = sprintf('%s: %s', $code, $reason);
             }
 
             $purchaseOrder->log(PurchaseOrderEventType::Created, sprintf(
-                '%d line(s) for %s, %s',
+                "%d line(s) for %s, %s.\n%s",
                 $purchaseOrder->getLines()->count(),
                 $this->distributors->nameOf($purchaseOrder->getDistributor()),
                 $group['fulfilment']->label(),
+                implode("\n", $reasons),
             ));
 
             $purchaseOrders[] = $purchaseOrder;
@@ -98,7 +110,7 @@ final class PurchaseOrderPlanner
 
         $problems = [];
         if (PurchaseOrder::UNASSIGNED === $purchaseOrder->getDistributor()) {
-            $problems[] = sprintf('No distributor is set for %s: set one on the purchase order (and on the variant for next time).', $skus);
+            $problems[] = sprintf('No distributor is set for %s: set one on the purchase order (and add a source for next time).', $skus);
         } elseif (null === $this->distributors->get($purchaseOrder->getDistributor())) {
             $problems[] = sprintf('There is no distributor called "%s".', $purchaseOrder->getDistributor());
         }
@@ -107,6 +119,17 @@ final class PurchaseOrderPlanner
         }
 
         return $problems;
+    }
+
+    /** The SKU's one switched-on source, when its only problem is an unconfirmed fulfilment. */
+    private static function onlyUnconfirmedSource(mixed $variant): ?SupplierItem
+    {
+        if (!$variant instanceof ProductVariant) {
+            return null;
+        }
+        $enabled = array_values(array_filter($variant->getSources()->toArray(), static fn (SupplierItem $s): bool => $s->isEnabled()));
+
+        return 1 === count($enabled) && Fulfilment::Unconfirmed === $enabled[0]->getFulfilment() ? $enabled[0] : null;
     }
 
     private static function nameOf(?string $product, ?string $variant): string

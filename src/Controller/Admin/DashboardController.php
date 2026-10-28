@@ -58,6 +58,7 @@ class DashboardController extends AbstractDashboardController
         ]);
         yield MenuItem::linkTo(PurchaseOrderCrudController::class, 'Purchase Orders', 'fa fa-truck');
         yield MenuItem::linkTo(DistributorSettingCrudController::class, 'Distributors', 'fa fa-warehouse');
+        yield MenuItem::linkTo(SupplierItemCrudController::class, 'Sources', 'fa fa-boxes-stacked');
         yield MenuItem::linkToUrl('Sylius Admin (catalog, orders)', 'fa fa-store', '/admin');
     }
 

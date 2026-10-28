@@ -178,8 +178,38 @@
     dev ("Variable "ea" does not exist"). The tests missed it because Twig
     wasn't strict about undefined variables in tests (APP_DEBUG=0). It's
     strict in the test env now.
+- Several distributors per product (2026-10-28): a SKU has **sources**
+  (`app_supplier_item`, one per distributor). Each source has the
+  distributor's SKU, fulfilment, cost, stock and an on/off switch.
+  - `distributor` and `fulfilment` moved off the variant onto its sources.
+    The migration made one ORS source per SKU (2,549 locally) and is
+    reversible.
+  - **Routing:** each paid order line goes to the cheapest switched-on
+    source with enough stock (`SourceSelector`). The purchase order's
+    timeline shows the comparison. Rules:
+    - never at or below cost
+    - unknown stock ranks after known stock
+    - a line is never split
+    - if nobody has enough stock, the cheapest takes it as a back-order
+  - **Shop stock** = the total over switched-on sources
+    (`VariantStockTotal`). ORS's stock and cost syncs only write ORS's
+    source.
+  - **Import:** new `distributor` (code or name, ORS when blank) and
+    `supplier_sku` columns. A row for a SKU another distributor's sheet
+    created only adds or updates that distributor's source. The product's
+    name, price and description stay with the first sheet
+    (`app_product_import_state.distributor`).
+  - **Admin:** the variant and product forms list the sources. Backoffice →
+    Sources edits them (fulfilment, on/off, cost and stock for a
+    distributor without a feed).
+  - **Go live** needs a switched-on source with confirmed fulfilment, and a
+    price above every switched-on source's known cost.
 
 ## Decisions
+- Several distributors per SKU: orders go to the cheapest switched-on
+  source that has the stock, never at or below cost, never split. The
+  first distributor's sheet owns the product's details; later sheets only
+  add their source.
 - Nothing goes live until its shipping is confirmed: every SKU needs a
   fulfilment (ORS direct or cross-dock). ORS hasn't said which yet (the
   direct-ship review columns are blank for all 2,737).
