@@ -245,13 +245,33 @@
     section when it would only say "No description".
   - **Sitemap** lists a category when it has products in it or anywhere
     below it, so `/products` and the coming department pages are included.
-  - Still to do, in a second PR: category titles and meta descriptions,
-    and structured data (Product, Offer, BreadcrumbList, Organization).
-    Later: canonical/sitemap host from the channel or https behind Upsun,
+  - Still to do (after batch 2 below): canonical/sitemap host from the channel or https behind Upsun,
     image alt text and placeholders, internal links, shorter
     descriptions, `og:image`, homepage title copy (needs client sign-off),
     product titles with brand and part number, the footer link to
     sylius.com, and lazy-loaded images.
+
+- SEO, second batch (2026-10-28):
+  - **Category pages have their own titles and descriptions**
+    (`App\Twig\CategorySeoExtension`):
+    - Title: "Safety & PPE | US Industrial Supply Chain Solutions", with
+      "– Page N" from page 2. `/products` is "All products".
+    - Meta description: the category's own description when it has one.
+      Otherwise it's built from the product count, top brands and
+      subcategories, e.g. "Safety & PPE: 403 products from brands like 3M™,
+      MCR SAFETY and SHOWA®…".
+  - **Structured data, JSON-LD** (`App\Twig\StructuredDataExtension`):
+    - Product pages: Product with Offer (price, currency, availability), or
+      AggregateOffer when it comes in several sizes or colours; brand and
+      part number from the attributes. No ratings, since there are no
+      reviews.
+    - Category and product pages: BreadcrumbList.
+    - Homepage: Organization (logo, phone) and WebSite.
+    - The JSON escapes `<`, `>` and `&`, so catalog text can't break out of
+      the script tag.
+  - **Fixed:** `&` in a title or description was escaped twice in the meta
+    and Open Graph tags ("Safety &amp;amp; PPE"). The meta-description
+    block also no longer prints inside an HTML comment.
 
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
@@ -321,6 +341,10 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
+- **SEO batch 2 (category titles and descriptions, structured data):** on
+  branch `seo-batch-2`. After merging, check the pages with Google's Rich
+  Results Test once there's a public URL. Then the rest of the review list
+  under "SEO, first batch" in Done.
 - **Cross-dock warehouse (merged, PR #46):** ask the client for the
   warehouse address and a realistic ORS transit time to the warehouse (the
   default is 3 business days), and whether the warehouse should get an

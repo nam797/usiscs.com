@@ -1,5 +1,6 @@
 {# Sylius's product page, plus its own meta description and Open Graph product tags
-   (App\Twig\SeoExtension::productMetaDescription), instead of the site-wide default. #}
+   (App\Twig\SeoExtension::productMetaDescription), instead of the site-wide default,
+   and Product + BreadcrumbList structured data (App\Twig\StructuredDataExtension). #}
 {% extends '@SyliusShop/shared/layout/base.html.twig' %}
 
 {% set prefixes = ['sylius_shop.product.show'] %}
@@ -17,6 +18,11 @@
         <meta property="product:price:amount" content="{{ (pricing.price / 100)|number_format(2, '.', '') }}">
         <meta property="product:price:currency" content="{{ sylius.channel.baseCurrency.code }}">
     {% endif %}
+{% endblock %}
+
+{% block structured_data %}
+    {{ json_ld(ld_product(product, sylius.channel)) }}
+    {% if product.mainTaxon %}{{ json_ld(ld_breadcrumbs(product.mainTaxon, product)) }}{% endif %}
 {% endblock %}
 
 {% block content %}

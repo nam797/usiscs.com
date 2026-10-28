@@ -1,0 +1,19 @@
+{# Sylius's category page, plus its own title and meta description (App\Twig\CategorySeoExtension)
+   and structured data for its breadcrumbs, instead of the shop's name and site-wide description. #}
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% set prefixes = ['sylius_shop.product.index'] %}
+{% set taxon = current_taxon() %}
+{% set page = app.request.query.getInt('page') %}
+
+{% block title %}{% if taxon %}{{ taxon.isRoot ? 'All products' : taxon.name }}{% if page > 1 %} – Page {{ page }}{% endif %} | {% endif %}{{ parent() }}{% endblock %}
+
+{% block meta_description %}{% if taxon %}{{ category_meta_description(taxon, sylius.channel) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+
+{% block structured_data %}
+    {% if taxon %}{{ json_ld(ld_breadcrumbs(taxon)) }}{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% hook 'sylius_shop.product.index' with { products, resources } %}
+{% endblock %}

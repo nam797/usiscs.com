@@ -97,13 +97,13 @@ final class SeoExtension extends AbstractExtension
         return is_scalar($value) && '' !== trim((string) $value) ? trim((string) $value) : null;
     }
 
-    private static function plain(?string $html): string
+    public static function plain(?string $html): string
     {
         return trim((string) preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string) $html), \ENT_QUOTES | \ENT_HTML5)));
     }
 
     /** At most DESCRIPTION_LENGTH characters, cut at a word, with "…" when cut. */
-    private static function shorten(string $text): string
+    public static function shorten(string $text): string
     {
         if (mb_strlen($text) <= self::DESCRIPTION_LENGTH) {
             return $text;

@@ -60,4 +60,76 @@ final class SeoTest extends FunctionalTestCase
         self::assertSelectorTextNotContains('body', 'Add your review');
         self::assertSelectorTextNotContains('body', 'No description');
     }
+
+    public function testACategoryPageHasItsOwnTitleDescriptionAndBreadcrumbData(): void
+    {
+        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
+
+        $crawler = $this->client->request('GET', '/safety-ppe');
+
+        self::assertSelectorTextSame('title', 'Safety & PPE | US Industrial Supply Chain Solutions');
+        $description = (string) $crawler->filter('meta[name="description"]')->attr('content');
+        self::assertMatchesRegularExpression('/^Safety & PPE: [\d,]+ products?/', $description);
+        self::assertStringNotContainsString('&amp;', $description, 'escaped once, not twice');
+        self::assertSame('Safety & PPE | US Industrial Supply Chain Solutions', $crawler->filter('meta[property="og:title"]')->attr('content'));
+
+        $breadcrumbs = $this->jsonLd($crawler, 'BreadcrumbList');
+        self::assertSame(['Home', 'Products', 'Safety & PPE'], array_column(self::arr($breadcrumbs['itemListElement']), 'name'));
+
+        $this->client->request('GET', '/safety-ppe?page=2');
+        self::assertSelectorTextSame('title', 'Safety & PPE – Page 2 | US Industrial Supply Chain Solutions');
+
+        $this->client->request('GET', '/products');
+        self::assertSelectorTextSame('title', 'All products | US Industrial Supply Chain Solutions');
+    }
+
+    public function testAProductPageHasProductAndBreadcrumbData(): void
+    {
+        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
+
+        $crawler = $this->client->request('GET', '/products/safety-glasses');
+
+        $product = $this->jsonLd($crawler, 'Product');
+        self::assertSame('Safety Glasses', $product['name']);
+        self::assertSame('http://localhost/products/safety-glasses', $product['url']);
+        $offer = self::arr($product['offers']);
+        self::assertSame('Offer', $offer['@type']);
+        self::assertSame('USD', $offer['priceCurrency']);
+        self::assertIsString($offer['price']);
+        self::assertMatchesRegularExpression('/^\d+\.\d{2}$/', $offer['price']);
+        self::assertArrayNotHasKey('aggregateRating', $product);
+        self::assertSame(['Home', 'Products', 'Safety & PPE', 'Safety Glasses'], array_column(self::arr($this->jsonLd($crawler, 'BreadcrumbList')['itemListElement']), 'name'));
+    }
+
+    public function testTheHomepageSaysWhoRunsTheSite(): void
+    {
+        $crawler = $this->client->request('GET', '/');
+
+        $organization = $this->jsonLd($crawler, 'Organization');
+        self::assertSame('US Industrial Supply Chain Solutions', $organization['name']);
+        self::assertSame('+1-912-665-7257', $organization['telephone']);
+        self::assertIsString($organization['logo']);
+        self::assertStringContainsString('/build/app/shop/images/logo', $organization['logo']);
+        self::assertSame('WebSite', $this->jsonLd($crawler, 'WebSite')['@type']);
+    }
+
+    /** @return array<string, mixed> the page's JSON-LD block of this @type */
+    private function jsonLd(\Symfony\Component\DomCrawler\Crawler $crawler, string $type): array
+    {
+        foreach ($crawler->filter('script[type="application/ld+json"]') as $script) {
+            $data = json_decode((string) $script->textContent, true, flags: \JSON_THROW_ON_ERROR);
+            if (is_array($data) && $type === ($data['@type'] ?? null)) {
+                return $data;
+            }
+        }
+        self::fail(sprintf('No %s structured data on the page.', $type));
+    }
+
+    /** @return array<mixed> */
+    private static function arr(mixed $value): array
+    {
+        self::assertIsArray($value);
+
+        return $value;
+    }
 }
