@@ -364,7 +364,13 @@ deploy in the `config/encryption` mount).
    `checkout.session.async_payment_failed`, `checkout.session.expired` and
    `charge.refunded`. Paste its signing secret (`whsec_...`) into the payment
    method's webhook secret keys.
-4. Place a test order with card `4242 4242 4242 4242`. Repeat with live keys.
+4. Keep **use authorize** ticked: payments are only held at checkout.
+   The order's purchase orders go out straight away. The card is charged
+   when the first one ships, or after 6 days (`app:payments:capture-due`,
+   an Upsun cron), whichever comes first. If every purchase order is
+   cancelled, the hold is released instead. To charge one by hand: the
+   order's payment → Complete in the Sylius admin.
+5. Place a test order with card `4242 4242 4242 4242`. Repeat with live keys.
 
 Locally, forward webhooks with the Stripe CLI:
 `stripe listen --forward-to http://127.0.0.1:8000/payment-methods/stripe`.

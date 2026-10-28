@@ -14,7 +14,9 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Workflow\Event\CompletedEvent;
 
 /**
- * An order is fully paid: create its purchase orders. They're persisted
+ * An order is fully paid, or its card payment is authorized (held at
+ * Stripe, charged when something ships: AuthorizedPaymentHandler): create
+ * its purchase orders. They're persisted
  * here and saved by the flush that saves the payment (Sylius flushes after
  * every payment transition); PurchaseOrderOutbox then queues them.
  *
@@ -25,6 +27,7 @@ use Symfony\Component\Workflow\Event\CompletedEvent;
  * doesn't order the goods twice.
  */
 #[AsEventListener(event: 'workflow.sylius_order_payment.completed.pay')]
+#[AsEventListener(event: 'workflow.sylius_order_payment.completed.authorize')]
 final class PlanPurchaseOrdersOnPayment
 {
     public function __construct(

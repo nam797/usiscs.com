@@ -4,21 +4,26 @@ declare(strict_types=1);
 
 namespace App\Distributor;
 
+use App\Distributor\Event\PurchaseOrderTransitioned;
 use App\Entity\Procurement\PurchaseOrder;
 use App\Entity\Procurement\PurchaseOrderEvent;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\Workflow\WorkflowInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The only way a purchase order changes state: applies a transition of the
  * "purchase_order" state machine (config/packages/workflow.yaml), which
  * refuses moves the graph doesn't allow, and logs it on the timeline.
+ * Then dispatches PurchaseOrderTransitioned, so reactions land after the
+ * move on the timeline.
  */
 final class PurchaseOrderStateMachine
 {
     public function __construct(
         #[Target('purchase_order')]
         private readonly WorkflowInterface $workflow,
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
     }
 
@@ -41,5 +46,6 @@ final class PurchaseOrderStateMachine
     ): void {
         $this->workflow->apply($purchaseOrder, $transition->value);
         $purchaseOrder->log(PurchaseOrderEventType::of($transition), $message, $actor, $payload);
+        $this->events?->dispatch(new PurchaseOrderTransitioned($purchaseOrder, $transition));
     }
 }

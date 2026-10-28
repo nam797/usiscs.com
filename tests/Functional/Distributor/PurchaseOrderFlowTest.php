@@ -23,6 +23,10 @@ use App\Entity\Procurement\PurchaseOrder;
 use App\Entity\Procurement\PurchaseOrderEvent;
 use App\Entity\Product\ProductVariant;
 use App\Tests\Functional\FunctionalTestCase;
+use App\Entity\Payment\PaymentMethod;
+use Sylius\Component\Core\Factory\PaymentMethodFactoryInterface;
+use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\AdminUserInterface;
@@ -371,6 +375,70 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertStringContainsString('Test distributor $7.00 (stock 100) over ORS Nasco $9.00 (stock 100)', (string) $created->getMessage());
     }
 
+    public function testAHeldCardPaymentSendsPurchaseOrdersAndIsChargedWhenTheDistributorShips(): void
+    {
+        $order = $this->paidOrder(Fulfilment::OrsDirect, authorizeOnly: true);
+        self::assertSame('authorized', $order->getPaymentState());
+
+        // Purchase orders go out on the authorization, not on payment.
+        $purchaseOrder = $this->entityManager()->getRepository(PurchaseOrder::class)->findOneBy(['order' => $order]);
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        $message = $this->transport()->getSent()[0]->getMessage();
+        self::assertInstanceOf(SubmitPurchaseOrder::class, $message);
+        $this->handler()($message);
+
+        $this->fakeDistributor()->reportStatus($purchaseOrder->getNumber(), new DistributorOrderStatus('FAKE-1', PurchaseOrderState::SHIPPED, 'shipped', [], [['trackingNumber' => '1ZHELD0001', 'carrier' => 'UPS']]));
+        $tester = new CommandTester((new Application(self::$kernel ?? throw new \LogicException()))->find('app:distributor:sync-orders'));
+        $tester->execute(['--no-alerts' => true]);
+        $tester->assertCommandIsSuccessful();
+
+        $this->entityManager()->clear();
+        $purchaseOrder = $this->entityManager()->find(PurchaseOrder::class, $purchaseOrder->getId());
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        self::assertSame('paid', $purchaseOrder->getOrder()->getPaymentState());
+        self::assertSame('completed', $purchaseOrder->getOrder()->getPayments()->first() ? $purchaseOrder->getOrder()->getPayments()->first()->getState() : null);
+        self::assertContains(PurchaseOrderEventType::PaymentCaptured, array_map(static fn (PurchaseOrderEvent $e): PurchaseOrderEventType => $e->getType(), $purchaseOrder->getEvents()->toArray()));
+        self::assertCount(1, $this->entityManager()->getRepository(PurchaseOrder::class)->findBy(['order' => $purchaseOrder->getOrder()]), 'paying doesn\'t order the goods twice');
+    }
+
+    public function testAHoldIsReleasedWhenEveryPurchaseOrderIsCancelled(): void
+    {
+        $order = $this->paidOrder(Fulfilment::Unconfirmed, authorizeOnly: true);
+        $purchaseOrder = $this->entityManager()->getRepository(PurchaseOrder::class)->findOneBy(['order' => $order]);
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        $message = $this->transport()->getSent()[0]->getMessage();
+        self::assertInstanceOf(SubmitPurchaseOrder::class, $message);
+        $this->handler()($message);
+
+        $this->loginAsAdmin();
+        $crawler = $this->client->request('GET', sprintf('/backoffice/purchase-order/%d/cancel', $purchaseOrder->getId()));
+        $this->client->submit($crawler->selectButton('Cancel')->form(['note' => 'ORS discontinued it']));
+        self::assertResponseRedirects();
+
+        $this->entityManager()->clear();
+        $purchaseOrder = $this->entityManager()->find(PurchaseOrder::class, $purchaseOrder->getId());
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        self::assertSame('cancelled', $purchaseOrder->getOrder()->getPayments()->first() ? $purchaseOrder->getOrder()->getPayments()->first()->getState() : null);
+        // On the timeline right after the cancellation.
+        self::assertSame(PurchaseOrderEventType::PaymentReleased, $purchaseOrder->getLastEvent()?->getType());
+    }
+
+    public function testAPaymentStillHeldAfterSixDaysIsCharged(): void
+    {
+        $order = $this->paidOrder(Fulfilment::OrsDirect, authorizeOnly: true);
+        $order->setCheckoutCompletedAt(new \DateTime('-7 days'));
+        $recent = $this->paidOrder(Fulfilment::OrsDirect, authorizeOnly: true);
+        $this->entityManager()->flush();
+
+        $tester = new CommandTester((new Application(self::$kernel ?? throw new \LogicException()))->find('app:payments:capture-due'));
+        $tester->execute([]);
+        $tester->assertCommandIsSuccessful();
+
+        $this->entityManager()->clear();
+        self::assertSame('paid', $this->entityManager()->find(Order::class, $order->getId())?->getPaymentState());
+        self::assertSame('authorized', $this->entityManager()->find(Order::class, $recent->getId())?->getPaymentState(), 'only the old one');
+    }
+
     public function testShipToCustomerIsRefusedBeforeItIsReceived(): void
     {
         $order = $this->paidOrder(Fulfilment::CrossDock);
@@ -386,7 +454,8 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
     }
 
     /** @param ?Fulfilment $secondItem when set, adds a helmet with this fulfilment */
-    private function paidOrder(Fulfilment $fulfilment, string $distributor = FakeDistributor::CODE, ?Fulfilment $secondItem = null, bool $keepOtherSources = false): OrderInterface
+    /** @param bool $authorizeOnly a card payment held (authorized) instead of a paid order */
+    private function paidOrder(Fulfilment $fulfilment, string $distributor = FakeDistributor::CODE, ?Fulfilment $secondItem = null, bool $keepOtherSources = false, bool $authorizeOnly = false): OrderInterface
     {
         $container = static::getContainer();
         $entityManager = $this->entityManager();
@@ -484,7 +553,13 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
 
         $stateMachine = $container->get('sylius_abstraction.state_machine');
         self::assertInstanceOf(StateMachineInterface::class, $stateMachine);
-        $stateMachine->apply($order, OrderPaymentTransitions::GRAPH, OrderPaymentTransitions::TRANSITION_PAY);
+        if ($authorizeOnly) {
+            // As the Stripe plugin does at checkout: the payment is authorized, and Sylius moves the order to "authorized".
+            $payment = $this->payment($order, $channel);
+            $stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_AUTHORIZE);
+        } else {
+            $stateMachine->apply($order, OrderPaymentTransitions::GRAPH, OrderPaymentTransitions::TRANSITION_PAY);
+        }
         $entityManager->flush();
 
         return $order;
@@ -503,6 +578,39 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         $source->setEnabled(true);
         $source->setCostInCents(null);
         $source->recordStock(null);
+    }
+
+    /** A new payment by an offline method (no Stripe calls), for the order's total. */
+    private function payment(OrderInterface $order, Channel $channel): PaymentInterface
+    {
+        $entityManager = $this->entityManager();
+        $method = $entityManager->getRepository(PaymentMethod::class)->findOneBy(['code' => 'e2e_offline']);
+        if (!$method instanceof PaymentMethod) {
+            $factory = static::getContainer()->get('sylius.factory.payment_method');
+            self::assertInstanceOf(PaymentMethodFactoryInterface::class, $factory);
+            $method = $factory->createWithGateway('offline');
+            self::assertInstanceOf(PaymentMethod::class, $method);
+            $method->setCode('e2e_offline');
+            $method->setCurrentLocale('en_US');
+            $method->setFallbackLocale('en_US');
+            $method->setName('Offline');
+            $method->getGatewayConfig()?->setGatewayName('offline');
+            $method->addChannel($channel);
+            $entityManager->persist($method);
+        }
+
+        $factory = static::getContainer()->get('sylius.factory.payment');
+        self::assertInstanceOf(FactoryInterface::class, $factory);
+        $payment = $factory->createNew();
+        self::assertInstanceOf(PaymentInterface::class, $payment);
+        $payment->setMethod($method);
+        $payment->setAmount(max(1, $order->getTotal()));
+        $payment->setCurrencyCode('USD');
+        $payment->setState(PaymentInterface::STATE_NEW);
+        $order->addPayment($payment);
+        $entityManager->flush();
+
+        return $payment;
     }
 
     private function shippingMethod(Channel $channel): ShippingMethodInterface
