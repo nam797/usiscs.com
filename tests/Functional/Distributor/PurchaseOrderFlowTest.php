@@ -306,6 +306,13 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         $this->client->request('GET', sprintf('/admin/orders/%d', $order->getId()));
         self::assertSelectorTextContains('body', 'Warehouse: On its way to us');
 
+        // Its page lists every line in full, and the timeline.
+        $this->client->request('GET', sprintf('/backoffice/warehouse/%d', $crossDock->getId()));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Distributor SKU');
+        self::assertSelectorTextContains('body', 'E2E_PO_HELMET');
+        self::assertSelectorTextContains('body', 'Timeline');
+
         // Checked in, then shipped on with our tracking.
         $crawler = $this->client->request('GET', sprintf('/backoffice/warehouse/%d/mark-received', $crossDock->getId()));
         self::assertResponseIsSuccessful();

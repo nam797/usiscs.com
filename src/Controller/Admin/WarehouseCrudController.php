@@ -121,8 +121,9 @@ class WarehouseCrudController extends AbstractCrudController
         yield TextField::new('number')->setLabel('PO number');
         yield Field::new('order')->setLabel('Shop order / ship to')
             ->setTemplatePath('admin/warehouse/field/order.html.twig');
+        // A short list on the list page; the full table (SKUs, prices, shipped) on its page.
         yield Field::new('lines')->setLabel('Items')
-            ->setTemplatePath('admin/warehouse/field/lines.html.twig');
+            ->setTemplatePath(Crud::PAGE_DETAIL === $pageName ? 'admin/purchase_order/field/lines.html.twig' : 'admin/warehouse/field/items.html.twig');
         yield Field::new('warehouseStatus')->setLabel('Warehouse')->setSortable(false)
             ->setTemplatePath('admin/warehouse/field/status.html.twig');
         yield DateField::new('expectedAt')->setLabel('Expected')->setFormat('EEE, MMM d');
