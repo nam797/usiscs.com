@@ -1,3 +1,7 @@
 framework:
     validation:
         enable_attributes: true
+        # Extra rules for classes we don't own (Sylius's), e.g. strong passwords.
+        mapping:
+            paths:
+                - '%kernel.project_dir%/config/validator'

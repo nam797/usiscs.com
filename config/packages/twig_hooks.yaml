@@ -47,6 +47,21 @@ sylius_twig_hooks:
                 template: 'admin/product_variant/fulfilment.html.twig'
                 priority: 500
 
+        # What makes a password strong enough (App\Validator\StrongPassword),
+        # under the new-password field, before its confirmation.
+        'sylius_shop.account.register.content.form.credentials':
+            password_hint:
+                template: 'shop/account/password_hint.html.twig'
+                priority: 50
+        'sylius_shop.account.change_password.update.content.main.form.fields':
+            password_hint:
+                template: 'shop/account/password_hint.html.twig'
+                priority: 50
+        'sylius_shop.account.reset_password.content.form.general.fields':
+            password_hint:
+                template: 'shop/account/password_hint.html.twig'
+                priority: 50
+
         # Purchase orders to distributors, under Shipments (priority 0) on
         # the admin order page.
         'sylius_admin.order.show.content.sections#left':
