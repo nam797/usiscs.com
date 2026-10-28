@@ -316,16 +316,22 @@ on/off switch. The variant form lists them.
   - The Sylius admin order list has a **Delivery** column and filter
     (Direct / Cross-dock / Mixed / Not confirmed).
   - **Sample data:** `php -d memory_limit=-1 bin/console app:dev:demo-cross-dock`
-    (dev only) creates six paid orders, DEMO-001 to DEMO-006, with
-    purchase orders in every warehouse state (overdue, due soon, on its
-    way, not shipped yet, received, shipped on). It also adds a direct
-    purchase order awaiting manual entry.
+    (dev only) creates seven paid orders, DEMO-001 to DEMO-007.
+    - DEMO-001 to DEMO-006 have purchase orders in every warehouse state
+      (overdue, due soon, on its way, not shipped yet, received, shipped
+      on), plus a direct purchase order awaiting manual entry.
+    - DEMO-007 is routed between two distributors. Two hidden sample
+      products (DEMO-SRC-GLOVES, DEMO-SRC-HELMET) each have an ORS and a
+      Test distributor source. The gloves go to the cheaper Test
+      distributor; the helmets go to ORS because the Test distributor is
+      short. Each purchase order's timeline says why.
     - Running it again resets them. `--delete` removes them.
-    - Nothing is queued or emailed, and the catalog isn't changed.
+    - Nothing is queued or emailed, and the real catalog isn't changed.
     - It needs the `checkout_shipping` fixtures, which give a shipping method.
 - **Trying it locally:**
-  1. In the admin, set a variant's distributor to **Test distributor** (dev
-     only).
+  1. In Backoffice → Sources, give a SKU a **Test distributor** source
+     (dev only; import a sheet with `distributor` = Test distributor), or
+     switch its other sources off.
   2. Pick its behaviour with `FAKE_DISTRIBUTOR_MODE` in `.env.local`:
      `accept`, `down`, `reject` or `manual`.
   3. Buy the product, pay with Stripe's test card, and run the worker.

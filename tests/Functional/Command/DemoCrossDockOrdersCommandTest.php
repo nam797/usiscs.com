@@ -10,6 +10,7 @@ use App\Entity\Addressing\Zone;
 use App\Entity\Channel\Channel;
 use App\Entity\Order\Order;
 use App\Entity\Procurement\PurchaseOrder;
+use App\Entity\Product\Product;
 use App\Entity\Shipping\ShippingMethod;
 use App\Tests\Functional\FunctionalTestCase;
 use Sylius\Component\Core\Model\ShippingMethodInterface;
@@ -36,7 +37,7 @@ final class DemoCrossDockOrdersCommandTest extends FunctionalTestCase
         /** @var list<Order> $orders */
         $orders = $this->entityManager()->getRepository(Order::class)->createQueryBuilder('o')
             ->where('o.number LIKE :demo')->setParameter('demo', 'DEMO-%')->orderBy('o.number')->getQuery()->getResult();
-        self::assertCount(6, $orders, 'the second run replaced the first');
+        self::assertCount(7, $orders, 'the second run replaced the first');
         self::assertInstanceOf(Order::class, $orders[0]);
         self::assertSame(FulfilmentRoute::Mixed, $orders[0]->getFulfilmentRoute());
 
@@ -55,15 +56,31 @@ final class DemoCrossDockOrdersCommandTest extends FunctionalTestCase
             WarehouseStatus::ShippedToCustomer->value,
             'direct awaiting_manual_entry',
             'direct shipped',
+            // DEMO-007: gloves to the Test distributor (cross-dock), helmets to ORS (direct).
+            WarehouseStatus::AwaitingDistributor->value,
+            'direct submitted',
         ];
         sort($expected);
         self::assertSame($expected, $statuses);
         self::assertCount(0, $transport->getSent(), 'nothing is queued to a distributor');
+
+        // DEMO-007 was routed by the planner: each SKU to the cheapest source with stock.
+        $routed = [];
+        foreach ($this->entityManager()->getRepository(PurchaseOrder::class)->findBy(['order' => $orders[6]]) as $purchaseOrder) {
+            $line = $purchaseOrder->getLines()->first();
+            self::assertNotFalse($line);
+            $routed[$line->getVariantCode()] = [$purchaseOrder->getDistributor(), $line->getUnitCostInCents()];
+            $created = $purchaseOrder->getEvents()->first();
+            self::assertNotFalse($created);
+            self::assertStringContainsString(' over ', (string) $created->getMessage());
+        }
+        self::assertSame(['DEMO-SRC-GLOVES' => ['fake', 720], 'DEMO-SRC-HELMET' => ['ors_nasco', 2100]], $routed);
         self::assertEmailCount(0);
 
         $this->runCommand(['--delete' => true]);
         $this->entityManager()->clear();
         self::assertSame(0, $this->entityManager()->getRepository(Order::class)->count(['number' => 'DEMO-001']));
+        self::assertSame(0, $this->entityManager()->getRepository(Product::class)->count(['code' => ['DEMO-SRC-GLOVES', 'DEMO-SRC-HELMET']]));
     }
 
     /** @param array<string, mixed> $input */

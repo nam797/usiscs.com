@@ -204,6 +204,8 @@
     distributor without a feed).
   - **Go live** needs a switched-on source with confirmed fulfilment, and a
     price above every switched-on source's known cost.
+  - `app:dev:demo-cross-dock` adds DEMO-007, routed between two sample
+    products' ORS and Test distributor sources.
 
 ## Decisions
 - Several distributors per SKU: orders go to the cheapest switched-on
