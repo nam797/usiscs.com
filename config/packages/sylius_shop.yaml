@@ -1,3 +1,14 @@
+# Sylius's shop_regex assumes a locale prefix ("^/(?!admin|api…)[^/]++", the
+# [^/]++ being "/en_US"); rules then append a path to it. Without the prefix,
+# "%sylius.security.shop_regex%/account" only matched "/<something>/account",
+# so the /account pages weren't login-protected (a 500 for guests instead of
+# a redirect to /login), and "%…%/checkout/.+" never matched, so checkout
+# steps didn't move on to the next one ("route sylius_order_index does not
+# exist" after the address step). Same exclusions, with no segment consumed:
+# anything appended now starts right after the domain.
+parameters:
+    sylius.security.shop_regex: "^(?!/(?:%sylius_admin.path_name%|api/.*|api$|media/.*))"
+
 sylius_shop:
     # One locale, no /{_locale} prefix in shop URLs (config/routes/sylius_shop.yaml).
     locale_switcher: storage
