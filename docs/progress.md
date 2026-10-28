@@ -207,6 +207,11 @@
   - `app:dev:demo-cross-dock` adds DEMO-007, routed between two sample
     products' ORS and Test distributor sources.
 
+- Category search box (2026-10-28): the product search on category pages
+  said "Value" (Sylius used the field's label as the placeholder). It now
+  says "Search this category", also as its aria-label
+  (`templates/bundles/SyliusShopBundle/grid/filter/string.html.twig`).
+
 ## Decisions
 - Several distributors per SKU: orders go to the cheapest switched-on
   source that has the stock, never at or below cost, never split. The

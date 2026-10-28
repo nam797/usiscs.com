@@ -1,0 +1,10 @@
+{# Sylius's shop text filter, but the category page's product search says what it does:
+   Sylius used the field label ("Value") as the placeholder. #}
+{% form_theme form '@SyliusShop/form/theme.html.twig' %}
+
+{% set placeholder = filter.name == 'search' ? 'Search this category' : form.value.vars.label|trans %}
+
+{% if form.type is defined %}
+    {{ form_row(form.type, {'label': filter.label}) }}
+{% endif %}
+{{ form_widget(form.value, {attr: {placeholder: placeholder, 'aria-label': placeholder, class: 'form-control-sm'}, 'label': form.type is defined ? form.value.vars.label : filter.label}) }}
