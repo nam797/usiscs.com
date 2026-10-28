@@ -41,6 +41,26 @@ final class CatalogTest extends FunctionalTestCase
         self::assertSelectorExists('input[name="criteria[search][value]"][placeholder="Search this category"][aria-label="Search this category"]');
     }
 
+    public function testTheBreadcrumbsLinkToAllProducts(): void
+    {
+        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
+
+        // Category page: Home / Products / Safety & PPE.
+        $this->client->request('GET', '/safety-ppe');
+        self::assertSelectorExists('.breadcrumb a[href="/products"]');
+        self::assertSelectorTextContains('.breadcrumb a[href="/products"]', 'Products');
+
+        // Product page: Home / Products / Safety & PPE / Safety Glasses.
+        $this->client->request('GET', '/products/safety-glasses');
+        self::assertSelectorExists('.breadcrumb a[href="/products"]');
+        self::assertSelectorExists('.breadcrumb a[href="/safety-ppe"]');
+
+        // And /products is a real page listing the catalog.
+        $this->client->request('GET', '/products');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Safety Glasses');
+    }
+
     public function testACategoryPageShows24ProductsAndOffersMore(): void
     {
         $this->client->request('GET', '/safety-ppe');

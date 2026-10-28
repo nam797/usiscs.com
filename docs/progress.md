@@ -211,6 +211,10 @@
   said "Value" (Sylius used the field's label as the placeholder). It now
   says "Search this category", also as its aria-label
   (`templates/bundles/SyliusShopBundle/grid/filter/string.html.twig`).
+- Breadcrumbs (2026-10-28): "Products" (the root category) is now a link
+  to /products, the page listing the whole catalog, on category and product
+  pages. Sylius showed the root as plain text (overrides in
+  `templates/bundles/SyliusShopBundle/product/`).
 
 ## Decisions
 - Several distributors per SKU: orders go to the cheapest switched-on
