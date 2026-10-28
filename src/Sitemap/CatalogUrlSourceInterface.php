@@ -21,9 +21,10 @@ interface CatalogUrlSourceInterface
     public function products(ChannelInterface $channel, string $locale): array;
 
     /**
-     * Slugs of enabled categories that contain at least one enabled product
-     * in the channel. Empty categories are left out: they're thin pages that
-     * search engines penalise.
+     * Slugs of enabled categories with at least one enabled product in the
+     * channel, in the category itself or any category below it (so the root,
+     * /products, is listed too). Empty categories are left out: they're thin
+     * pages that search engines penalise.
      *
      * @return list<string>
      */

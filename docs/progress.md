@@ -225,6 +225,34 @@
   - A hint under the new-password field says what's needed.
   - Existing passwords still work; the rule applies when one is set.
 
+- SEO, first batch (2026-10-28), from the SEO Specialist's review:
+  - **One canonical address per page.** The canonical tag and `og:url`
+    drop sorting, `?limit=` and search parameters, keeping `?page=N`
+    (`seo_canonical_url()` in `App\Twig\SeoExtension`).
+  - **Index only the pages worth finding** (`App\EventListener\RobotsTagListener`):
+    - Indexable: home, categories, products and the information pages.
+    - Re-sorted, resized or searched category pages: `noindex, follow`.
+    - Everything else (cart, checkout, account, login, register, orders,
+      review pages, payment and component endpoints): `noindex, nofollow`.
+    - `robots.txt` also disallows those areas and the sorting, limit and
+      search parameters.
+  - **Product pages** get their own meta description: the product's
+    meta description, short description or description; otherwise one
+    built from name, part number, price and pack unit. They also get
+    `og:type=product` and price tags.
+  - **Hidden until there's real content:** the empty review UI (stars,
+    "0 reviews", "Add your review", the Reviews section) and the "Details"
+    section when it would only say "No description".
+  - **Sitemap** lists a category when it has products in it or anywhere
+    below it, so `/products` and the coming department pages are included.
+  - Still to do, in a second PR: category titles and meta descriptions,
+    and structured data (Product, Offer, BreadcrumbList, Organization).
+    Later: canonical/sitemap host from the channel or https behind Upsun,
+    image alt text and placeholders, internal links, shorter
+    descriptions, `og:image`, homepage title copy (needs client sign-off),
+    product titles with brand and part number, the footer link to
+    sylius.com, and lazy-loaded images.
+
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
   checked against known breached passwords (Symfony's

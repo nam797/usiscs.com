@@ -62,6 +62,18 @@ sylius_twig_hooks:
                 template: 'shop/account/password_hint.html.twig'
                 priority: 50
 
+        # No product reviews yet: the star rating, "0 reviews", "Add your
+        # review" links and the empty Reviews section are hidden until there's
+        # a plan for them. Empty, they make the shop look inactive and repeat
+        # the same thin text on every product page. The review pages are
+        # noindex (App\EventListener\RobotsTagListener) and out of robots.txt.
+        'sylius_shop.product.show.content.info.summary':
+            average_rating:
+                enabled: false
+        'sylius_shop.product.show.content.info.overview.accordion':
+            reviews:
+                enabled: false
+
         # Purchase orders to distributors, under Shipments (priority 0) on
         # the admin order page.
         'sylius_admin.order.show.content.sections#left':

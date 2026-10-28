@@ -42,6 +42,11 @@ final class DoctrineCatalogUrlSource implements CatalogUrlSourceInterface
         return $rows;
     }
 
+    /**
+     * Every enabled category with a live product in it or anywhere below it,
+     * including the root (/products, the whole catalog): a department whose
+     * products all sit in its subcategories is still a page worth finding.
+     */
     public function taxonSlugs(ChannelInterface $channel, string $locale): array
     {
         /** @var list<array{slug: string}> $rows */
@@ -50,12 +55,14 @@ final class DoctrineCatalogUrlSource implements CatalogUrlSourceInterface
              FROM %s taxon
              JOIN taxon.translations translation WITH translation.locale = :locale
              WHERE taxon.enabled = true
-               AND taxon.parent IS NOT NULL
                AND translation.slug IS NOT NULL
                AND EXISTS (
                    SELECT 1 FROM %s productTaxon
                    JOIN productTaxon.product product
-                   WHERE productTaxon.taxon = taxon
+                   JOIN productTaxon.taxon productCategory
+                   WHERE productCategory.root = taxon.root
+                     AND productCategory.left >= taxon.left
+                     AND productCategory.right <= taxon.right
                      AND product.enabled = true
                      AND :channel MEMBER OF product.channels
                )

@@ -36,18 +36,20 @@
             usable via block('meta_description') below.
         #}
         <meta name="description" content="{{ block('meta_description')|striptags|trim }}">
-        <link rel="canonical" href="{{ app.request.uri }}">
+        {# Without sorting/limit/search parameters: see App\Twig\SeoExtension. #}
+        <link rel="canonical" href="{{ seo_canonical_url() }}">
 
         {% include 'shared/favicon.html.twig' %}
 
         <!-- {% block meta_description %}US Industrial Supply Chain Solutions protects customer uptime with just-in-time industrial supply, emergency sourcing, and dedicated account support for construction and industrial contractors nationwide.{% endblock %} -->
 
         {% block og_tags %}
-            <meta property="og:type" content="website">
+            <meta property="og:type" content="{% block og_type %}website{% endblock %}">
             <meta property="og:site_name" content="{{ sylius.channel.name }}">
             <meta property="og:title" content="{{ block('title')|striptags|trim }}">
             <meta property="og:description" content="{{ block('meta_description')|striptags|trim }}">
-            <meta property="og:url" content="{{ app.request.uri }}">
+            <meta property="og:url" content="{{ seo_canonical_url() }}">
+            {% block og_extra %}{% endblock %}
 
             <meta name="twitter:card" content="summary">
             <meta name="twitter:title" content="{{ block('title')|striptags|trim }}">

@@ -47,7 +47,7 @@ final class SitemapTest extends FunctionalTestCase
         self::assertNotContains('http://localhost/products/discontinued-hard-hat', array_column($this->entries(), 'loc'));
     }
 
-    public function testItListsOnlyCategoriesThatHaveProducts(): void
+    public function testItListsCategoriesWithProductsInThemOrBelowThem(): void
     {
         $categoryUrls = array_values(array_filter(
             array_column($this->entries(), 'loc'),
@@ -55,9 +55,11 @@ final class SitemapTest extends FunctionalTestCase
         ));
 
         self::assertContains('http://localhost/safety-ppe', $categoryUrls);
-        // Empty categories (and the "Products" root itself) are thin pages.
+        // Empty categories are thin pages.
         self::assertNotContains('http://localhost/specialty-hard-to-find', $categoryUrls);
-        self::assertNotContains('http://localhost/products', $categoryUrls);
+        // The root ("Products", the whole catalog) has no products of its own
+        // but every product below it: it's listed, as a department would be.
+        self::assertContains('http://localhost/products', $categoryUrls);
     }
 
     public function testEveryListedUrlLoads(): void
