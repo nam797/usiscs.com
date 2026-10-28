@@ -17,7 +17,7 @@ use App\Distributor\PurchaseOrderState;
 use App\Distributor\PurchaseOrderSubmitter;
 use App\Distributor\PurchaseOrderTransition;
 use App\Distributor\SubmissionResult;
-use App\Distributor\SupplierSkuLookupInterface;
+use App\Distributor\SourceSelector;
 use App\Entity\Order\Order;
 use App\Entity\Procurement\PurchaseOrder;
 use PHPUnit\Framework\TestCase;
@@ -192,12 +192,6 @@ final class PurchaseOrderSubmitterTest extends TestCase
     private function submitter(DistributorInterface $distributor): PurchaseOrderSubmitter
     {
         $registry = new DistributorRegistry([$distributor]);
-        $noSkus = new class implements SupplierSkuLookupInterface {
-            public function find(array $variantCodes): array
-            {
-                return [];
-            }
-        };
         $notifier = new class($this->notified) implements PurchaseOrderNotifierInterface {
             /** @param \ArrayObject<int, string> $notified */
             public function __construct(private readonly \ArrayObject $notified)
@@ -220,6 +214,6 @@ final class PurchaseOrderSubmitterTest extends TestCase
             }
         };
 
-        return new PurchaseOrderSubmitter($registry, new PurchaseOrderPlanner($registry, $noSkus), self::stateMachine(), $notifier, new NullLogger());
+        return new PurchaseOrderSubmitter($registry, new PurchaseOrderPlanner($registry, new SourceSelector($registry)), self::stateMachine(), $notifier, new NullLogger());
     }
 }

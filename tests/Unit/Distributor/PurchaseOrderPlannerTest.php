@@ -11,7 +11,7 @@ use App\Distributor\OrsNasco\OrsNascoDistributor;
 use App\Distributor\PurchaseOrderEventType;
 use App\Distributor\PurchaseOrderPlanner;
 use App\Distributor\PurchaseOrderState;
-use App\Distributor\SupplierSkuLookupInterface;
+use App\Distributor\SourceSelector;
 use App\Entity\Procurement\PurchaseOrder;
 use App\Supplier\OrsNasco\OrderQueryClientInterface;
 use PHPUnit\Framework\TestCase;
@@ -54,7 +54,7 @@ final class PurchaseOrderPlannerTest extends TestCase
     public function testLinesCarryTheSuppliersSkuCostQuantityAndPrice(): void
     {
         $order = self::order('000042', [
-            ['code' => 'G-1_5', 'distributor' => 'ors_nasco', 'fulfilment' => Fulfilment::OrsDirect, 'quantity' => 3],
+            ['code' => 'G-1_5', 'distributor' => 'ors_nasco', 'fulfilment' => Fulfilment::OrsDirect, 'quantity' => 3, 'cost' => 850, 'supplierSku' => 'G-1.5'],
         ]);
 
         $line = $this->planner()->plan($order)[0]->getLines()->first();
@@ -83,23 +83,43 @@ final class PurchaseOrderPlannerTest extends TestCase
         self::assertSame(['There is no distributor called "gone".'], $planner->problems($purchaseOrders[0]));
         self::assertSame(['Fulfilment is not confirmed for U-1: choose direct or cross-dock.'], $planner->problems($purchaseOrders[1]));
         self::assertSame(PurchaseOrder::UNASSIGNED, $purchaseOrders[2]->getDistributor());
-        self::assertSame(['No distributor is set for H-1: set one on the purchase order (and on the variant for next time).'], $planner->problems($purchaseOrders[2]));
+        // No source at all: neither who nor how is known.
+        self::assertSame([
+            'No distributor is set for H-1: set one on the purchase order (and add a source for next time).',
+            'Fulfilment is not confirmed for H-1: choose direct or cross-dock.',
+        ], $planner->problems($purchaseOrders[2]));
+    }
+
+    public function testEachLineGoesToItsCheapestSourceAndTheTimelineSaysWhy(): void
+    {
+        $order = self::order('000042', [
+            // Fake is cheaper and has stock: it wins.
+            ['code' => 'A-1', 'distributor' => 'ors_nasco', 'fulfilment' => Fulfilment::OrsDirect, 'cost' => 900, 'stock' => 50, 'sources' => [['fake', Fulfilment::OrsDirect, 700, 50]]],
+            // Fake is cheaper but short: ORS has it.
+            ['code' => 'B-1', 'distributor' => 'ors_nasco', 'fulfilment' => Fulfilment::CrossDock, 'cost' => 900, 'stock' => 50, 'quantity' => 5, 'sources' => [['fake', Fulfilment::OrsDirect, 700, 2]]],
+        ]);
+
+        $purchaseOrders = $this->planner()->plan($order);
+
+        self::assertSame(
+            [['fake', ['A-1']], ['ors_nasco', ['B-1']]],
+            array_map(static fn (PurchaseOrder $p): array => [$p->getDistributor(), array_values($p->getLines()->map(static fn ($line): string => $line->getVariantCode())->toArray())], $purchaseOrders),
+        );
+        self::assertSame(700, $purchaseOrders[0]->getLines()->first() ? $purchaseOrders[0]->getLines()->first()->getUnitCostInCents() : null);
+        self::assertSame(Fulfilment::CrossDock, $purchaseOrders[1]->getFulfilment());
+        self::assertStringContainsString('A-1: Test distributor $7.00 (stock 50) over ORS Nasco $9.00 (stock 50)', (string) $purchaseOrders[0]->getLastEvent()?->getMessage());
+        self::assertStringContainsString('B-1: ORS Nasco $9.00 (stock 50) over Test distributor $7.00 (stock 2)', (string) $purchaseOrders[1]->getLastEvent()?->getMessage());
     }
 
     private function planner(): PurchaseOrderPlanner
     {
-        $skus = new class implements SupplierSkuLookupInterface {
-            public function find(array $variantCodes): array
-            {
-                return ['G-1_5' => ['supplierSku' => 'G-1.5', 'unitCostInCents' => 850]];
-            }
-        };
-
-        return new PurchaseOrderPlanner(new DistributorRegistry([new OrsNascoDistributor(new class implements OrderQueryClientInterface {
+        $registry = new DistributorRegistry([new OrsNascoDistributor(new class implements OrderQueryClientInterface {
             public function findByCustomerPo(string $customerPo, ?\DateTimeImmutable $placedAfter = null): array
             {
                 return [];
             }
-        }), new FakeDistributor()]), $skus);
+        }), new FakeDistributor()]);
+
+        return new PurchaseOrderPlanner($registry, new SourceSelector($registry));
     }
 }

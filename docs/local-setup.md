@@ -245,8 +245,24 @@ credentials are set.
 
 When an order is fully paid, it is split into **purchase orders**: one per
 distributor and fulfilment (direct / cross-dock), numbered `{order}-1`,
-`{order}-2`... Each variant's distributor is set in the admin variant form
-(imports set ORS Nasco). The code is in `src/Distributor/`.
+`{order}-2`... The code is in `src/Distributor/`.
+
+**Sources:** a SKU can come from several distributors. Each one is a
+source (Backoffice → Sources): their SKU, fulfilment, cost, stock and an
+on/off switch. The variant form lists them.
+- **Routing:** each order line goes to the cheapest switched-on source that
+  has the stock, never at or below the price paid
+  (`src/Distributor/SourceSelector.php`). The purchase order's first
+  timeline entry says why.
+- **Shop stock** is the total over switched-on sources.
+- **Adding a distributor's catalog:** import its sheet with a `distributor`
+  column (its code or name) and, when its item numbers differ from ours,
+  `supplier_sku`.
+  - SKUs we already sell get the new distributor as a source only. Name,
+    price and description stay as they are.
+  - New SKUs become products, as usual.
+- **Cost and stock:** a distributor with no feed has its cost and stock
+  entered in Backoffice → Sources.
 
 - A worker sends each one to its distributor:
   `php -d memory_limit=-1 bin/console messenger:consume distributor -vv`.
@@ -300,16 +316,22 @@ distributor and fulfilment (direct / cross-dock), numbered `{order}-1`,
   - The Sylius admin order list has a **Delivery** column and filter
     (Direct / Cross-dock / Mixed / Not confirmed).
   - **Sample data:** `php -d memory_limit=-1 bin/console app:dev:demo-cross-dock`
-    (dev only) creates six paid orders, DEMO-001 to DEMO-006, with
-    purchase orders in every warehouse state (overdue, due soon, on its
-    way, not shipped yet, received, shipped on). It also adds a direct
-    purchase order awaiting manual entry.
+    (dev only) creates seven paid orders, DEMO-001 to DEMO-007.
+    - DEMO-001 to DEMO-006 have purchase orders in every warehouse state
+      (overdue, due soon, on its way, not shipped yet, received, shipped
+      on), plus a direct purchase order awaiting manual entry.
+    - DEMO-007 is routed between two distributors. Two hidden sample
+      products (DEMO-SRC-GLOVES, DEMO-SRC-HELMET) each have an ORS and a
+      Test distributor source. The gloves go to the cheaper Test
+      distributor; the helmets go to ORS because the Test distributor is
+      short. Each purchase order's timeline says why.
     - Running it again resets them. `--delete` removes them.
-    - Nothing is queued or emailed, and the catalog isn't changed.
+    - Nothing is queued or emailed, and the real catalog isn't changed.
     - It needs the `checkout_shipping` fixtures, which give a shipping method.
 - **Trying it locally:**
-  1. In the admin, set a variant's distributor to **Test distributor** (dev
-     only).
+  1. In Backoffice → Sources, give a SKU a **Test distributor** source
+     (dev only; import a sheet with `distributor` = Test distributor), or
+     switch its other sources off.
   2. Pick its behaviour with `FAKE_DISTRIBUTOR_MODE` in `.env.local`:
      `accept`, `down`, `reject` or `manual`.
   3. Buy the product, pay with Stripe's test card, and run the worker.

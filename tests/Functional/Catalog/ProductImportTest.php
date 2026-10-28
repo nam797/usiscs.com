@@ -11,6 +11,7 @@ use App\Entity\Catalog\ProductImportState;
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Entity\Order\OrderItem;
 use App\Entity\Product\Product;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Product\ProductVariant;
 use App\Tests\Functional\FunctionalTestCase;
 use OpenSpout\Common\Entity\Row;
@@ -98,9 +99,9 @@ final class ProductImportTest extends FunctionalTestCase
 
         self::assertSame(1, $report->created);
         self::assertSame('IMP-92-500-7_5-8', $this->variant($this->product('IMP-92-500-7_5-8'))->getCode());
-        $state = $this->entityManager()->getRepository(ProductImportState::class)->findOneBy(['productCode' => 'IMP-92-500-7_5-8']);
-        self::assertInstanceOf(ProductImportState::class, $state);
-        self::assertSame('IMP-92-500-7.5-8', $state->getSupplierSku());
+        $variant = $this->variant($this->product('IMP-92-500-7_5-8'));
+        self::assertInstanceOf(ProductVariant::class, $variant);
+        self::assertSame('IMP-92-500-7.5-8', $variant->getSource(SupplierItem::ORS_NASCO)?->getSupplierSku());
     }
 
     public function testSkusInAGroupBecomeVariantsOfOneProduct(): void
@@ -214,6 +215,33 @@ final class ProductImportTest extends FunctionalTestCase
         self::assertStringContainsString('go_live needs: shipping not confirmed (ORS direct or cross-dock)', implode("\n", array_column($report->messages(), 'message')));
     }
 
+    public function testASecondDistributorsSheetAddsASourceWithoutTouchingTheProduct(): void
+    {
+        $this->import([['IMP-2SRC', 'Two-source gloves', 'Safety & PPE', '9.50', '', '', '', '']]);
+
+        $path = $this->sheet([
+            ['IMP-2SRC', 'Another name', 'Safety & PPE', '1.00', 'cross-dock', 'Test distributor', 'TD-2SRC'],
+            ['IMP-NODIST', 'Gloves', 'Safety & PPE', '9.50', '', 'Nobody Inc', 'X'],
+        ], ['sku', 'name', 'category', 'price', 'fulfilment', 'distributor', 'supplier_sku']);
+        $report = $this->importer()->import(new ExcelProductSource($path));
+        $this->entityManager()->clear();
+
+        self::assertSame(1, $report->added);
+        self::assertSame(1, $report->failed);
+        self::assertStringContainsString('there is no distributor "nobody_inc"', implode("\n", array_column($report->messages(), 'message')));
+        $product = $this->product('IMP-2SRC');
+        self::assertSame('Two-source gloves', $product->getName(), 'the first sheet still owns the product');
+        $variant = $this->variant($product);
+        self::assertInstanceOf(ProductVariant::class, $variant);
+        self::assertSame(950, $this->pricing($product)->getPrice());
+        self::assertSame(['fake', 'ors_nasco'], array_values($variant->getSources()->map(static fn (SupplierItem $s): string => $s->getSupplier())->toArray()));
+        $fake = $variant->getSource('fake');
+        self::assertInstanceOf(SupplierItem::class, $fake);
+        self::assertSame(Fulfilment::CrossDock, $fake->getFulfilment());
+        self::assertSame('TD-2SRC', $fake->getSupplierSku());
+        self::assertSame(Fulfilment::CrossDock, $variant->getSource(SupplierItem::ORS_NASCO)?->getFulfilment(), 'ORS\'s source is its own');
+    }
+
     public function testFulfilmentAndShippingNoteAreImportedPerSku(): void
     {
         $path = $this->sheet([
@@ -226,11 +254,11 @@ final class ProductImportTest extends FunctionalTestCase
 
         $aerosol = $this->variant($this->product('IMP-FF-1'));
         self::assertInstanceOf(ProductVariant::class, $aerosol);
-        self::assertSame(Fulfilment::CrossDock, $aerosol->getFulfilment());
+        self::assertSame(Fulfilment::CrossDock, $aerosol->getSource(SupplierItem::ORS_NASCO)?->getFulfilment());
         self::assertSame('Aerosol: check carrier and hazmat rules', $aerosol->getShippingNote());
         $gloves = $this->variant($this->product('IMP-FF-2'));
         self::assertInstanceOf(ProductVariant::class, $gloves);
-        self::assertSame(Fulfilment::OrsDirect, $gloves->getFulfilment());
+        self::assertSame(Fulfilment::OrsDirect, $gloves->getSource(SupplierItem::ORS_NASCO)?->getFulfilment());
         self::assertSame(1, $report->failed);
         self::assertStringContainsString('fulfilment: "by pigeon" is not a fulfilment', implode("\n", array_column($report->messages(), 'message')));
     }

@@ -9,6 +9,7 @@ use App\Controller\Admin\DashboardController;
 use App\Controller\Admin\DistributorSettingCrudController;
 use App\Controller\Admin\PurchaseOrderCrudController;
 use App\Controller\Admin\RfqRequestCrudController;
+use App\Controller\Admin\SupplierItemCrudController;
 use App\Controller\Admin\WarehouseCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Contracts\Menu\MenuItemInterface;
@@ -46,12 +47,13 @@ final class DashboardControllerTest extends TestCase
             $labels[] = $label;
         }
 
-        self::assertSame(['Dashboard', 'RFQ Requests', 'Contact Messages', 'Warehouse', 'Purchase Orders', 'Distributors', 'Sylius Admin (catalog, orders)'], $labels);
+        self::assertSame(['Dashboard', 'RFQ Requests', 'Contact Messages', 'Warehouse', 'Purchase Orders', 'Distributors', 'Sources', 'Sylius Admin (catalog, orders)'], $labels);
         self::assertSame(RfqRequestCrudController::class, $items[1]->getRouteParameters()['crudControllerFqcn'] ?? null);
         self::assertSame(ContactMessageCrudController::class, $items[2]->getRouteParameters()['crudControllerFqcn'] ?? null);
         self::assertSame(PurchaseOrderCrudController::class, $items[4]->getRouteParameters()['crudControllerFqcn'] ?? null);
         self::assertSame(DistributorSettingCrudController::class, $items[5]->getRouteParameters()['crudControllerFqcn'] ?? null);
-        self::assertSame('/admin', $items[6]->getLinkUrl());
+        self::assertSame(SupplierItemCrudController::class, $items[6]->getRouteParameters()['crudControllerFqcn'] ?? null);
+        self::assertSame('/admin', $items[7]->getLinkUrl());
 
         $warehouse = array_map(static fn ($item) => $item, $items[3]->getSubItems());
         self::assertSame(['Coming in', 'Due in the next 7 days', 'Overdue', 'Received, to ship on', 'All cross-dock'], array_map(static fn ($item): mixed => $item->getLabel(), $warehouse));

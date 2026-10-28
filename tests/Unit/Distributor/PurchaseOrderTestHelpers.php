@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Distributor;
 
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Distributor\PurchaseOrderStateMachine;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Order\Order;
 use App\Entity\Order\OrderItem;
 use App\Entity\Order\OrderItemUnit;
@@ -42,7 +43,12 @@ trait PurchaseOrderTestHelpers
         return new PurchaseOrderStateMachine(new StateMachine($builder->build(), new MethodMarkingStore(true, 'state'), null, 'purchase_order'));
     }
 
-    /** @param list<array{code: string, distributor: ?string, fulfilment: Fulfilment, quantity?: int}> $lines */
+    /**
+     * Each line's SKU gets a source for its distributor (none when null),
+     * plus any extra "sources": [distributor, fulfilment, cost, stock].
+     *
+     * @param list<array{code: string, distributor: ?string, fulfilment: Fulfilment, quantity?: int, cost?: ?int, stock?: ?int, supplierSku?: string, sources?: list<array{string, Fulfilment, ?int, ?int}>}> $lines
+     */
     private static function order(string $number, array $lines): Order
     {
         $order = new Order();
@@ -52,8 +58,19 @@ trait PurchaseOrderTestHelpers
             $variant->setCode($line['code']);
             $variant->setCurrentLocale('en_US');
             $variant->setFallbackLocale('en_US');
-            $variant->setDistributor($line['distributor']);
-            $variant->setFulfilment($line['fulfilment']);
+            if (null !== $line['distributor']) {
+                $source = new SupplierItem($variant, $line['distributor']);
+                $source->setFulfilment($line['fulfilment']);
+                $source->setCostInCents($line['cost'] ?? null);
+                $source->recordStock($line['stock'] ?? null);
+                $source->setSupplierSku($line['supplierSku'] ?? null);
+            }
+            foreach ($line['sources'] ?? [] as [$distributor, $fulfilment, $cost, $stock]) {
+                $source = new SupplierItem($variant, $distributor);
+                $source->setFulfilment($fulfilment);
+                $source->setCostInCents($cost);
+                $source->recordStock($stock);
+            }
 
             $item = new OrderItem();
             $item->setVariant($variant);

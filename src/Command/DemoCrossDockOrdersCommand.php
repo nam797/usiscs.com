@@ -5,17 +5,23 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Catalog\Fulfilment\Fulfilment;
+use App\Catalog\Stock\VariantStockTotal;
+use App\Distributor\Fake\FakeDistributor;
 use App\Distributor\FulfilmentRoute;
+use App\Distributor\PurchaseOrderPlanner;
 use App\Distributor\PurchaseOrderEventType;
 use App\Distributor\PurchaseOrderState;
 use App\Entity\Addressing\Address;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Channel\Channel;
+use App\Entity\Channel\ChannelPricing;
 use App\Entity\Customer\Customer;
 use App\Entity\Order\Order;
 use App\Entity\Order\OrderItem;
 use App\Entity\Order\OrderItemUnit;
 use App\Entity\Procurement\PurchaseOrder;
 use App\Entity\Procurement\PurchaseOrderLine;
+use App\Entity\Product\Product;
 use App\Entity\Product\ProductVariant;
 use App\Entity\Shipping\Shipment;
 use App\Entity\Shipping\ShippingMethod;
@@ -40,14 +46,21 @@ use Symfony\Component\DependencyInjection\Attribute\When;
  * the backoffice dashboard, the Warehouse list and the Sylius order list
  * have something to show.
  *
+ * DEMO-007 shows several distributors per SKU: two hidden sample products
+ * (DEMO-SRC-GLOVES, DEMO-SRC-HELMET) each have an ORS Nasco and a Test
+ * distributor source, and the order is routed by the real PurchaseOrderPlanner.
+ * The gloves go to the Test distributor (cheaper, in stock); the helmets to
+ * ORS (the Test distributor is cheaper but short). Each purchase order's
+ * timeline says why.
+ *
  * Built directly, not through payment and the worker: nothing is queued
- * or emailed, and no catalog data changes (it only reads priced variants,
- * ORS ones first). Running it again replaces the DEMO orders; --delete
- * removes them.
+ * or emailed, and the real catalog isn't changed (it only reads priced
+ * variants, ORS ones first). Running it again replaces the DEMO orders and
+ * sample products; --delete removes them.
  */
 #[AsCommand(
     name: 'app:dev:demo-cross-dock',
-    description: 'Dev only: create sample DEMO-xxx orders with direct and cross-dock purchase orders in every warehouse state.',
+    description: 'Dev only: create sample DEMO-xxx orders in every warehouse state, and one routed between two distributors.',
 )]
 #[When(env: 'dev')]
 #[When(env: 'test')]
@@ -62,6 +75,13 @@ final class DemoCrossDockOrdersCommand extends Command
         ['Tom', 'Becker', 'Becker Site Services', 'Omaha', 'US-NE', '68102'],
         ['Alicia', 'Nguyen', 'Nguyen Builders', 'Denver', 'US-CO', '80202'],
         ['Sam', 'Ortiz', 'Ortiz Roofing', 'Phoenix', 'US-AZ', '85004'],
+        ['Kim', 'Park', 'Park Industrial', 'Wichita', 'US-KS', '67202'],
+    ];
+
+    /** Sample products with two sources each: code, name, price, [ORS cost, stock], [Test distributor cost, stock]. */
+    private const TWO_SOURCE_PRODUCTS = [
+        ['DEMO-SRC-GLOVES', 'Sample nitrile gloves, box of 100', 1200, [850, 200], [720, 150]],
+        ['DEMO-SRC-HELMET', 'Sample hard hat, type 1', 3000, [2100, 40], [1850, 1]],
     ];
 
     private const SHIPPED = [PurchaseOrderState::SUBMITTED, PurchaseOrderState::ACKNOWLEDGED, PurchaseOrderState::SHIPPED];
@@ -80,6 +100,7 @@ final class DemoCrossDockOrdersCommand extends Command
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly PurchaseOrderPlanner $planner,
     ) {
         parent::__construct();
     }
@@ -104,7 +125,8 @@ final class DemoCrossDockOrdersCommand extends Command
         $method = $this->entityManager->getRepository(ShippingMethod::class)->findOneBy([], ['id' => 'ASC']);
         /** @var list<ProductVariant> $variants */
         $variants = $this->entityManager->getRepository(ProductVariant::class)->createQueryBuilder('v')
-            ->addSelect('CASE WHEN v.distributor = :ors THEN 0 ELSE 1 END AS HIDDEN not_ors')
+            ->leftJoin('v.sources', 'src', 'WITH', 'src.supplier = :ors')
+            ->addSelect('CASE WHEN src.id IS NULL THEN 1 ELSE 0 END AS HIDDEN not_ors')
             ->join('v.channelPricings', 'cp')
             ->where('cp.channelCode = :channel AND cp.price > 0')
             ->setParameter('ors', 'ors_nasco')
@@ -176,6 +198,20 @@ final class DemoCrossDockOrdersCommand extends Command
         $this->purchaseOrder($order, 2, Fulfilment::OrsDirect, [PurchaseOrderState::AWAITING_MANUAL_ENTRY], null, [1]);
         $shippedDaysAgo[] = [$crossDock, 6];
 
+        // 7. Two distributors per SKU, routed for real: 10 gloves to the Test distributor, 3 helmets to ORS.
+        $this->variants = $this->twoSourceProducts($channel);
+        $this->nextVariant = 0;
+        $order = $this->order(7, $channel, $method, [10, 3]);
+        $routed = $this->planner->plan($order);
+        foreach ($routed as $purchaseOrder) {
+            $purchaseOrder->setDispatchedAt(new \DateTimeImmutable());
+            $purchaseOrder->markSubmitted(null);
+            $purchaseOrder->setState(PurchaseOrderState::SUBMITTED);
+            $purchaseOrder->log(PurchaseOrderEventType::MarkSubmitted, 'Sample: marked submitted without sending.');
+            $this->entityManager->persist($purchaseOrder);
+        }
+        $order->setFulfilmentRoute(FulfilmentRoute::of($routed));
+
         // None is "queued", and all are marked dispatched, so the outbox sends nothing.
         $this->entityManager->flush();
 
@@ -188,7 +224,10 @@ final class DemoCrossDockOrdersCommand extends Command
             );
         }
 
-        $io->success(sprintf('Created 6 DEMO orders (%s001 to %s006)%s. See /backoffice and /admin/orders.', self::PREFIX, self::PREFIX, $removed > 0 ? sprintf(', replacing %d', $removed) : ''));
+        $io->success(sprintf(
+            'Created 7 DEMO orders (%s001 to %s007) and 2 sample products with two sources each%s. See /backoffice (Warehouse, Sources, Purchase Orders for %s007) and /admin/orders.',
+            self::PREFIX, self::PREFIX, $removed > 0 ? sprintf(' (replacing %d earlier DEMO orders)', $removed) : '', self::PREFIX,
+        ));
 
         return Command::SUCCESS;
     }
@@ -220,8 +259,65 @@ final class DemoCrossDockOrdersCommand extends Command
         }
         $this->entityManager->flush();
         $this->entityManager->clear();
+        $this->deleteTwoSourceProducts();
 
         return count($ids);
+    }
+
+    private function deleteTwoSourceProducts(): void
+    {
+        $codes = array_column(self::TWO_SOURCE_PRODUCTS, 0);
+        foreach ($this->entityManager->getRepository(Product::class)->findBy(['code' => $codes]) as $product) {
+            $this->entityManager->remove($product);
+        }
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+    }
+
+    /**
+     * Hidden sample products, each with an ORS Nasco source (direct) and a
+     * Test distributor source (cross-dock), with costs and stock.
+     *
+     * @return list<ProductVariant>
+     */
+    private function twoSourceProducts(Channel $channel): array
+    {
+        $locale = $channel->getDefaultLocale()?->getCode() ?? 'en_US';
+        $variants = [];
+        foreach (self::TWO_SOURCE_PRODUCTS as [$code, $name, $price, [$orsCost, $orsStock], [$testCost, $testStock]]) {
+            $product = new Product();
+            $product->setCode($code);
+            $product->setCurrentLocale($locale);
+            $product->setFallbackLocale($locale);
+            $product->setName($name);
+            $product->setSlug(strtolower($code));
+            $product->setEnabled(false);
+            $product->addChannel($channel);
+
+            $variant = new ProductVariant();
+            $variant->setCode($code);
+            $variant->setCurrentLocale($locale);
+            $variant->setFallbackLocale($locale);
+            $product->addVariant($variant);
+
+            $pricing = new ChannelPricing();
+            $pricing->setChannelCode((string) $channel->getCode());
+            $pricing->setPrice($price);
+            $variant->addChannelPricing($pricing);
+
+            foreach ([[SupplierItem::ORS_NASCO, Fulfilment::OrsDirect, $orsCost, $orsStock], [FakeDistributor::CODE, Fulfilment::CrossDock, $testCost, $testStock]] as [$distributor, $fulfilment, $cost, $stock]) {
+                $source = $variant->sourceFor($distributor);
+                $source->setFulfilment($fulfilment);
+                $source->setCostInCents($cost);
+                $source->recordStock($stock);
+            }
+            VariantStockTotal::apply($variant);
+
+            $this->entityManager->persist($product);
+            $variants[] = $variant;
+        }
+
+        return $variants;
     }
 
     /** @param list<int> $quantities one item per quantity, from the next variants */

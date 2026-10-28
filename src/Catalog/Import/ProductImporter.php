@@ -6,6 +6,7 @@ namespace App\Catalog\Import;
 
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Catalog\GoLive\ReadinessChecker;
+use App\Distributor\DistributorRegistry;
 use App\Catalog\Unit\PackUnit;
 use App\Entity\Catalog\ProductImportState;
 use App\Entity\Catalog\SupplierItem;
@@ -46,6 +47,11 @@ use Symfony\Component\String\Slugger\AsciiSlugger;
  * - Rows with a "group" become variants of one product (sizes, colours),
  *   each still its own SKU; the product's own fields come from the first
  *   row of the group.
+ * - Each row is from one distributor (the "distributor" column, ORS Nasco
+ *   when blank): its SKU and fulfilment go on that distributor's source
+ *   (SupplierItem). A SKU another distributor's sheet already created only
+ *   gets this distributor added as a source; its name, price and so on stay
+ *   as the first sheet set them, so two sheets never fight over them.
  *
  * Bad rows are reported and skipped; they never stop the rest of the import.
  */
@@ -66,6 +72,9 @@ final class ProductImporter
     private array $mergedGroups = [];
 
     private readonly AsciiSlugger $slugger;
+
+    /** The distributor of the row being imported; whose source "fulfilment" reads and writes. */
+    private string $rowDistributor = SupplierItem::ORS_NASCO;
 
     /**
      * @param FactoryInterface<ProductTaxonInterface>          $productTaxonFactory
@@ -96,6 +105,7 @@ final class ProductImporter
         private readonly ProductImageFetcher $imageFetcher,
         private readonly ReadinessChecker $readiness,
         private readonly FieldMerger $merger,
+        private readonly DistributorRegistry $distributors,
         #[Autowire('%locale%')]
         private readonly string $defaultLocale,
     ) {
@@ -163,6 +173,15 @@ final class ProductImporter
 
     private function importRow(ProductRow $row, int $rowNumber, string $sourceName, bool $dryRun, ImportReport $report): void
     {
+        $distributor = $this->distributorCode($row->distributor);
+        if (null === $distributor) {
+            ++$report->failed;
+            $report->add($rowNumber, $row->sku, ImportReport::ERROR, sprintf('there is no distributor "%s" (use one of: %s)', $row->distributor, implode(', ', array_keys($this->distributors->choices()))));
+
+            return;
+        }
+        $this->rowDistributor = $distributor;
+
         $taxon = $this->entityManager->getRepository(Taxon::class)->findOneBy(['code' => $row->categoryCode]);
         if (!$taxon instanceof TaxonInterface) {
             ++$report->failed;
@@ -182,6 +201,13 @@ final class ProductImporter
             $report->add($rowNumber, $row->sku, ImportReport::ERROR, null === $row->group
                 ? sprintf('is a variant of product "%s"; put "%s" in its group column', $ownerCode, $ownerCode)
                 : sprintf('is already product "%s"; delete that product in the admin before grouping this SKU under "%s"', $ownerCode, $row->group));
+
+            return;
+        }
+
+        // Another distributor's sheet made this SKU: only add this distributor as a source.
+        if ($owner instanceof ProductVariant && null !== $state && $state->getDistributor() !== $this->rowDistributor) {
+            $this->addSource($owner, $row, $rowNumber, $state, $report);
 
             return;
         }
@@ -227,7 +253,7 @@ final class ProductImporter
         \assert($variant instanceof ProductVariantInterface);
         $variant->setCode($row->sku);
         $variant->setTracked(false);
-        self::setDistributor($variant);
+        $this->source($variant, $row);
 
         $channelCodes = [];
         foreach ($this->entityManager->getRepository(Channel::class)->findAll() as $channel) {
@@ -249,11 +275,10 @@ final class ProductImporter
         $this->entityManager->persist($product);
 
         if (null === $state) {
-            $this->entityManager->persist(new ProductImportState($row->sku, $sourceName, $incoming, $row->supplierSku));
+            $this->entityManager->persist(new ProductImportState($row->sku, $sourceName, $incoming, $this->rowDistributor));
         } else {
             // The product was imported before and then deleted in the admin.
             $state->recordImport($sourceName, $incoming);
-            $state->setSupplierSku($row->supplierSku);
         }
 
         if (null !== $row->group) {
@@ -327,7 +352,7 @@ final class ProductImporter
             $variant = $this->variantFactory->createForProduct($product);
             $variant->setCode($row->sku);
             $variant->setTracked(false);
-            self::setDistributor($variant);
+            $this->source($variant, $row);
             $variant->setCurrentLocale($this->defaultLocale);
             $variant->setFallbackLocale($this->defaultLocale);
             $variantFields = $this->variantFields($row, $channelCodes);
@@ -338,10 +363,9 @@ final class ProductImporter
 
             $snapshot = $productSnapshot + $variantFields;
             if (null === $state) {
-                $this->entityManager->persist(new ProductImportState($row->sku, $sourceName, $snapshot, $row->supplierSku));
+                $this->entityManager->persist(new ProductImportState($row->sku, $sourceName, $snapshot, $this->rowDistributor));
             } else {
                 $state->recordImport($sourceName, $snapshot);
-                $state->setSupplierSku($row->supplierSku);
             }
 
             // Gedmo places one new position at a time reliably, not several in one flush.
@@ -354,12 +378,12 @@ final class ProductImporter
         }
 
         \assert(null !== $state);
+        $this->source($variant, $row);
         $variantFields = $this->variantFields($row, $channelCodes);
         $variantSnapshot = array_diff_key($state->getImportedValues(), $productFields);
         $result = $this->merger->merge($variantSnapshot, $this->current($product, $variant, array_keys($variantFields)), $variantFields);
         $this->write($product, $variant, $result->toWrite);
         $state->recordImport($sourceName, $productSnapshot + $result->snapshot);
-        $state->setSupplierSku($row->supplierSku);
 
         $changed = [...$changed, ...array_keys($result->toWrite)];
         $kept = [...$kept, ...$result->kept];
@@ -417,12 +441,12 @@ final class ProductImporter
             $channelCodes[] = (string) $channel->getCode();
         }
 
+        $this->source($variant, $row);
         $incoming = $this->incoming($row, $channelCodes);
         $result = $this->merger->merge($state->getImportedValues(), $this->current($product, $variant, array_keys($incoming)), $incoming);
 
         $this->write($product, $variant, $result->toWrite);
         $state->recordImport($sourceName, $result->snapshot);
-        $state->setSupplierSku($row->supplierSku);
 
         if ([] === $result->toWrite) {
             ++$report->unchanged;
@@ -530,7 +554,7 @@ final class ProductImporter
                 'category' === $field => $product->getMainTaxon()?->getCode(),
                 'stock' === $field => $variant->isTracked() ? $variant->getOnHand() : null,
                 'variant_name' === $field => $variant->getTranslation($this->defaultLocale)->getName(),
-                'fulfilment' === $field => $variant instanceof ProductVariant && Fulfilment::Unconfirmed !== $variant->getFulfilment() ? $variant->getFulfilment()->value : null,
+                'fulfilment' === $field => $this->rowSourceFulfilment($variant),
                 'shipping_note' === $field => $variant instanceof ProductVariant ? $variant->getShippingNote() : null,
                 'unit_of_measure' === $field => $variant instanceof ProductVariant ? $variant->getPackUnit()?->toString() : null,
                 isset(self::ATTRIBUTES[$field]) => $this->attributeValue($product, $field),
@@ -555,7 +579,7 @@ final class ProductImporter
                 'category' === $field => $this->setCategory($product, (string) $text),
                 'stock' === $field => $this->setStock($variant, null === $value ? null : (int) $value),
                 'variant_name' === $field => $this->setVariantName($variant, $text),
-                'fulfilment' === $field => $variant instanceof ProductVariant ? $variant->setFulfilment(Fulfilment::tryFrom((string) $text) ?? Fulfilment::Unconfirmed) : null,
+                'fulfilment' === $field => $variant instanceof ProductVariant ? $variant->sourceFor($this->rowDistributor)->setFulfilment(Fulfilment::tryFrom((string) $text) ?? Fulfilment::Unconfirmed) : null,
                 'shipping_note' === $field => $variant instanceof ProductVariant ? $variant->setShippingNote($text) : null,
                 'unit_of_measure' === $field => $variant instanceof ProductVariant ? $variant->setPackUnit(null === $text ? null : PackUnit::parse($text)) : null,
                 isset(self::ATTRIBUTES[$field]) => $this->setAttribute($product, $field, $text),
@@ -796,14 +820,66 @@ final class ProductImporter
         return implode(', ', array_keys($labels));
     }
 
-    /**
-     * Every import sheet so far is ORS Nasco's catalog. Set on new SKUs only,
-     * so a distributor changed in the admin sticks.
-     */
-    private static function setDistributor(ProductVariantInterface $variant): void
+    /** A distributor's code from the sheet: its code ("ors_nasco") or its name ("ORS Nasco"). */
+    private function distributorCode(string $text): ?string
     {
-        if ($variant instanceof ProductVariant && null === $variant->getDistributor()) {
-            $variant->setDistributor(SupplierItem::ORS_NASCO);
+        if (null !== $this->distributors->get($text)) {
+            return $text;
+        }
+        foreach ($this->distributors->choices() as $name => $code) {
+            if (trim((string) preg_replace('/[^a-z0-9]+/', '_', strtolower($name)), '_') === $text) {
+                return $code;
+            }
+        }
+
+        return null;
+    }
+
+    /** This row's distributor as a source of the variant (added if new), with the distributor's own SKU. */
+    private function source(ProductVariantInterface $variant, ProductRow $row): ?SupplierItem
+    {
+        if (!$variant instanceof ProductVariant) {
+            return null;
+        }
+        $source = $variant->sourceFor($this->rowDistributor);
+        $source->setSupplierSku($row->distributorSku ?? $row->supplierSku);
+
+        return $source;
+    }
+
+    /** The row's distributor's fulfilment on this variant, as an import value ("not confirmed" is null, like a blank cell). */
+    private function rowSourceFulfilment(ProductVariantInterface $variant): ?string
+    {
+        $fulfilment = $variant instanceof ProductVariant ? $variant->getSource($this->rowDistributor)?->getFulfilment() : null;
+
+        return null === $fulfilment || Fulfilment::Unconfirmed === $fulfilment ? null : $fulfilment->value;
+    }
+
+    /**
+     * A SKU another distributor's sheet created: add or update this
+     * distributor as one of its sources (their SKU, and fulfilment when the
+     * sheet has it). Nothing else about the product changes.
+     */
+    private function addSource(ProductVariant $variant, ProductRow $row, int $rowNumber, ProductImportState $state, ImportReport $report): void
+    {
+        $existing = $variant->getSource($this->rowDistributor);
+        $before = null === $existing ? null : [$existing->getSupplierSku(), $existing->getFulfilment()];
+
+        $source = $this->source($variant, $row);
+        \assert(null !== $source);
+        if ($row->provides('fulfilment') && Fulfilment::Unconfirmed !== $row->fulfilment) {
+            $source->setFulfilment($row->fulfilment);
+        }
+
+        $name = $this->distributors->nameOf($this->rowDistributor);
+        if (null === $before) {
+            ++$report->added;
+            $report->add($rowNumber, $row->sku, ImportReport::INFO, sprintf('added %s as a source; the product itself stays as %s\'s sheet set it', $name, $this->distributors->nameOf($state->getDistributor())));
+        } elseif ($before !== [$source->getSupplierSku(), $source->getFulfilment()]) {
+            ++$report->updated;
+            $report->add($rowNumber, $row->sku, ImportReport::INFO, sprintf('updated %s as a source', $name));
+        } else {
+            ++$report->unchanged;
         }
     }
 }

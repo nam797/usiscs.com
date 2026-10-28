@@ -41,8 +41,10 @@ final class ImportTemplateCommand extends Command
         'go_live' => ['Optional', 'yes = show in the shop straight away (new products only). Blank/no = hidden draft for review.'],
         'group' => ['Optional', 'SKUs with the same group are sold as one product with a choice (sizes, colours). The group is that product\'s code; name, category, description and manufacturer come from its first row.'],
         'variant_name' => ['Optional', 'Required with group: what this SKU is within the product, e.g. "Size 10, black".'],
-        'fulfilment' => ['Optional', 'How it reaches the customer: "ORS direct" (ORS ships to them) or "cross-dock" (ORS ships to our warehouse, we ship on). Blank = not confirmed; a product can\'t go live until every SKU is confirmed.'],
+        'fulfilment' => ['Optional', 'How it reaches the customer from this row\'s distributor: "direct" (they ship to the customer) or "cross-dock" (they ship to our warehouse, we ship on). Blank = not confirmed; a product can\'t go live until every SKU has a confirmed source.'],
         'shipping_note' => ['Optional', 'Why shipping needs a closer look, e.g. "Aerosol: check carrier and hazmat rules".'],
+        'supplier_sku' => ['Optional', 'The distributor\'s own item number, when it isn\'t the same as sku (e.g. a second distributor\'s number for a SKU we already sell).'],
+        'distributor' => ['Optional', 'Who this sheet\'s SKUs come from, e.g. "ORS Nasco" (the default when blank). A SKU another distributor\'s sheet already created gets this distributor added as a source (their SKU and fulfilment); its name, price and description stay as they are.'],
     ];
 
     protected function configure(): void

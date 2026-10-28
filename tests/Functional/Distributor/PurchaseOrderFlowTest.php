@@ -15,8 +15,8 @@ use App\Distributor\Message\SubmitPurchaseOrder;
 use App\Distributor\Message\SubmitPurchaseOrderHandler;
 use App\Distributor\PurchaseOrderEventType;
 use App\Distributor\PurchaseOrderState;
-use App\Entity\Catalog\SupplierItem;
 use App\Entity\Addressing\Zone;
+use App\Entity\Catalog\SupplierItem;
 use App\Entity\Channel\Channel;
 use App\Entity\Shipping\ShippingMethod;
 use App\Entity\Procurement\PurchaseOrder;
@@ -340,6 +340,37 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertSame(0, $crawler->filter('a[href*="/backoffice/warehouse/'.$crossDock->getId().'"]')->count(), 'gone once shipped on');
     }
 
+    public function testAPaidOrderGoesToTheCheapestSourceWithStock(): void
+    {
+        $product = $this->ensureProduct('E2E_PO_GLOVES', 'Purchase Order Test Gloves', 'purchase-order-test-gloves', 'safety_ppe');
+        $variant = $product->getVariants()->first();
+        self::assertInstanceOf(ProductVariant::class, $variant);
+        self::onlySource($variant, SupplierItem::ORS_NASCO, Fulfilment::OrsDirect);
+        // Doctrine inserts before it deletes: drop the old test-distributor source first.
+        $this->entityManager()->flush();
+        $ors = $variant->sourceFor(SupplierItem::ORS_NASCO);
+        $ors->setCostInCents(900);
+        $ors->recordStock(100);
+        $fake = $variant->sourceFor(FakeDistributor::CODE);
+        $fake->setFulfilment(Fulfilment::CrossDock);
+        $fake->setEnabled(true);
+        $fake->setCostInCents(700);
+        $fake->recordStock(100);
+        $this->entityManager()->flush();
+
+        // An order for 2: both have stock, the test distributor is cheaper.
+        $order = $this->paidOrder(Fulfilment::CrossDock, keepOtherSources: true);
+
+        $purchaseOrders = $this->entityManager()->getRepository(PurchaseOrder::class)->findBy(['order' => $order]);
+        self::assertCount(1, $purchaseOrders);
+        self::assertSame(FakeDistributor::CODE, $purchaseOrders[0]->getDistributor());
+        self::assertSame(Fulfilment::CrossDock, $purchaseOrders[0]->getFulfilment());
+        self::assertSame(700, $purchaseOrders[0]->getLines()->first() ? $purchaseOrders[0]->getLines()->first()->getUnitCostInCents() : null);
+        $created = $purchaseOrders[0]->getEvents()->first();
+        self::assertNotFalse($created);
+        self::assertStringContainsString('Test distributor $7.00 (stock 100) over ORS Nasco $9.00 (stock 100)', (string) $created->getMessage());
+    }
+
     public function testShipToCustomerIsRefusedBeforeItIsReceived(): void
     {
         $order = $this->paidOrder(Fulfilment::CrossDock);
@@ -355,7 +386,7 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
     }
 
     /** @param ?Fulfilment $secondItem when set, adds a helmet with this fulfilment */
-    private function paidOrder(Fulfilment $fulfilment, string $distributor = FakeDistributor::CODE, ?Fulfilment $secondItem = null): OrderInterface
+    private function paidOrder(Fulfilment $fulfilment, string $distributor = FakeDistributor::CODE, ?Fulfilment $secondItem = null, bool $keepOtherSources = false): OrderInterface
     {
         $container = static::getContainer();
         $entityManager = $this->entityManager();
@@ -363,8 +394,9 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         $product = $this->ensureProduct('E2E_PO_GLOVES', 'Purchase Order Test Gloves', 'purchase-order-test-gloves', 'safety_ppe');
         $variant = $product->getVariants()->first();
         self::assertInstanceOf(ProductVariant::class, $variant);
-        $variant->setDistributor($distributor);
-        $variant->setFulfilment($fulfilment);
+        if (!$keepOtherSources) {
+            self::onlySource($variant, $distributor, $fulfilment);
+        }
 
         $channel = $entityManager->getRepository(Channel::class)->findOneBy(['code' => 'default']);
         self::assertInstanceOf(Channel::class, $channel);
@@ -415,8 +447,7 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
             $helmet = $this->ensureProduct('E2E_PO_HELMET', 'Purchase Order Test Helmet', 'purchase-order-test-helmet', 'safety_ppe');
             $helmetVariant = $helmet->getVariants()->first();
             self::assertInstanceOf(ProductVariant::class, $helmetVariant);
-            $helmetVariant->setDistributor($distributor);
-            $helmetVariant->setFulfilment($secondItem);
+            self::onlySource($helmetVariant, $distributor, $secondItem);
             $helmetItem = $itemFactory->createNew();
             self::assertInstanceOf(OrderItemInterface::class, $helmetItem);
             $helmetItem->setVariant($helmetVariant);
@@ -457,6 +488,21 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         $entityManager->flush();
 
         return $order;
+    }
+
+    /** The SKU comes from this distributor only (products are reused between tests). */
+    private static function onlySource(ProductVariant $variant, string $distributor, Fulfilment $fulfilment): void
+    {
+        foreach ($variant->getSources()->toArray() as $source) {
+            if ($source->getSupplier() !== $distributor) {
+                $variant->removeSource($source);
+            }
+        }
+        $source = $variant->sourceFor($distributor);
+        $source->setFulfilment($fulfilment);
+        $source->setEnabled(true);
+        $source->setCostInCents(null);
+        $source->recordStock(null);
     }
 
     private function shippingMethod(Channel $channel): ShippingMethodInterface

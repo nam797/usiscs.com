@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Entity\Product;
 
-use App\Catalog\Fulfilment\Fulfilment;
 use App\Catalog\Unit\PackUnit;
+use App\Entity\Catalog\SupplierItem;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Sylius\Component\Core\Model\ProductVariant as BaseProductVariant;
 use Sylius\Component\Product\Model\ProductVariantTranslationInterface;
@@ -24,16 +26,25 @@ class ProductVariant extends BaseProductVariant
     #[ORM\Column(name: 'pack_unit', type: 'string', length: 10, nullable: true)]
     private ?string $packUnit = null;
 
-    #[ORM\Column(name: 'fulfilment', type: 'string', length: 20, enumType: Fulfilment::class, options: ['default' => 'unconfirmed'])]
-    private Fulfilment $fulfilment = Fulfilment::Unconfirmed;
-
     /** Why shipping needs a closer look, e.g. "Aerosol: check carrier and hazmat rules". */
     #[ORM\Column(name: 'shipping_note', type: 'string', length: 255, nullable: true)]
     private ?string $shippingNote = null;
 
-    /** Who we order it from (a DistributorInterface code, e.g. "ors_nasco"); null = not set. */
-    #[ORM\Column(name: 'distributor', type: 'string', length: 50, nullable: true)]
-    private ?string $distributor = null;
+    /**
+     * Who we can order it from: one per distributor, with their SKU,
+     * fulfilment, cost and stock.
+     *
+     * @var Collection<int, SupplierItem>
+     */
+    #[ORM\OneToMany(targetEntity: SupplierItem::class, mappedBy: 'variant', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['supplier' => 'ASC'])]
+    private Collection $sources;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->sources = new ArrayCollection();
+    }
 
     public function getPackUnit(): ?PackUnit
     {
@@ -47,16 +58,6 @@ class ProductVariant extends BaseProductVariant
         $this->packUnit = $unit?->innerUnit;
     }
 
-    public function getFulfilment(): Fulfilment
-    {
-        return $this->fulfilment;
-    }
-
-    public function setFulfilment(Fulfilment $fulfilment): void
-    {
-        $this->fulfilment = $fulfilment;
-    }
-
     public function getShippingNote(): ?string
     {
         return $this->shippingNote;
@@ -67,14 +68,40 @@ class ProductVariant extends BaseProductVariant
         $this->shippingNote = '' === $shippingNote ? null : $shippingNote;
     }
 
-    public function getDistributor(): ?string
+    /** @return Collection<int, SupplierItem> */
+    public function getSources(): Collection
     {
-        return $this->distributor;
+        return $this->sources;
     }
 
-    public function setDistributor(?string $distributor): void
+    /** Called by SupplierItem's constructor. */
+    public function addSource(SupplierItem $source): void
     {
-        $this->distributor = '' === $distributor ? null : $distributor;
+        if (!$this->sources->contains($source)) {
+            $this->sources->add($source);
+        }
+    }
+
+    public function removeSource(SupplierItem $source): void
+    {
+        $this->sources->removeElement($source);
+    }
+
+    public function getSource(string $distributor): ?SupplierItem
+    {
+        foreach ($this->sources as $source) {
+            if ($source->getSupplier() === $distributor) {
+                return $source;
+            }
+        }
+
+        return null;
+    }
+
+    /** This distributor's source, added (unconfirmed, enabled) when there's none yet. */
+    public function sourceFor(string $distributor): SupplierItem
+    {
+        return $this->getSource($distributor) ?? new SupplierItem($this, $distributor);
     }
 
     protected function createTranslation(): ProductVariantTranslationInterface
