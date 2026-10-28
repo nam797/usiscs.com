@@ -1,8 +1,0 @@
-{# Items on a cross-dock purchase order: a short list on the warehouse list, the full table on its page. #}
-{% if ea.crud.currentPage == 'detail' %}
-    {{ include('admin/purchase_order/field/lines.html.twig') }}
-{% else %}
-    {% for line in field.value %}
-        <div>{{ line.quantity }}{% if line.unit %} {{ line.unit }}{% endif %} × {{ line.name }} <span class="text-secondary">{{ line.variantCode }}</span></div>
-    {% endfor %}
-{% endif %}

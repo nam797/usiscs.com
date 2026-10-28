@@ -1,0 +1,4 @@
+{# Items on a cross-dock purchase order, short, for the warehouse list (its page uses admin/purchase_order/field/lines.html.twig). #}
+{% for line in field.value %}
+    <div>{{ line.quantity }}{% if line.unit %} {{ line.unit }}{% endif %} × {{ line.name }} <span class="text-secondary">{{ line.variantCode }}</span></div>
+{% endfor %}

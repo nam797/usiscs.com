@@ -12,6 +12,12 @@ services:
     Twig\Extra\Intl\IntlExtension: ~
     Twig\Extra\String\StringExtension: ~
 
+# Tests run with APP_DEBUG=0, which would turn strict variables off; keep
+# them on so an undefined variable fails a test instead of rendering blank.
+when@test:
+    twig:
+        strict_variables: true
+
 when@test_cached:
     twig:
         strict_variables: true
