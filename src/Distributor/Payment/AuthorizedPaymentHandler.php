@@ -34,6 +34,9 @@ use Sylius\Component\Payment\PaymentTransitions;
  */
 final class AuthorizedPaymentHandler
 {
+    /** Set while this charges or releases a payment, so LogPaymentOnPurchaseOrders leaves the timeline to it. */
+    private bool $settling = false;
+
     public function __construct(
         private readonly StateMachineInterface $stateMachine,
         private readonly EntityManagerInterface $entityManager,
@@ -69,6 +72,7 @@ final class AuthorizedPaymentHandler
         $amount = array_sum(array_map(static fn (PaymentInterface $p): int => (int) $p->getAmount(), $authorized));
         $purchaseOrders = $this->purchaseOrders->findForOrder($order);
 
+        $this->settling = true;
         try {
             foreach ($authorized as $payment) {
                 $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
@@ -103,6 +107,8 @@ final class AuthorizedPaymentHandler
             }
 
             return false;
+        } finally {
+            $this->settling = false;
         }
 
         foreach ($purchaseOrders as $purchaseOrder) {
@@ -118,7 +124,12 @@ final class AuthorizedPaymentHandler
         return true;
     }
 
-    private static function money(int $cents, OrderInterface $order): string
+    public function isSettling(): bool
+    {
+        return $this->settling;
+    }
+
+    public static function money(int $cents, OrderInterface $order): string
     {
         return sprintf('%s %s', number_format($cents / 100, 2), $order->getCurrencyCode() ?? 'USD');
     }

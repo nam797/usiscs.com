@@ -397,7 +397,12 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
         self::assertSame('paid', $purchaseOrder->getOrder()->getPaymentState());
         self::assertSame('completed', $purchaseOrder->getOrder()->getPayments()->first() ? $purchaseOrder->getOrder()->getPayments()->first()->getState() : null);
-        self::assertContains(PurchaseOrderEventType::PaymentCaptured, array_map(static fn (PurchaseOrderEvent $e): PurchaseOrderEventType => $e->getType(), $purchaseOrder->getEvents()->toArray()));
+        // Once, with the reason: the admin-action logger stays out of automatic charges.
+        $captures = array_filter($purchaseOrder->getEvents()->toArray(), static fn (PurchaseOrderEvent $e): bool => PurchaseOrderEventType::PaymentCaptured === $e->getType());
+        self::assertCount(1, $captures);
+        $capture = current($captures);
+        self::assertNotFalse($capture);
+        self::assertStringContainsString('shipped purchase order', (string) $capture->getMessage());
         self::assertCount(1, $this->entityManager()->getRepository(PurchaseOrder::class)->findBy(['order' => $purchaseOrder->getOrder()]), 'paying doesn\'t order the goods twice');
     }
 
@@ -421,6 +426,36 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertSame('cancelled', $purchaseOrder->getOrder()->getPayments()->first() ? $purchaseOrder->getOrder()->getPayments()->first()->getState() : null);
         // On the timeline right after the cancellation.
         self::assertSame(PurchaseOrderEventType::PaymentReleased, $purchaseOrder->getLastEvent()?->getType());
+    }
+
+    public function testChargingAndRefundingInTheAdminShowOnTheTimeline(): void
+    {
+        $order = $this->paidOrder(Fulfilment::OrsDirect, authorizeOnly: true);
+        $purchaseOrder = $this->entityManager()->getRepository(PurchaseOrder::class)->findOneBy(['order' => $order]);
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+
+        $this->loginAsAdmin();
+        foreach (['complete', 'refund'] as $action) {
+            $crawler = $this->client->request('GET', sprintf('/admin/orders/%d', $order->getId()));
+            self::assertResponseIsSuccessful();
+            $form = $crawler->filter(sprintf('form[action$="/%s"]', $action));
+            self::assertCount(1, $form, sprintf('a %s button for the payment', $action));
+            $this->client->submit($form->form());
+            self::assertResponseRedirects();
+        }
+
+        $this->entityManager()->clear();
+        $purchaseOrder = $this->entityManager()->find(PurchaseOrder::class, $purchaseOrder->getId());
+        self::assertInstanceOf(PurchaseOrder::class, $purchaseOrder);
+        $payments = array_values(array_filter(
+            $purchaseOrder->getEvents()->toArray(),
+            static fn (PurchaseOrderEvent $e): bool => in_array($e->getType(), [PurchaseOrderEventType::PaymentCaptured, PurchaseOrderEventType::PaymentRefunded], true),
+        ));
+        self::assertSame(
+            [[PurchaseOrderEventType::PaymentCaptured, 'admin@usiscs.test'], [PurchaseOrderEventType::PaymentRefunded, 'admin@usiscs.test']],
+            array_map(static fn (PurchaseOrderEvent $e): array => [$e->getType(), $e->getActor()], $payments),
+        );
+        self::assertStringContainsString('in the Sylius admin', (string) $payments[0]->getMessage());
     }
 
     public function testAPaymentStillHeldAfterSixDaysIsCharged(): void
