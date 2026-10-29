@@ -1,0 +1,17 @@
+# Sourced by Upsun before the app, its crons and its workers run.
+
+# Absolute links in emails sent from a cron or the order worker (the
+# customer's "your order has shipped" email from app:distributor:sync-orders,
+# staff emails about purchase orders and payments) are built from
+# DEFAULT_URI (config/packages/routing.yaml): there's no web request to take
+# the domain from, and without it they'd point at http://localhost.
+# Uses this environment's primary route: https://usiscs.com on production,
+# the environment's own URL on staging. A DEFAULT_URI variable set on Upsun wins.
+if [ -z "${DEFAULT_URI:-}" ] && [ -n "${PLATFORM_ROUTES:-}" ]; then
+    DEFAULT_URI="$(php -r '$routes = json_decode(base64_decode((string) getenv("PLATFORM_ROUTES")), true) ?: []; foreach ($routes as $url => $route) { if (!empty($route["primary"])) { echo rtrim($url, "/"); break; } }')"
+    if [ -n "$DEFAULT_URI" ]; then
+        export DEFAULT_URI
+    else
+        unset DEFAULT_URI
+    fi
+fi
