@@ -302,6 +302,9 @@
   - **If Stripe refuses:** nothing is saved, the hold stays, the purchase
     order's timeline says why, and staff are emailed.
   - Each capture and release is on the purchase orders' timelines.
+  - So are changes made by hand (`LogPaymentOnPurchaseOrders`): Complete
+    on a held payment in the admin, cancelling it, and refunds (the admin's
+    Refund button, or Stripe's refund webhook). Each says who did it.
 
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet

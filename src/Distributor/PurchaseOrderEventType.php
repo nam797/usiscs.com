@@ -44,6 +44,8 @@ enum PurchaseOrderEventType: string
     case PaymentCaptured = 'payment_captured';
     /** The hold on the customer's card was released: nothing will ship. */
     case PaymentReleased = 'payment_released';
+    /** The customer's payment was refunded, in full or in part. */
+    case PaymentRefunded = 'payment_refunded';
     /** Charging or releasing the card payment failed; staff were emailed. */
     case PaymentProblem = 'payment_problem';
 
@@ -79,6 +81,7 @@ enum PurchaseOrderEventType: string
             self::ShippedToCustomer => 'Shipped to customer',
             self::PaymentCaptured => 'Payment captured',
             self::PaymentReleased => 'Payment released',
+            self::PaymentRefunded => 'Payment refunded',
             self::PaymentProblem => 'Payment problem',
         };
     }
