@@ -74,6 +74,34 @@ sylius_twig_hooks:
             reviews:
                 enabled: false
 
+        # Whole-form errors (an expired form, mostly) at the top of the account
+        # forms, which otherwise come back with no message
+        # (templates/shop/form/form_errors.html.twig).
+        'sylius_shop.account.register.content.form':
+            form_errors:
+                template: 'shop/form/form_errors.html.twig'
+                priority: 1000
+        'sylius_shop.account.forgotten_password.content.form_container.form':
+            form_errors:
+                template: 'shop/form/form_errors.html.twig'
+                priority: 1000
+        'sylius_shop.account.reset_password.content.form':
+            form_errors:
+                template: 'shop/form/form_errors.html.twig'
+                priority: 1000
+        'sylius_shop.account.change_password.update.content.main.form':
+            form_errors:
+                template: 'shop/form/form_errors.html.twig'
+                priority: 1000
+        'sylius_shop.account.address_book.create.content.main.form':
+            form_errors:
+                template: 'shop/form/form_errors.html.twig'
+                priority: 1000
+        'sylius_shop.account.address_book.update.content.main.form':
+            form_errors:
+                template: 'shop/form/form_errors.html.twig'
+                priority: 1000
+
         # Purchase orders to distributors, under Shipments (priority 0) on
         # the admin order page.
         'sylius_admin.order.show.content.sections#left':

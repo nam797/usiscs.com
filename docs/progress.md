@@ -306,6 +306,34 @@
     on a held payment in the admin, cancelling it, and refunds (the admin's
     Refund button, or Stripe's refund webhook). Each says who did it.
 
+- Customer-journey test pass (2026-10-29):
+  `tests/Functional/Shop/CustomerJourneyTest.php` walks every customer
+  journey end to end at the real URLs. The add-to-cart and cart buttons
+  are live components, posted to as the page's JavaScript would.
+  - Journeys covered:
+    - a guest buys from a product page to the thank-you page and opens
+      the order page by its link
+    - a logged-in customer checks out, finds the order in their account,
+      and the address is saved
+    - sign up, verify, log in and out
+    - forgotten password, then reset
+    - every account page, profile edit and address book add
+    - cart quantity change and remove
+    - the 404 page
+  - All passed except one thing, now fixed: the account forms (sign-up,
+    forgotten and reset password, change password, address book) never
+    showed whole-form errors. An expired form (old CSRF token after a long
+    pause) just came back blank with no message. They now show it at the
+    top (`templates/shop/form/form_errors.html.twig`, hooked into each
+    form).
+  - Found for the deploy: `DEFAULT_URI` wasn't set on Upsun, so links in
+    emails sent from crons and the worker would have pointed at
+    `http://localhost`. That includes the customer's "your order has
+    shipped" email. `.environment` now sets it from Upsun's primary route
+    (see Next step).
+  - Not covered by tests: the mobile layout and how pages look. Check by
+    eye on staging.
+
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
   checked against known breached passwords (Symfony's
@@ -380,6 +408,13 @@
   `composer install` after pulling merged dependency bumps.
 
 ## Next step
+- **On the first Upsun deploy, check `DEFAULT_URI`:** `.environment`
+  (sourced by Upsun before the app, crons and workers) sets it from the
+  environment's primary route: `https://usiscs.com` on production, the
+  environment's own URL on staging. A `DEFAULT_URI` Upsun variable wins.
+  Check with `upsun ssh -- 'echo $DEFAULT_URI'`. Emails sent from crons and
+  the worker take their links from it, including the customer's shipped
+  email.
 - **Stripe test checkout:** the client's Stripe account is set up locally
   (payment method `stripe`, "use authorize" on). Test order #000000001 went
   through: authorized at checkout, then captured from the admin, which

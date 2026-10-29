@@ -1,0 +1,11 @@
+{# Errors that belong to the whole form rather than one field, mainly "the form expired" (an old
+   CSRF token after a long pause). Sylius's account forms don't show them, so the page just came
+   back with no message. Hooked first into each of those forms (config/packages/twig_hooks.yaml). #}
+{% set form = hookable_metadata.context.form|default(null) %}
+{% if form and form.vars.errors|length > 0 %}
+    <div class="alert alert-danger" role="alert" data-test-form-errors>
+        {% for error in form.vars.errors %}
+            <div>{{ error.message }}</div>
+        {% endfor %}
+    </div>
+{% endif %}
