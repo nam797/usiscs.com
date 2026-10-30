@@ -409,3 +409,10 @@ $brand-chevron: "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' vi
     border-left: 1px solid var(--bs-border-color);
   }
 }
+
+// The product page's main image has no width/height, so the page first
+// lays out without it and then jumps down when it arrives. Reserve its
+// space up front (the placeholder is 4:3; real photos are cropped to fit).
+#main-image {
+  aspect-ratio: 4 / 3;
+}
