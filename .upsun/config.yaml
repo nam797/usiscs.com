@@ -127,30 +127,33 @@ applications:
             # ors-sync-cost:
             #     spec: "30 3 * * *"
             #     cmd: "php bin/console --env=prod app:ors:sync-cost"
+            # The next three act on real orders, so bin/prod-only skips them
+            # outside production (staging has a copy of production's data).
             # Safety net for the purchase order queue: re-sends orders whose
             # message never reached the queue or was lost, and attempts the
             # worker died in the middle of (src/Command/DispatchPurchaseOrdersCommand.php).
             distributor-dispatch:
                 spec: "*/15 * * * *"
-                cmd: "php bin/console --env=prod app:distributor:dispatch"
-            # Purchase order status from distributors (ORS Order Query: needs
-            # ORS_OQ_PASSWORD/ORS_OQ_PASSWORD2, warns until set), tracking to
-            # customers, and a daily-at-most email about stuck orders.
+                cmd: "bin/prod-only php bin/console --env=prod app:distributor:dispatch"
             # Card payments still only authorized after 6 days are charged before
             # Stripe releases the hold (src/Command/CaptureDuePaymentsCommand.php).
             payments-capture-due:
                 spec: "15 * * * *"
-                cmd: "php bin/console --env=prod app:payments:capture-due"
+                cmd: "bin/prod-only php bin/console --env=prod app:payments:capture-due"
+            # Purchase order status from distributors (ORS Order Query: needs
+            # ORS_OQ_PASSWORD/ORS_OQ_PASSWORD2, warns until set), tracking to
+            # customers, and a daily-at-most email about stuck orders.
             distributor-sync-orders:
                 spec: "20,50 * * * *"
-                cmd: "php bin/console --env=prod app:distributor:sync-orders"
+                cmd: "bin/prod-only php bin/console --env=prod app:distributor:sync-orders"
         workers:
             # Sends paid orders' purchase orders to distributors, retrying
             # with backoff when one is down (config/packages/messenger.yaml).
-            # Exits hourly to free memory; Upsun starts it again.
+            # Exits hourly to free memory; Upsun starts it again. Outside
+            # production it sleeps instead (bin/prod-only).
             distributor-queue:
                 commands:
-                    start: "php bin/console --env=prod messenger:consume distributor --time-limit=3600 --memory-limit=256M"
+                    start: "bin/prod-only --sleep php bin/console --env=prod messenger:consume distributor --time-limit=3600 --memory-limit=256M"
         hooks:
             build: |
                 set -e
