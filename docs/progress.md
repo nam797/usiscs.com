@@ -401,7 +401,9 @@
   changes in composer.lock, read vendor/sylius/sylius/UPGRADE-2.x.md and run
   `npm install && npm run build`.
 - Renaming the static-checks job or changing the PHP/Symfony matrix renames the
-  required check; update branch protection on main to match or PRs will hang.
+  required check; update branch protection on main and staging to match or
+  PRs will hang. Both branches require the same two checks (static checks,
+  end-to-end), as of 2026-10-30.
 - Build skips docs-only PRs (paths-ignore), so they never get the required check;
   merge those as admin.
 - A local vendor/ that's behind composer.lock can hide CI breakage. Run
