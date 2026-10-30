@@ -546,4 +546,6 @@
     merchant accounts (failover, cheaper processing). Write-up to send
     them: https://claude.ai/artifact/79RB5jVG4qxWWMdiewBBUN. Waiting on
     their processors, pricing, volume and priority.
+  - One client agenda doc covering every open question (pricing, shipping,
+    fulfilment and ORS, payments, launch): https://claude.ai/artifact/GDf5iq1FnYdA7fqjEkdGuy
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.
