@@ -517,6 +517,22 @@
     `staging` → `main` PRs (docs/local-setup.md "Hosting (Upsun)").
     `bin/prod-only` skips the order-handling crons and the purchase order
     worker outside production (`APP_RUN_JOBS=1` overrides it).
-  - Next: re-enter the Stripe keys and clean the test data. Then add the
-    usiscs.com domain (`upsun domain:add`) and DNS.
+  - Admin login (2026-10-30): the copied DB still had Sylius's default
+    admin `sylius` with password `sylius`, on public URLs. Both sites now
+    have `itsupport` (itsupport@usiscs.com; the password is in the user's
+    password manager), and `sylius` is disabled.
+    - `upsun sql` on production needs `--yes`. Without it, the confirmation
+      prompt is skipped and nothing runs.
+  - The admin was 500ing ("Cannot decrypt data"): the Stripe gateway config
+    was encrypted with the local key. It's cleared (`config = '{}'`) on
+    both sites.
+  - Next:
+    - Re-enter the Stripe test keys (with "use authorize" on) in each
+      site's admin.
+    - Clean out the test data.
+    - Add the usiscs.com domain (`upsun domain:add`) and DNS.
+  - Client question (2026-10-30): routing card payments across several
+    merchant accounts (failover, cheaper processing). Write-up to send
+    them: https://claude.ai/artifact/79RB5jVG4qxWWMdiewBBUN. Waiting on
+    their processors, pricing, volume and priority.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.
