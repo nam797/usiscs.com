@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Runs an Upsun cron or worker command only on the production environment.
+#
+# Staging and other environments start as copies of production's database,
+# so a job there would act on real orders: charge held card payments, email
+# staff and customers, send purchase orders. Set APP_RUN_JOBS=1 on an
+# environment to run its jobs anyway (e.g. to test them on staging).
+#
+# Usage: bin/prod-only [--sleep] command...
+#   --sleep  when skipped, sleep forever instead of exiting (for workers,
+#            which Upsun would otherwise restart in a loop)
+set -euo pipefail
+
+sleep_when_skipped=0
+if [ "${1:-}" = "--sleep" ]; then
+    sleep_when_skipped=1
+    shift
+fi
+
+if [ "${PLATFORM_ENVIRONMENT_TYPE:-}" = "production" ] || [ "${APP_RUN_JOBS:-}" = "1" ]; then
+    exec "$@"
+fi
+
+echo "Skipped on the ${PLATFORM_ENVIRONMENT_TYPE:-unknown} environment (set APP_RUN_JOBS=1 to run): $*"
+if [ "$sleep_when_skipped" = "1" ]; then
+    while :; do sleep 3600; done
+fi

@@ -416,6 +416,42 @@ Without it, `symfony var:export` falls back to Upsun's own SMTP relay, which
 isn't set up for usiscs.com (no SPF/DKIM), so mail is likely to land in spam.
 The provider must be verified for the `MAILER_FROM` domain.
 
+## Hosting (Upsun)
+
+Project `xvkiv2v7bwa7s` ("usiscs.com", region us-3). It deploys from GitHub
+(nam797/usiscs.com) through Upsun's GitHub integration. Nothing gets pushed
+to Upsun directly.
+
+| Branch | Upsun environment | What it is |
+|---|---|---|
+| `main` | production | The live site. Deploys on every merge. |
+| `staging` | staging | Where changes are checked, by us and the client, before release. Its own URL. |
+| anything else | inactive | Not built. |
+
+**Flow:**
+1. Branch off `staging`.
+2. Open a PR into `staging`. CI runs, then merge, and staging redeploys.
+3. Check it on staging.
+4. Release: open a PR `staging` → `main` and merge.
+
+Dependabot PRs still go straight to `main`.
+
+**Staging starts as a copy of production**, with the same database and
+files. To refresh it from production, run
+`upsun sync data -e staging`. This overwrites staging's data. So:
+- **Jobs only run on production.** The crons that act on orders (charging
+  held cards, sending and tracking purchase orders, emails about them) and
+  the purchase order worker go through `bin/prod-only`. It skips them
+  everywhere else. To test them on staging, set the variable
+  `env:APP_RUN_JOBS=1` on that environment, and switch Stripe to test keys
+  first.
+- **Stripe:** after a data sync, staging holds production's Stripe keys.
+  Before testing checkout there, set the Stripe payment method to test keys
+  in staging's admin.
+- **Email:** set the real `env:MAILER_DSN` on `main` only, with
+  `--inheritable false`. That way staging never emails real customers.
+  Upsun's own mail relay is off outside production.
+
 ## Database platform
 
 This project is MySQL. `.upsun/config.yaml`, `.platform/services.yaml`,
