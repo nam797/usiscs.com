@@ -474,19 +474,25 @@
   (see docs/local-setup.md "Payments (Stripe)"): publishable key, a restricted
   secret key, and a webhook. Check Sylius admin → Payment methods on
   production and disable anything that isn't Stripe.
-- **Upsun deploy** (branch `upsun-prep`, 2026-10-30): the config is ready,
-  but no Upsun project exists yet and the `upsun` CLI isn't installed here.
-  Fixed so far:
-  - The build uses `npm ci` / `npm run build:prod`. It used yarn, but
-    there's no yarn.lock.
-  - `php: memory_limit: 512M`. The prod container needs about 384M to
-    compile, and the build would fail at PHP's default 128M (checked
-    locally).
-  - Prod sessions go in `var/sessions` (an existing storage mount), so
-    logins and guest carts survive deploys.
-
-  Next: create the project, add the Upsun git remote, push, set resources
-  (`upsun resources:set`), then check https URLs (canonical, emails, Stripe
-  return) behind Upsun's router. Symfony's trusted proxies aren't
-  configured.
+- **Upsun deploy** (2026-10-30): project `xvkiv2v7bwa7s` ("usiscs.com",
+  region us-3, org us-industrial-supply-chain), with GitHub integration on
+  nam797/usiscs.com. Upsun's `main` environment builds from GitHub `main`;
+  other branches show up as inactive environments. PR environments are off.
+  - First `main` deploy: built and migrated, but every page is a 500
+    ("Channel could not be found"). The database is empty, with no channel
+    yet.
+  - Fixed on `upsun-prep`:
+    - The build uses `npm ci`. Yarn ran with no lockfile.
+    - The prod app cache pool (`var/share`, Symfony 7.4's share dir) was
+      read-only, so the form throttle couldn't save counts. It's now a
+      storage mount.
+    - Prod sessions go in the `var/sessions` mount, so they survive
+      deploys.
+  - Upsun's CLI PHP has no memory limit (-1), so the container compiles
+    fine there.
+  - Resources: `sylius` 0.5 CPU / 224 MB, worker 0.5 / 224, db 0.5 / 1408.
+    Check page speed once there's data.
+  - Next: decide how to seed the database (channel, admin user, catalog),
+    then check https URLs (canonical, emails, Stripe return) behind Upsun's
+    router. Symfony's trusted proxies aren't configured.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.

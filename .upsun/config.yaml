@@ -18,6 +18,12 @@ applications:
             "/var/log":
                 source: instance
                 source_path: log
+            # Symfony's share dir (APP_SHARE_DIR=var/share in .env): the app
+            # cache pool, where the contact/RFQ form throttle keeps its counts.
+            # Without it the pool is read-only and the throttle never blocks.
+            "/var/share":
+                source: storage
+                source_path: share
             "/var/sessions":
                 source: storage
                 source_path: sessions
@@ -75,11 +81,6 @@ applications:
                 # committed test.key.
                 SYLIUS_PAYMENT_ENCRYPTION_KEY_PATH: '%kernel.project_dir%/config/encryption/key'
                 N_PREFIX: /app/.global
-            php:
-                # The prod container needs ~384M to compile (composer's
-                # cache:clear in the build, the deploy hook, crons). At PHP's
-                # default 128M the build fails.
-                memory_limit: 512M
         build:
             flavor: composer
         dependencies:
