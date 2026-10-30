@@ -529,7 +529,18 @@
   - Next:
     - Re-enter the Stripe test keys (with "use authorize" on) in each
       site's admin.
-    - Clean out the test data.
+    - Decide real shipping rates. The only method is still the $15
+      flat-rate test one (`standard`), kept so checkout works.
+  - Test data cleared on production (2026-10-30), with a backup taken
+    first.
+    - Removed: all 9 orders and their purchase orders, all 8 customers and
+      their addresses, the test RFQ, the DEMO-SRC sample products and the
+      fake distributor.
+    - The order sequence was reset, so the first real order is #000000001.
+    - Kept: the catalog (1,390 products, 2,549 ORS sources), channel,
+      admins, and the payment and shipping methods.
+    - Staging still has the test data. Refresh it from production with
+      `upsun sync data -e staging` when needed.
     - Add the usiscs.com domain (`upsun domain:add`) and DNS.
   - Client question (2026-10-30): routing card payments across several
     merchant accounts (failover, cheaper processing). Write-up to send
