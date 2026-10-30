@@ -499,6 +499,13 @@
       storage mount.
     - Prod sessions go in the `var/sessions` mount, so they survive
       deploys.
+    - Product pages jumped while loading. The main image had no size, so
+      the page drew without it, then pushed everything down. Every asset
+      was also `no-cache`, so each page view re-checked the CSS, JS and
+      images. Fixed with `#main-image` aspect-ratio 4:3 (brand.scss),
+      `/build` cached for a year (hashed names) and `/bundles` for a day.
+      Filmed in headless Chromium and WebKit: no unstyled frame, only the
+      jump. Firefox wouldn't launch in the sandbox.
   - Upsun's CLI PHP has no memory limit (-1), so the container compiles
     fine there.
   - Resources: `sylius` 0.5 CPU / 224 MB, worker 0.5 / 224, db 0.5 / 1408.

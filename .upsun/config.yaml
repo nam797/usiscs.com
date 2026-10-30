@@ -47,6 +47,22 @@ applications:
                     allow: true
                     expires: -1
                     scripts: true
+                # Encore's output. File names carry a content hash, so browsers
+                # can keep them for a year instead of re-checking every page.
+                '/build':
+                    root: "public/build"
+                    expires: 1y
+                    passthru: false
+                    allow: true
+                    scripts: false
+                # Bundle assets (the image placeholder, admin icons). Not
+                # hashed, but they only change on a Sylius upgrade.
+                '/bundles':
+                    root: "public/bundles"
+                    expires: 1d
+                    passthru: false
+                    allow: true
+                    scripts: false
                 '/assets/shop':
                     expires: 2w
                     passthru: true
