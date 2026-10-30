@@ -474,5 +474,19 @@
   (see docs/local-setup.md "Payments (Stripe)"): publishable key, a restricted
   secret key, and a webhook. Check Sylius admin → Payment methods on
   production and disable anything that isn't Stripe.
-- Then: Upsun deploy + switch build to `npm ci`.
+- **Upsun deploy** (branch `upsun-prep`, 2026-10-30): the config is ready,
+  but no Upsun project exists yet and the `upsun` CLI isn't installed here.
+  Fixed so far:
+  - The build uses `npm ci` / `npm run build:prod`. It used yarn, but
+    there's no yarn.lock.
+  - `php: memory_limit: 512M`. The prod container needs about 384M to
+    compile, and the build would fail at PHP's default 128M (checked
+    locally).
+  - Prod sessions go in `var/sessions` (an existing storage mount), so
+    logins and guest carts survive deploys.
+
+  Next: create the project, add the Upsun git remote, push, set resources
+  (`upsun resources:set`), then check https URLs (canonical, emails, Stripe
+  return) behind Upsun's router. Symfony's trusted proxies aren't
+  configured.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.

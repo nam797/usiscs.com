@@ -75,12 +75,16 @@ applications:
                 # committed test.key.
                 SYLIUS_PAYMENT_ENCRYPTION_KEY_PATH: '%kernel.project_dir%/config/encryption/key'
                 N_PREFIX: /app/.global
+            php:
+                # The prod container needs ~384M to compile (composer's
+                # cache:clear in the build, the deploy hook, crons). At PHP's
+                # default 128M the build fails.
+                memory_limit: 512M
         build:
             flavor: composer
         dependencies:
             nodejs:
                 n: "*"
-                yarn: "*"
             php:
                 composer/composer: '^2'
         runtime:
@@ -140,8 +144,10 @@ applications:
                 cat >> "$PLATFORM_APP_DIR/.global/environment" <<EOS
                     export \$(symfony var:export)
                 EOS
-                yarn install --frozen-lockfile
-                yarn build:prod
+                # npm, not yarn: the project's lockfile is package-lock.json.
+                # n auto (above) installs the Node version in .node-version.
+                npm ci
+                npm run build:prod
             deploy: |
                 set -e
                 rm -rf var/cache/*
