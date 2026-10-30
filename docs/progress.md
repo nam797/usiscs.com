@@ -479,8 +479,19 @@
   nam797/usiscs.com. Upsun's `main` environment builds from GitHub `main`;
   other branches show up as inactive environments. PR environments are off.
   - First `main` deploy: built and migrated, but every page is a 500
-    ("Channel could not be found"). The database is empty, with no channel
-    yet.
+    ("Channel could not be found"). The database was empty.
+  - Local dev DB copied in (2026-10-30). It's mysqldump with
+    `utf8mb4_0900_ai_ci` → `utf8mb4_unicode_ci` for MariaDB 11.8.6.
+    Now the shop, sitemap and admin login work at
+    https://main-bvxea6i-xvkiv2v7bwa7s.us-3.platformsh.site.
+    - Canonical links, `og:url` and the sitemap come out as https, so no
+      trusted-proxy setup is needed.
+    - The copy brought test data: orders 000000001/2 and DEMO-001..007, the
+      8 test customers, and the $15 test shipping method. Clean it out
+      before launch.
+    - Stripe: the gateway's keys were encrypted with the local key, which
+      Upsun doesn't have. Re-enter them in the admin (Payment methods →
+      Stripe) on Upsun.
   - Fixed on `upsun-prep`:
     - The build uses `npm ci`. Yarn ran with no lockfile.
     - The prod app cache pool (`var/share`, Symfony 7.4's share dir) was
@@ -492,7 +503,6 @@
     fine there.
   - Resources: `sylius` 0.5 CPU / 224 MB, worker 0.5 / 224, db 0.5 / 1408.
     Check page speed once there's data.
-  - Next: decide how to seed the database (channel, admin user, catalog),
-    then check https URLs (canonical, emails, Stripe return) behind Upsun's
-    router. Symfony's trusted proxies aren't configured.
+  - Next: merge PR #59, re-enter the Stripe keys, and clean the test
+    data. Then add the usiscs.com domain (`upsun domain:add`) and DNS.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.
