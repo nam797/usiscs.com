@@ -510,6 +510,11 @@
     fine there.
   - Resources: `sylius` 0.5 CPU / 224 MB, worker 0.5 / 224, db 0.5 / 1408.
     Check page speed once there's data.
-  - Next: merge PR #59, re-enter the Stripe keys, and clean the test
-    data. Then add the usiscs.com domain (`upsun domain:add`) and DNS.
+  - Staging (2026-10-30): a long-lived `staging` branch is the Upsun
+    staging environment. Feature PRs go into `staging`, and releases are
+    `staging` → `main` PRs (docs/local-setup.md "Hosting (Upsun)").
+    `bin/prod-only` skips the order-handling crons and the purchase order
+    worker outside production (`APP_RUN_JOBS=1` overrides it).
+  - Next: re-enter the Stripe keys and clean the test data. Then add the
+    usiscs.com domain (`upsun domain:add`) and DNS.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.
