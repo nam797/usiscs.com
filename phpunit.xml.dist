@@ -26,6 +26,8 @@
         <server name="ESCAPE_JSON" value="true" />
 
         <server name="KERNEL_CLASS" value="App\Kernel" />
+        <!-- Basic auth "user:password" the Postmark webhook tests send (tests/Functional/Mail). -->
+        <env name="POSTMARK_WEBHOOK_SECRET" value="postmark:test-secret" force="true" />
     </php>
 
     <testsuites>

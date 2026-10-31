@@ -74,7 +74,7 @@
   MAILER_FROM (no-reply@usiscs.com) with Reply-To = customer and an admin
   link. Sylius's own emails use the same sender (was no-reply@example.com).
   Not live yet: needs a mail provider DSN on Upsun and the channel contact
-  email set (see local-setup.md "Lead emails").
+  email set (see local-setup.md "Emails").
 
 - Pack units and supplier SKUs (2026-10-26): `unit_of_measure` ("144 PR = 1
   CA", "case of 12") is stored per variant and shown as "per case of 144
@@ -334,6 +334,28 @@
   - Not covered by tests: the mobile layout and how pages look. Check by
     eye on staging.
 
+- Branded emails, redirect outside production, delivery tracking
+  (2026-10-31; docs/local-setup.md "Emails"):
+  - **Branded:** every email uses one frame (logo, red rule, navy footer).
+    Sylius's customer emails are rewritten: order received lists the items,
+    totals and ship-to; shipped shows the tracking number(s) and items;
+    password reset, email confirmation and welcome got the frame and plainer
+    words. Staff emails (RFQ, contact, purchase order alerts) keep their
+    text and get an HTML copy in the frame, links clickable. Every email has
+    a plain-text version.
+  - Fixed on the way: Sylius's email links came out as bare paths
+    (`/order/...`) because the channel has no hostname. They now use
+    `url()`.
+  - **Outside production every email goes to itsupport@usiscs.com**, with
+    the environment and the real recipients in the subject. Production is
+    Upsun's environment type `production` only.
+  - **Sent-email log** (`app_sent_email`, /backoffice → Emails): every
+    email, its Postmark message ID, and delivered / bounced (with the
+    reason) / spam / failed, plus first open. Postmark reports to
+    `/webhook/postmark`, Basic auth only (`POSTMARK_WEBHOOK_SECRET`);
+    Symfony's IP check is dropped since there are no trusted proxies.
+  - Added `symfony/postmark-mailer` and `symfony/webhook`.
+
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
   checked against known breached passwords (Symfony's
@@ -447,10 +469,16 @@
   $15 flat-rate test one, local only. Check production has a shipping method
   and a US zone (Sylius admin → Shipping methods); checkout can't finish
   without one.
-- **Waiting on the client: lead emails** (the code is done). Client is setting
-  up Postmark (sent 2026-10-26). Then: verify usiscs.com (SPF/DKIM DNS
-  records), set `env:MAILER_DSN` on Upsun, set the channel contact email in
-  the Sylius admin, send a test quote.
+- **Waiting on the client: Postmark** (emails, branding and tracking are
+  done). Client is setting up Postmark (sent 2026-10-26). Then follow
+  docs/local-setup.md "Emails" → Postmark setup: verify usiscs.com
+  (SPF/DKIM), one Postmark server each for production and staging, set
+  `env:MAILER_DSN` and `env:POSTMARK_WEBHOOK_SECRET` on each, add the
+  webhooks. Also set the channel contact email in the Sylius admin (it's
+  empty on both sites, so staff emails are skipped), then send a test quote
+  and check /backoffice → Emails shows it delivered.
+  - Staging can't send anything until it has its own `MAILER_DSN` (Upsun's
+    relay is off there).
 - **ORS sync: merged (PR #37)**, waiting on ORS credentials (see below).
 - **Client review of the category tree** (link above). Then build it:
   replace the 6 placeholder categories (setup-categories), brand pages and

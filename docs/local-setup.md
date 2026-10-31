@@ -394,27 +394,79 @@ Behat inherits Sylius's entire upstream suite from
 `vendor/sylius/sylius/src/Sylius/Behat/Resources/config/suites.yml` —
 `features/` in this repo is empty. Those suites take ~45 minutes in CI.
 
-## Lead emails (RFQ and contact form)
+## Emails
 
-Every /quote and /contact submission is saved first (/backoffice → RFQ
-Requests / Contact Messages), then emailed to the team:
+**What gets sent:**
+- **To customers:** Sylius's emails (order received, order shipped,
+  password reset, confirm your email, welcome).
+- **To staff:** new RFQs and contact messages, and purchase order alerts.
+  These go to the channel's contact email (Sylius admin → Channels →
+  Contact email). If that's blank, nothing is emailed and a warning is
+  logged. RFQs and contact messages are saved first (/backoffice → RFQ
+  Requests / Contact Messages), so a mail problem never loses a lead.
+  Reply-To is the customer, so Reply answers them directly.
+- **From:** `MAILER_FROM` (default `no-reply@usiscs.com`, in
+  `config/services.yaml`).
 
-- **To:** the channel's contact email (Sylius admin → Channels → Contact
-  email). If it's blank, nothing is emailed and a warning is logged.
-- **From:** `MAILER_FROM` (default `no-reply@usiscs.com`; set in
-  `config/services.yaml`). Sylius's own emails (order confirmation, password
-  reset) use it too.
-- **Reply-To:** the customer, so Reply answers them directly.
-- **Sent via:** `MAILER_DSN`. Locally `null://null` (dropped). To see real
-  emails locally, run Mailpit (`brew install mailpit && mailpit`), set
-  `MAILER_DSN=smtp://127.0.0.1:1025` in `.env.local`, and open
-  http://127.0.0.1:8025.
+**Branding:** every email uses one frame, `templates/emails/layout.html.twig`
+(logo `public/email/logo.png`, red rule, navy footer).
+- Sylius's emails reach it through `templates/bundles/SyliusCoreBundle/Email/`,
+  which also rewrites their content (order items and totals, tracking).
+- Staff emails are written as plain text (`templates/emails/*.txt.twig`) and
+  sent as that text plus the same text in the frame (`App\Mail\TeamEmailBuilder`).
+- Sylius's emails get a plain-text version too (`App\Mail\SyliusEmailListener`).
+- Links use `url()`, so they follow the site's address: the request's host
+  on the site, `DEFAULT_URI` in crons and the worker.
+- To look at one, send it on staging, or locally with Mailpit (below).
 
-On Upsun, set the provider's DSN as a sensitive variable
-(`upsun variable:create --level environment --name env:MAILER_DSN --sensitive true ...`).
-Without it, `symfony var:export` falls back to Upsun's own SMTP relay, which
-isn't set up for usiscs.com (no SPF/DKIM), so mail is likely to land in spam.
-The provider must be verified for the `MAILER_FROM` domain.
+**Outside production, every email goes to itsupport@usiscs.com**
+(`App\Mail\RedirectOutsideProductionListener`, address in
+`app.mail.redirect_to`). The subject says where it came from and who it was
+for: `[Staging, to jane@acme.com] Order 000000042 received`. Production is
+Upsun's environment type `production` only; staging, dev environments and
+laptops are all redirected. Tests turn it off.
+
+**Sent-email log:** /backoffice → **Emails** lists every email sent, with
+its status:
+- **Sent:** handed to the mail provider, nothing heard back yet.
+- **Delivered:** accepted by the recipient's mail server.
+- **Bounced** (with the reason), **Marked as spam**, **Failed to send**
+  (the provider refused it).
+- **First opened:** only counted when the recipient's mail app loads
+  images, so "not opened" doesn't mean unread.
+
+Postmark reports deliveries, bounces, spam complaints and opens to
+`/webhook/postmark` (`src/Mail/Tracking/`).
+
+**Sent via:** `MAILER_DSN`. Locally `null://null` (dropped). To see real
+emails locally, run Mailpit (`brew install mailpit && mailpit`), set
+`MAILER_DSN=smtp://127.0.0.1:1025` in `.env.local`, and open
+http://127.0.0.1:8025.
+
+**Postmark setup** (once the client's account exists):
+1. In Postmark, verify the usiscs.com domain (its SPF/DKIM DNS records).
+2. Make two Postmark servers, "usiscs production" and "usiscs staging",
+   each with its own server API token. Then staging's reports never reach
+   production's log.
+3. On each server's transactional stream, turn on open tracking (Settings).
+4. On each Upsun environment, set its token and a webhook password (make
+   one up, long and random, different per environment):
+   ```
+   upsun variable:create -e main --level environment --name env:MAILER_DSN --sensitive true --inheritable false --value 'postmark+api://SERVER_TOKEN@default'
+   upsun variable:create -e main --level environment --name env:POSTMARK_WEBHOOK_SECRET --sensitive true --inheritable false --value 'postmark:LONG_RANDOM_PASSWORD'
+   ```
+   The same for `-e staging`, with the staging server's token.
+5. In each Postmark server, add a webhook (transactional stream) with the
+   environment's URL and that password, and tick Delivery, Bounce, Spam
+   complaint and Open:
+   `https://postmark:LONG_RANDOM_PASSWORD@<site>/webhook/postmark`.
+   Postmark's "Send test" should get a 202 back. Without the password set
+   on Upsun, the site refuses every webhook (403).
+
+Without `MAILER_DSN`, production falls back to Upsun's own mail relay, which
+isn't set up for usiscs.com (no SPF/DKIM), so mail is likely to land in
+spam. Staging has no relay at all (Upsun turns it off outside production),
+so it sends nothing until it has its own `MAILER_DSN`.
 
 ## Hosting (Upsun)
 
@@ -448,9 +500,9 @@ files. To refresh it from production, run
 - **Stripe:** after a data sync, staging holds production's Stripe keys.
   Before testing checkout there, set the Stripe payment method to test keys
   in staging's admin.
-- **Email:** set the real `env:MAILER_DSN` on `main` only, with
-  `--inheritable false`. That way staging never emails real customers.
-  Upsun's own mail relay is off outside production.
+- **Email:** staging sends every email to itsupport@usiscs.com, never to
+  the customers in its copied data (see "Emails"). Give staging its own
+  Postmark server token, not production's.
 
 ## Database platform
 

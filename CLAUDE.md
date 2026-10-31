@@ -17,6 +17,10 @@ GitHub: nam797/usiscs.com
 - Contact form: `src/Form/Contact/`, saved as `src/Entity/Contact/ContactMessage`,
   admin list in `src/Controller/Admin/ContactMessageCrudController.php`
 - Lead emails (RFQ + contact): `src/Lead/LeadNotifier.php`
+- Emails: branded frame `templates/emails/layout.html.twig` (Sylius's via
+  `templates/bundles/SyliusCoreBundle/Email/`), redirect to itsupport@ outside
+  production and the sent-email log + Postmark webhooks in `src/Mail/`;
+  see docs/local-setup.md "Emails"
 - Catalog import: `src/Catalog/Import/` (`app:catalog:import`), pack units in
   `src/Catalog/Unit/`, ORS price feed → import sheet in `src/Catalog/Ors/`
   (`app:catalog:prepare-ors-import`)

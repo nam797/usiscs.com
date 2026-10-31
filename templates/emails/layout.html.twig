@@ -1,0 +1,63 @@
+{#
+    The branded frame every email shares: logo header, red rule, white card,
+    navy footer. Sylius's emails reach it through
+    bundles/SyliusCoreBundle/Email/layout.html.twig; ours extend it directly.
+
+    Mail apps ignore stylesheets, so every style is inline, and the layout
+    is tables because Outlook ignores most of CSS layout. Colours are the
+    shop's: navy #1B2A5E (logo), CTA red #8B1A1A, sharp corners.
+
+    Links are built with url()/absolute_url(): the request's host on the
+    site, DEFAULT_URI in crons and the worker. (Sylius's sylius_channel_url()
+    gives a bare path while the channel has no hostname, which in an email
+    is a dead link.)
+
+    Blocks: subject (Sylius emails), preheader (the inbox preview line),
+    content.
+#}
+{% block body %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>US Industrial Supply</title>
+</head>
+<body style="margin: 0; padding: 0; background: #f2f3f5;">
+    <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">{% block preheader %}{% endblock %}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #f2f3f5;">
+        <tr>
+            <td align="center" style="padding: 24px 12px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; background: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.5; color: #1f2933;">
+                    <tr>
+                        <td align="center" style="padding: 24px 32px 20px;">
+                            <a href="{{ url('sylius_shop_homepage') }}" style="text-decoration: none;">
+                                <img src="{{ absolute_url(asset('email/logo.png')) }}" width="220" alt="US Industrial Supply" style="display: block; width: 220px; max-width: 100%; height: auto; border: 0;">
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="height: 4px; line-height: 4px; font-size: 0; background: #8B1A1A;">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 32px;">
+                            {% block content %}{% endblock %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background: #1B2A5E; color: #c9d2e3; padding: 20px 32px; font-size: 13px; line-height: 1.6; text-align: center;">
+                            <strong style="color: #ffffff;">US Industrial Supply Chain Solutions</strong><br>
+                            The products you count on. Delivered.<br>
+                            <a href="{{ url('sylius_shop_homepage') }}" style="color: #ffffff;">usiscs.com</a>
+                            &nbsp;&middot;&nbsp;
+                            <a href="{{ url('app_shop_contact') }}" style="color: #ffffff;">Contact us</a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+{% endblock %}

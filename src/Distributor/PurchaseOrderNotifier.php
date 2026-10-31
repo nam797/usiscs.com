@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Distributor;
 
 use App\Entity\Procurement\PurchaseOrder;
+use App\Mail\TeamEmailBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
-use Symfony\Component\Mime\Email;
-use Twig\Environment;
 
 /**
  * Emails the order's channel contact email (Sylius admin > Channels), like
@@ -22,7 +21,7 @@ final class PurchaseOrderNotifier implements PurchaseOrderNotifierInterface
 {
     public function __construct(
         private readonly MailerInterface $mailer,
-        private readonly Environment $twig,
+        private readonly TeamEmailBuilder $emails,
         private readonly DistributorRegistry $distributors,
         private readonly LoggerInterface $logger,
         #[Autowire(env: 'MAILER_FROM')]
@@ -71,14 +70,12 @@ final class PurchaseOrderNotifier implements PurchaseOrderNotifierInterface
         }
 
         try {
-            $this->mailer->send((new Email())
+            $this->mailer->send($this->emails->build($template, $context + [
+                'purchase_order' => $purchaseOrder,
+                'distributor_name' => $this->distributors->nameOf($purchaseOrder->getDistributor()),
+            ], $subject)
                 ->from(new Address($this->from, $channel->getName() ?? 'USISCS Website'))
-                ->to(new Address($to))
-                ->subject($subject)
-                ->text($this->twig->render($template, $context + [
-                    'purchase_order' => $purchaseOrder,
-                    'distributor_name' => $this->distributors->nameOf($purchaseOrder->getDistributor()),
-                ])));
+                ->to(new Address($to)));
         } catch (\Throwable $exception) {
             $this->logger->error(sprintf('Failed to email about purchase order %s: %s', $purchaseOrder->getNumber(), $exception->getMessage()));
         }

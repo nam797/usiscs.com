@@ -10,6 +10,14 @@ parameters:
     # Lead and order emails are sent from this address. It must be on a
     # domain the mail provider (MAILER_DSN) is verified to send for.
     env(MAILER_FROM): 'no-reply@usiscs.com'
+    # Upsun sets this to production, staging or development; empty locally.
+    # Everywhere but production, every email goes to app.mail.redirect_to
+    # instead (src/Mail/RedirectOutsideProductionListener.php).
+    env(PLATFORM_ENVIRONMENT_TYPE): ''
+    app.mail.redirect_to: 'itsupport@usiscs.com'
+    # Postmark's delivery webhooks (/webhook/postmark) must send this as the
+    # Basic auth "user:password" in the webhook URL; empty refuses them all.
+    env(POSTMARK_WEBHOOK_SECRET): ''
     # ORS Nasco supplier APIs (src/Supplier/OrsNasco). Defaults point at ORS's
     # test endpoints; the production URLs and every credential go in
     # .env.local / Upsun variables, never in .env.
@@ -74,3 +82,10 @@ services:
     # twig/html-extra is installed but has no Flex recipe here (no
     # twig/extra-bundle), so its extension needs manual registration.
     Twig\Extra\Html\HtmlExtension: ~
+
+# Tests check who emails are really addressed to.
+when@test: &services_test
+    parameters:
+        app.mail.redirect_to: null
+
+when@test_cached: *services_test

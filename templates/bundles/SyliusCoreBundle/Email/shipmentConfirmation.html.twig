@@ -1,0 +1,41 @@
+{# "Your order has shipped": the tracking number(s) and what's in the box. #}
+{% extends '@SyliusCore/Email/layout.html.twig' %}
+
+{% block subject %}Order {{ order.number }} has shipped – US Industrial Supply{% endblock %}
+
+{% block preheader %}Your order {{ order.number }} is on its way.{% endblock %}
+
+{% block content %}
+    {# Imported in the block: Sylius renders the blocks, never the template's body. #}
+    {% import 'emails/_macros.html.twig' as mail %}
+    {{ mail.heading('Your order is on its way') }}
+    <p style="margin: 0 0 16px;">Order <strong>{{ order.number }}</strong> has shipped{% if shipment.method %} by {{ shipment.method }}{% endif %}.</p>
+
+    {% if shipment.tracking %}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 16px; background: #f2f3f5;">
+            <tr>
+                <td style="padding: 16px 20px;">
+                    <span style="font-size: 13px; color: #6b7280;">Tracking number{{ ',' in shipment.tracking ? 's' }}</span><br>
+                    <strong style="font-size: 18px; color: #1B2A5E;">{{ shipment.tracking }}</strong>
+                </td>
+            </tr>
+        </table>
+    {% endif %}
+
+    {% if order.tokenValue %}{{ mail.button(url('sylius_shop_order_show', {tokenValue: order.tokenValue}), 'View your order') }}{% endif %}
+
+    <p style="margin: 0 0 8px; font-weight: bold; color: #1B2A5E;">In this shipment</p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: collapse; font-size: 14px;">
+        {% for item in order.items %}
+            <tr>
+                <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    {{ item.productName }}
+                    {% if item.variantName and item.variantName != item.productName %}<br><span style="color: #6b7280;">{{ item.variantName }}</span>{% endif %}
+                </td>
+                <td align="right" style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Qty {{ item.quantity }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    {{ mail.help('Something not right?', 'quote order ' ~ order.number) }}
+{% endblock %}
