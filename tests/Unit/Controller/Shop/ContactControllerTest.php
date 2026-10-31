@@ -8,6 +8,7 @@ use App\Controller\Shop\ContactController;
 use App\Entity\Contact\ContactMessage;
 use App\Form\Contact\ContactRequestType;
 use App\Lead\LeadNotifier;
+use App\Mail\TeamEmailBuilder;
 use App\RateLimiting\FormSubmissionThrottle;
 use App\Tests\Unit\Controller\ControllerTestCase;
 use Doctrine\ORM\EntityManagerInterface;
@@ -236,7 +237,7 @@ final class ContactControllerTest extends ControllerTestCase
             $this->logs[] = ['error', (string) $message];
         });
 
-        $notifier = new LeadNotifier($mailer, $channelContext, $this->recordingTwig(), $logger, 'no-reply@usiscs.example');
+        $notifier = new LeadNotifier($mailer, $channelContext, new TeamEmailBuilder($this->recordingTwig()), $logger, 'no-reply@usiscs.example');
         $controller = new ContactController($entityManager, $notifier, $this->throttle);
         $this->wire($controller, $request);
 

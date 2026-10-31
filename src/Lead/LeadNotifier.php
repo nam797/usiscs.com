@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Lead;
 
+use App\Mail\TeamEmailBuilder;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
-use Symfony\Component\Mime\Email;
-use Twig\Environment;
 use Webmozart\Assert\Assert;
 
 /**
@@ -28,7 +27,7 @@ final class LeadNotifier
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly ChannelContextInterface $channelContext,
-        private readonly Environment $twig,
+        private readonly TeamEmailBuilder $emails,
         private readonly LoggerInterface $logger,
         #[Autowire(env: 'MAILER_FROM')]
         private readonly string $from,
@@ -57,12 +56,10 @@ final class LeadNotifier
         }
 
         try {
-            $this->mailer->send((new Email())
+            $this->mailer->send($this->emails->build($template, $context, $subject)
                 ->from(new Address($this->from, $channel->getName() ?? 'USISCS Website'))
                 ->to(new Address($to))
-                ->replyTo($customer)
-                ->subject($subject)
-                ->text($this->twig->render($template, $context)));
+                ->replyTo($customer));
         } catch (\Throwable $exception) {
             // Broad catch is deliberate: besides transport errors, a bad
             // address throws RfcComplianceException while building the email.

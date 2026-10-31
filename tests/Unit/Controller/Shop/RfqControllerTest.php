@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Controller\Shop;
 use App\Controller\Shop\RfqController;
 use App\Entity\Rfq\RfqRequest;
 use App\Lead\LeadNotifier;
+use App\Mail\TeamEmailBuilder;
 use App\RateLimiting\FormSubmissionThrottle;
 use App\Tests\Unit\Controller\ControllerTestCase;
 use Doctrine\ORM\EntityManagerInterface;
@@ -231,7 +232,7 @@ final class RfqControllerTest extends ControllerTestCase
             $this->logs[] = ['error', (string) $message];
         });
 
-        $notifier = new LeadNotifier($mailer, $channelContext, $this->recordingTwig(), $logger, 'no-reply@usiscs.example');
+        $notifier = new LeadNotifier($mailer, $channelContext, new TeamEmailBuilder($this->recordingTwig()), $logger, 'no-reply@usiscs.example');
         $controller = new RfqController($entityManager, $notifier, $this->throttle);
         $this->wire($controller, $request);
 

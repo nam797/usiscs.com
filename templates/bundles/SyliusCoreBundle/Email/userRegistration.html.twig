@@ -1,0 +1,13 @@
+{# Welcome email after a customer creates an account. #}
+{% extends '@SyliusCore/Email/layout.html.twig' %}
+
+{% block subject %}Welcome to US Industrial Supply{% endblock %}
+
+{% block content %}
+    {# Imported in the block: Sylius renders the blocks, never the template's body. #}
+    {% import 'emails/_macros.html.twig' as mail %}
+    {{ mail.heading('Welcome to US Industrial Supply') }}
+    <p style="margin: 0;">Your account <strong>{{ user.username }}</strong> is ready. Sign in to check out faster, see your orders and track shipments.</p>
+    {{ mail.button(url('sylius_shop_homepage'), 'Start shopping') }}
+    {{ mail.help('Need something you can\'t find? We source it.') }}
+{% endblock %}

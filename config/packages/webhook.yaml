@@ -1,0 +1,9 @@
+framework:
+    webhook:
+        routing:
+            # Postmark's delivery, bounce, spam complaint and open webhooks
+            # (/webhook/postmark), which update the sent-email log
+            # (src/Mail/Tracking). See docs/local-setup.md "Emails".
+            postmark:
+                service: App\Mail\Tracking\PostmarkWebhookParser
+                secret: '%env(POSTMARK_WEBHOOK_SECRET)%'
