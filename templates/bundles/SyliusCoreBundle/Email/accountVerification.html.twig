@@ -1,0 +1,11 @@
+{# Account verification code (API sign-ups; the shop sends SyliusShopBundle's verification email). #}
+{% extends '@SyliusCore/Email/layout.html.twig' %}
+
+{% block subject %}Confirm your email address{% endblock %}
+
+{% block content %}
+    {# Imported in the block: Sylius renders the blocks, never the template's body. #}
+    {% import 'emails/_macros.html.twig' as mail %}
+    {{ mail.heading('Confirm your email address') }}
+    <p style="margin: 0;">Your verification code: <strong>{{ user.emailVerificationToken }}</strong></p>
+{% endblock %}

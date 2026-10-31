@@ -1,0 +1,13 @@
+{# "Confirm your email address" link after a customer signs up in the shop. #}
+{% extends '@SyliusCore/Email/layout.html.twig' %}
+
+{% block subject %}Confirm your email address{% endblock %}
+
+{% block content %}
+    {# Imported in the block: Sylius renders the blocks, never the template's body. #}
+    {% import 'emails/_macros.html.twig' as mail %}
+    {{ mail.heading('Confirm your email address') }}
+    <p style="margin: 0;">Hello {{ user.username }}, please confirm this is your email address to finish setting up your account.</p>
+    {{ mail.button(url('sylius_shop_user_verification', {token: user.emailVerificationToken}), 'Confirm my email') }}
+    {{ mail.note("If you didn't create an account, you can ignore this email.") }}
+{% endblock %}
