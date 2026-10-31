@@ -474,9 +474,11 @@
   docs/local-setup.md "Emails" → Postmark setup: verify usiscs.com
   (SPF/DKIM), one Postmark server each for production and staging, set
   `env:MAILER_DSN` and `env:POSTMARK_WEBHOOK_SECRET` on each, add the
-  webhooks. Also set the channel contact email in the Sylius admin (it's
-  empty on both sites, so staff emails are skipped), then send a test quote
-  and check /backoffice → Emails shows it delivered.
+  webhooks. Then send a test quote and check /backoffice → Emails shows it
+  delivered.
+  - Staff emails go to cameron@usiscs.com: the channel contact email, set
+    on production, staging and local (2026-10-31; it was empty, so staff
+    emails were skipped). Staging still redirects them to itsupport@.
   - Staging can't send anything until it has its own `MAILER_DSN` (Upsun's
     relay is off there).
 - **ORS sync: merged (PR #37)**, waiting on ORS credentials (see below).
