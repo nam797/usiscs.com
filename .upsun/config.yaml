@@ -170,6 +170,16 @@ applications:
                 npm run build:prod
             deploy: |
                 set -e
+                # Build a throwaway cache first. A broken setting (a mistyped
+                # MAILER_DSN, say) fails the deploy here, while the site still
+                # has its old cache. Without this, the rm below left the site
+                # with no cache and every page a 500 until someone ran
+                # cache:clear by hand (2026-11-02). Upsun still opens the site
+                # after a failed hook, so check the deploy log.
+                rm -rf /tmp/cache-check
+                APP_CACHE_DIR=/tmp/cache-check bin/console cache:warmup
+                rm -rf /tmp/cache-check
+                # The cache mount outlives deploys, so clear what the old code built.
                 rm -rf var/cache/*
                 mkdir -p public/media/image
                 bin/console doctrine:database:create --if-not-exists
