@@ -12,6 +12,7 @@ use App\Entity\Shipping\ShippingMethod;
 use App\Entity\User\ShopUser;
 use App\Tests\Functional\FunctionalTestCase;
 use Sylius\Component\Core\Factory\PaymentMethodFactoryInterface;
+use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\Model\ShippingMethodInterface;
 use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\DomCrawler\Crawler;
@@ -93,10 +94,16 @@ final class CustomerJourneyTest extends FunctionalTestCase
         self::assertSame(2, $order->getItemUnits()->count());
         self::assertSame('Springfield', $order->getShippingAddress()?->getCity());
 
-        // The order page linked from the confirmation email works for the guest.
+        // The order page linked from the confirmation email works for the guest,
+        // and links the tracking once it has shipped.
+        $shipment = $order->getShipments()->first();
+        self::assertInstanceOf(ShipmentInterface::class, $shipment);
+        $shipment->setTracking('1Z999AA10123456784');
+        $this->entityManager()->flush();
         $this->client->request('GET', sprintf('/order/%s', $order->getTokenValue()));
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', (string) $order->getNumber());
+        self::assertSelectorExists('a[href="https://www.ups.com/track?tracknum=1Z999AA10123456784"]');
     }
 
     public function testALoggedInCustomerChecksOutAndSeesTheOrderInTheirAccount(): void
@@ -121,12 +128,17 @@ final class CustomerJourneyTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', 'Thank you');
 
         $order = $this->latestOrderFor(self::EMAIL);
+        $shipment = $order->getShipments()->first();
+        self::assertInstanceOf(ShipmentInterface::class, $shipment);
+        $shipment->setTracking('771234567890');
+        $this->entityManager()->flush();
         $this->client->request('GET', '/account/orders/');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', (string) $order->getNumber());
         $this->client->request('GET', sprintf('/account/orders/%s', $order->getNumber()));
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'Safety Glasses');
+        self::assertSelectorExists('a[href="https://www.fedex.com/fedextrack/?trknbr=771234567890"]');
 
         // The checkout address is saved to the address book for next time.
         $this->client->request('GET', '/account/address-book/');

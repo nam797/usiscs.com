@@ -145,6 +145,16 @@ final class AdminTest extends FunctionalTestCase
         self::assertSelectorExists('input[name$="[gatewayConfig][config][secret_key]"]');
     }
 
+    public function testAShippingMethodHasACarrier(): void
+    {
+        $this->loginAsAdmin();
+
+        $this->client->request('GET', '/admin/shipping-methods/new');
+        self::assertResponseIsSuccessful();
+        $carriers = $this->client->getCrawler()->filter('select[name$="[carrier]"] option')->each(static fn ($option): string => $option->text());
+        self::assertSame(['None', 'UPS', 'FedEx', 'USPS'], $carriers);
+    }
+
     private function loginAsAdmin(): void
     {
         $repository = static::getContainer()->get('sylius.repository.admin_user');

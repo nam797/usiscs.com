@@ -1,11 +1,12 @@
 {# WarehouseStatus as a badge. #}
+{% import 'admin/shared/_tracking.html.twig' as tracking %}
 {% set status = field.value %}
 {% if status %}
     <span class="badge badge-{{ status.badge }}">{{ status.label }}</span>
     {% if status.value == 'received' and entity.instance.receivedAt %}
         <div class="text-secondary small">{{ entity.instance.receivedAt|date('D M j') }}</div>
     {% elseif status.value == 'shipped_to_customer' %}
-        <div class="text-secondary small">{{ entity.instance.forwardedCarrier }} {{ entity.instance.forwardedTracking }}</div>
+        <div class="text-secondary small">{{ tracking.link(entity.instance.forwardedTracking, entity.instance.forwardedCarrier) }}</div>
     {% endif %}
 {% else %}
     <span class="text-secondary">-</span>

@@ -1,11 +1,12 @@
 # Just enough shipping setup to take an order through checkout locally:
-# the US country and zone, and one flat-rate shipping method on the
-# "default" channel. Real shipping rates aren't decided yet.
+# the US country and zone. The shipping methods (UPS, and FedEx switched
+# off) come from the same command production uses:
 #
 #   php -d memory_limit=-1 bin/console sylius:fixtures:load checkout_shipping -n
+#   php -d memory_limit=-1 bin/console app:shipping:setup-methods
 #
 # Adds to the database (no purge). Run it once: a second run fails on the
-# duplicate country/zone/method codes.
+# duplicate country/zone codes.
 when@dev:
     sylius_fixtures:
         suites:
@@ -19,18 +20,3 @@ when@dev:
                                     name: 'United States of America'
                                     countries: ['US']
 
-                    shipping_method:
-                        options:
-                            custom:
-                                standard:
-                                    code: 'standard'
-                                    name: 'Standard Shipping'
-                                    description: 'Flat-rate shipping for testing checkout.'
-                                    enabled: true
-                                    zone: 'US'
-                                    channels: ['default']
-                                    calculator:
-                                        type: 'flat_rate'
-                                        configuration:
-                                            default:
-                                                amount: 1500

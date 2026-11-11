@@ -47,6 +47,26 @@ sylius_twig_hooks:
                 template: 'admin/product_variant/fulfilment.html.twig'
                 priority: 500
 
+        # Carrier (UPS / FedEx) on the admin shipping method form, after the
+        # zone (100) (ShippingMethodCarrierExtension).
+        'sylius_admin.shipping_method.create.content.form.general':
+            carrier:
+                template: 'admin/shipping_method/carrier.html.twig'
+                priority: 50
+        'sylius_admin.shipping_method.update.content.form.general':
+            carrier:
+                template: 'admin/shipping_method/carrier.html.twig'
+                priority: 50
+
+        # Tracking links on the guest order page (the shipped email's "View
+        # your order"), between the header (100) and the payment form (0).
+        # The account order page shows them with the shipping method
+        # (templates/bundles/SyliusShopBundle/shared/order/show/summary/...).
+        'sylius_shop.order.show.content':
+            tracking:
+                template: 'shop/order/tracking.html.twig'
+                priority: 50
+
         # What makes a password strong enough (App\Validator\StrongPassword),
         # under the new-password field, before its confirmation.
         'sylius_shop.account.register.content.form.credentials':

@@ -110,7 +110,7 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
             PurchaseOrderState::SHIPPED,
             'Test distributor: shipped',
             ['E2E_PO_GLOVES' => ['shipped' => 2, 'backordered' => 0]],
-            [['trackingNumber' => '1ZTEST0001', 'carrier' => 'UPS GRD COML']],
+            [['trackingNumber' => '1ZTEST00010000001A', 'carrier' => 'UPS GRD COML']],
         ));
 
         $tester = new CommandTester((new Application(self::$kernel ?? throw new \LogicException()))->find('app:distributor:sync-orders'));
@@ -125,13 +125,14 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         $customerOrder = $purchaseOrder->getOrder();
         $shipment = $customerOrder->getShipments()->first();
         self::assertInstanceOf(ShipmentInterface::class, $shipment);
-        self::assertSame('1ZTEST0001', $shipment->getTracking());
+        self::assertSame('1ZTEST00010000001A', $shipment->getTracking());
         self::assertSame(ShipmentInterface::STATE_SHIPPED, $shipment->getState());
 
         self::assertEmailCount(1);
         $email = self::getMailerMessage();
         self::assertNotNull($email);
         self::assertEmailAddressContains($email, 'To', (string) $customerOrder->getCustomer()?->getEmail());
+        self::assertEmailHtmlBodyContains($email, 'https://www.ups.com/track?tracknum=1ZTEST00010000001A');
 
         // Running again changes nothing and sends nothing more.
         $tester->execute(['--no-alerts' => true]);
@@ -158,6 +159,7 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertEmailHeaderSame($email, 'Subject', sprintf('Place purchase order %s with ORS Nasco', $purchaseOrder->getNumber()));
         self::assertEmailTextBodyContains($email, 'E2E_PO_GLOVES');
         self::assertEmailTextBodyContains($email, '1 Main St');
+        self::assertEmailTextBodyContains($email, 'Ship direct to the customer by Standard');
         self::assertEmailTextBodyContains($email, sprintf('/backoffice/purchase-order/%d', $purchaseOrder->getId()));
     }
 
@@ -325,6 +327,7 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
 
         $crawler = $this->client->request('GET', sprintf('/backoffice/warehouse/%d/ship-to-customer', $crossDock->getId()));
         self::assertResponseIsSuccessful();
+        self::assertInputValueSame('carrier', 'Standard', 'pre-filled with what the customer chose');
         $this->client->submit($crawler->selectButton('Ship to customer')->form(['carrier' => 'UPS Ground', 'tracking' => '1ZOURS0001']));
         self::assertResponseRedirects();
 
