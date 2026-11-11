@@ -186,7 +186,7 @@ final class ProductRow
             throw new InvalidProductRow($problems);
         }
 
-        \assert(null !== $categoryCode && null !== $price && null !== $goLive);
+        \assert(null !== $categoryCode && null !== $price);
 
         return new self(
             ProductCode::fromSku($sku),
