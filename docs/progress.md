@@ -379,6 +379,27 @@
   - The dev `checkout_shipping` fixture suite no longer adds a method; run
     the command after it.
 
+- Postmark connected, and an outage on the way (2026-11-02):
+  - Postmark account and two servers (production, staging) set up;
+    `MAILER_DSN` and `POSTMARK_WEBHOOK_SECRET` set on both sites. The
+    webhook passwords were first set to the literal placeholders from the
+    instructions; replaced, and the placeholders are now refused (403).
+  - **Production was down (every page a 500) for about 30 minutes.** The
+    first `MAILER_DSN` was missing the `//` (`postmark+api:TOKEN@default`).
+    The deploy hook deleted the cache, then failed to rebuild it on the bad
+    value, leaving no cache. Redeploys didn't help (they reuse the build
+    and skip the hook). Fixed by correcting the value and running
+    `cache:clear` over ssh; staging had the same value and was fixed too.
+  - Deploy hook now warms a throwaway cache (`APP_CACHE_DIR=/tmp/...`)
+    before deleting the real one, so a bad setting fails the deploy and
+    keeps the old cache.
+  - First test email from staging (a contact message, to itsupport@):
+    Postmark refused it, "no-reply@usiscs.com is not a Sender Signature".
+    The domain isn't verified in Postmark yet. The failure wasn't in the
+    sent-email log either: sending went through Messenger, inside Sylius's
+    doctrine_transaction middleware, so the "failed" row was rolled back.
+    The mailer now sends directly (`message_bus: false`).
+
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
   checked against known breached passwords (Symfony's

@@ -455,7 +455,12 @@ http://127.0.0.1:8025.
    upsun variable:create -e main --level environment --name env:MAILER_DSN --sensitive true --inheritable false --value 'postmark+api://SERVER_TOKEN@default'
    upsun variable:create -e main --level environment --name env:POSTMARK_WEBHOOK_SECRET --sensitive true --inheritable false --value 'postmark:LONG_RANDOM_PASSWORD'
    ```
-   The same for `-e staging`, with the staging server's token.
+   The same for `-e staging`, with the staging server's token. The value
+   must be exactly `postmark+api://TOKEN@default`: without the `//` the
+   site can't read it ("The mailer DSN must contain a host"). To check a
+   value without showing the token:
+   `upsun ssh -e main -- 'printf "%s\n" "$MAILER_DSN" | sed -E "s/[0-9a-fA-F]/x/g"'`
+   should print `postmxrk+xpi://xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx@xxxxult`.
 5. In each Postmark server, add a webhook (transactional stream) with the
    environment's URL and that password, and tick Delivery, Bounce, Spam
    complaint and Open:
