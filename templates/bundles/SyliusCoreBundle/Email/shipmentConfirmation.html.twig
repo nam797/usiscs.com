@@ -16,7 +16,9 @@
             <tr>
                 <td style="padding: 16px 20px;">
                     <span style="font-size: 13px; color: #6b7280;">Tracking number{{ ',' in shipment.tracking ? 's' }}</span><br>
-                    <strong style="font-size: 18px; color: #1B2A5E;">{{ shipment.tracking }}</strong>
+                    {% for link in tracking_links(shipment.tracking) %}
+                        <strong style="font-size: 18px; color: #1B2A5E;">{% if link.url %}<a href="{{ link.url }}" style="color: #1B2A5E;">{{ link.number }}</a> <span style="font-size: 13px; font-weight: normal; color: #6b7280;">{{ link.carrier.label }}</span>{% else %}{{ link.number }}{% endif %}</strong>{% if not loop.last %}<br>{% endif %}
+                    {% endfor %}
                 </td>
             </tr>
         </table>

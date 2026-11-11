@@ -1,9 +1,10 @@
 {# When the distributor shipped to us (its first tracking number) and its tracking. #}
+{% import 'admin/shared/_tracking.html.twig' as tracking %}
 {% set purchase_order = entity.instance %}
 {% if purchase_order.distributorShippedAt %}
     {{ purchase_order.distributorShippedAt|date('D M j') }}
     {% for shipment in field.value %}
-        <div class="text-secondary small">{{ shipment.carrier }} {{ shipment.trackingNumber }}</div>
+        <div class="text-secondary small">{{ tracking.link(shipment.trackingNumber, shipment.carrier) }}</div>
     {% endfor %}
 {% else %}
     <span class="text-secondary">Not yet</span>

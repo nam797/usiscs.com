@@ -1,0 +1,12 @@
+{# Sylius's shipping method name, plus the tracking number(s) as carrier links once it has shipped. #}
+{% set shipment = hookable_metadata.context.shipment %}
+{% set method = shipment.method %}
+
+<div {{ sylius_test_html_attribute('shipping-method', method.code) }}>
+    {{ method.name }}
+    {% for link in tracking_links(shipment.tracking) %}
+        <div class="small" data-test-tracking>
+            {% if link.url %}<a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.carrier.label }} {{ link.number }}</a>{% else %}Tracking {{ link.number }}{% endif %}
+        </div>
+    {% endfor %}
+</div>

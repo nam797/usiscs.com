@@ -1,3 +1,5 @@
-{# The shop order, linking to its page in the Sylius admin. #}
+{# The shop order, linking to its page in the Sylius admin, and the shipping the customer chose (on the detail page). #}
 {% set order = entity.instance.order %}
+{% set method = order.shipments.first ? order.shipments.first.method : null %}
 <a href="{{ path('sylius_admin_order_show', {id: order.id}) }}">#{{ order.number }}</a>
+{% if method and ea().crud.currentAction == 'detail' %}<div class="text-secondary">Customer chose {{ method.name }}</div>{% endif %}

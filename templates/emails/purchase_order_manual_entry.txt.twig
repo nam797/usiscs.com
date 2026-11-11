@@ -7,7 +7,8 @@ Shop order: #{{ order.number }}
 Ship to: OUR WAREHOUSE (cross-dock). We ship it on to the customer.
 {% else %}
 {% set address = order.shippingAddress %}
-Ship direct to the customer:
+{% set method = order.shipments.first ? order.shipments.first.method : null %}
+Ship direct to the customer{% if method %} by {{ method.name }} (what they chose and paid for at checkout){% endif %}:
 {% if address %}
 {{ address.fullName }}{% if address.company %}, {{ address.company }}{% endif %}
 

@@ -1,0 +1,6 @@
+{# A tracking number with its carrier, linked to the carrier's tracking page when we know it (App\Shipping\TrackingLink). #}
+{% macro link(number, carrier) %}
+    {%- for link in tracking_links(number, carrier) -%}
+        {{ carrier }} {% if link.url %}<a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.number }}</a>{% else %}{{ link.number }}{% endif %}
+    {%- endfor -%}
+{% endmacro %}

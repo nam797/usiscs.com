@@ -25,7 +25,11 @@
         {% elseif name == 'ship_to_customer' %}
             <div class="mb-3">
                 <label class="form-label required" for="carrier">Carrier</label>
-                <input class="form-control" type="text" id="carrier" name="carrier" maxlength="100" required placeholder="UPS Ground" value="{{ app.request.request.get('carrier') }}">
+                <input class="form-control" type="text" id="carrier" name="carrier" maxlength="100" required placeholder="UPS Ground" list="carrier_services" value="{{ app.request.request.get('carrier', customer_shipping_method) }}">
+                <datalist id="carrier_services">
+                    {% for service in carrier_services %}<option value="{{ service }}">{% endfor %}
+                </datalist>
+                {% if customer_shipping_method %}<div class="form-text">The customer chose {{ customer_shipping_method }} at checkout.</div>{% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label required" for="tracking">Tracking number</label>
