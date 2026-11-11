@@ -509,11 +509,12 @@
     back-order/cancel policy, a cost guard at submit, and a customer PO
     field at checkout.
   - On Upsun, check the worker's resources after the first deploy.
-- **Shipping (UPS / FedEx):** after deploying, run
-  `upsun ssh -- php -d memory_limit=-1 bin/console app:shipping:setup-methods`
-  on staging and production. Then the client sets the real fees in Sylius
-  admin → Shipping methods, and enables FedEx if they want it (add to the
-  client agenda). Phase 2, once the client has a UPS account: buy labels
+- **Shipping (UPS / FedEx):** `app:shipping:setup-methods` ran on
+  production and staging (2026-11-11): UPS Ground / 2nd Day Air / Next Day
+  Air on, the three FedEx methods off, the `standard` test method off. Fees
+  are still the $15 / $35 / $60 placeholders. Next, the client sets the
+  real fees in Sylius admin → Shipping methods, and enables FedEx if they
+  want it (add to the client agenda). Phase 2, once the client has a UPS account: buy labels
   for cross-dock orders from the warehouse page (UPS REST API, FedEx later
   behind the same interface; staff enter weight and size). Live checkout
   rates would need weights on every SKU first.
@@ -607,8 +608,7 @@
   - Next:
     - Re-enter the Stripe test keys (with "use authorize" on) in each
       site's admin.
-    - Shipping: run `app:shipping:setup-methods` and have the client set
-      the fees (see Shipping under Next step).
+    - Shipping: the client sets the fees (see Shipping under Next step).
   - Test data cleared on production (2026-10-30), with a backup taken
     first.
     - Removed: all 9 orders and their purchase orders, all 8 customers and
