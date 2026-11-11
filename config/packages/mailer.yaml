@@ -1,6 +1,12 @@
 framework:
     mailer:
         dsn: '%env(MAILER_DSN)%'
+        # Send straight away, not through Messenger. Through the bus, each
+        # email ran inside Sylius's doctrine_transaction middleware, so when
+        # the provider refused one, the failed row SentEmailRecorder wrote to
+        # app_sent_email was rolled back with it. Nothing was queued anyway:
+        # email isn't routed to a Messenger transport.
+        message_bus: false
 
 when@test: &mailer_test
     framework:
