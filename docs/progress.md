@@ -355,6 +355,29 @@
     `/webhook/postmark`, Basic auth only (`POSTMARK_WEBHOOK_SECRET`);
     Symfony's IP check is dropped since there are no trusted proxies.
   - Added `symfony/postmark-mailer` and `symfony/webhook`.
+- UPS / FedEx shipping, phase 1 (2026-11-11): flat fees per carrier
+  service. No live carrier rates: no SKU has a weight, ORS ships most orders
+  from its own warehouses and bills its freight, and neither carrier account
+  exists yet.
+  - `app:shipping:setup-methods` (idempotent, not run on deploy) creates UPS
+    Ground / 2nd Day Air / Next Day Air (enabled) and FedEx Ground / 2Day /
+    Standard Overnight (disabled), flat rate on every channel, US zone, and
+    disables the `standard` test method the first time. Fees are
+    placeholders ($15 / $35 / $60); the client sets them in Sylius admin →
+    Shipping methods. Offering FedEx = ticking Enabled on its methods.
+  - New `carrier` on shipping methods (`App\Shipping\Carrier`), with a field
+    on the admin form.
+  - Tracking numbers link to the carrier (`App\Shipping\TrackingLink`, Twig
+    `tracking_links()`): read from the number (1Z… UPS, 12/15/20/22 digits
+    FedEx, USPS), or from a stored carrier name. In the shipped email,
+    the customer's account order page, the guest order page the email links
+    to, and the admin purchase order, warehouse and order pages.
+  - Warehouse "Ship to customer" pre-fills the carrier with what the customer
+    chose at checkout, with the carrier services as suggestions. The ORS
+    "place this order" email and the purchase order page show the
+    customer's choice.
+  - The dev `checkout_shipping` fixture suite no longer adds a method; run
+    the command after it.
 
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
@@ -465,10 +488,14 @@
     back-order/cancel policy, a cost guard at submit, and a customer PO
     field at checkout.
   - On Upsun, check the worker's resources after the first deploy.
-- **Real shipping rates** (decide with the client): the only method is the
-  $15 flat-rate test one, local only. Check production has a shipping method
-  and a US zone (Sylius admin → Shipping methods); checkout can't finish
-  without one.
+- **Shipping (UPS / FedEx):** after deploying, run
+  `upsun ssh -- php -d memory_limit=-1 bin/console app:shipping:setup-methods`
+  on staging and production. Then the client sets the real fees in Sylius
+  admin → Shipping methods, and enables FedEx if they want it (add to the
+  client agenda). Phase 2, once the client has a UPS account: buy labels
+  for cross-dock orders from the warehouse page (UPS REST API, FedEx later
+  behind the same interface; staff enter weight and size). Live checkout
+  rates would need weights on every SKU first.
 - **Waiting on the client: Postmark** (emails, branding and tracking are
   done). Client is setting up Postmark (sent 2026-10-26). Then follow
   docs/local-setup.md "Emails" → Postmark setup: verify usiscs.com
@@ -559,8 +586,8 @@
   - Next:
     - Re-enter the Stripe test keys (with "use authorize" on) in each
       site's admin.
-    - Decide real shipping rates. The only method is still the $15
-      flat-rate test one (`standard`), kept so checkout works.
+    - Shipping: run `app:shipping:setup-methods` and have the client set
+      the fees (see Shipping under Next step).
   - Test data cleared on production (2026-10-30), with a backup taken
     first.
     - Removed: all 9 orders and their purchase orders, all 8 customers and

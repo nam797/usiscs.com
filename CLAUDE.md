@@ -30,6 +30,8 @@ GitHub: nam797/usiscs.com
   `src/Distributor/` (one adapter per distributor), entities in
   `src/Entity/Procurement/`, state machine in `config/packages/workflow.yaml`,
   worker `messenger:consume distributor`; see docs/local-setup.md
+- Shipping: flat-fee UPS / FedEx methods (`app:shipping:setup-methods`),
+  carrier on shipping methods and tracking links in `src/Shipping/`
 - Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius
   admin; see docs/local-setup.md "Payments (Stripe)")
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`

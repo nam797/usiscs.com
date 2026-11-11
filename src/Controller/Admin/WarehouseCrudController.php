@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Admin\Filter\WarehouseStatusFilter;
 use App\Catalog\Fulfilment\Fulfilment;
+use App\Command\SetupShippingMethodsCommand;
 use App\Distributor\CustomerShipmentUpdater;
 use App\Distributor\DistributorRegistry;
 use App\Distributor\PurchaseOrderState;
@@ -32,6 +33,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Sylius\Component\Core\Model\AdminUserInterface;
+use Sylius\Component\Core\Model\ShipmentInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -230,6 +232,8 @@ class WarehouseCrudController extends AbstractCrudController
             'help' => $help,
             'error' => $error,
             'detail_url' => $detailUrl,
+            'customer_shipping_method' => self::customerShippingMethod($purchaseOrder),
+            'carrier_services' => array_column(SetupShippingMethodsCommand::METHODS, 'name'),
         ]);
     }
 
@@ -238,6 +242,14 @@ class WarehouseCrudController extends AbstractCrudController
         $purchaseOrder->markForwarded($carrier, $tracking, $this->actor(), $note);
         $order = $purchaseOrder->getOrder();
         $this->customerShipments->update($order, $this->purchaseOrders->findForOrder($order));
+    }
+
+    /** What the customer chose at checkout ("UPS Ground"), to pre-fill the carrier when we ship it on. */
+    private static function customerShippingMethod(PurchaseOrder $purchaseOrder): ?string
+    {
+        $shipment = $purchaseOrder->getOrder()->getShipments()->first();
+
+        return $shipment instanceof ShipmentInterface ? $shipment->getMethod()?->getName() : null;
     }
 
     /** "2026-10-30" from the date input; null when it isn't a real date. */

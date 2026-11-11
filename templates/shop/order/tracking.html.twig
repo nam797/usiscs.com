@@ -1,0 +1,10 @@
+{# Shipping and tracking on the order page the shipped email links to (sylius_shop_order_show), which Sylius only uses for paying. #}
+{% set order = hookable_metadata.context.order %}
+{% for shipment in order.shipments|filter(shipment => shipment.tracking) %}
+    <div class="mb-4">
+        <h2 class="h5">Shipped{% if shipment.method %} by {{ shipment.method.name }}{% endif %}</h2>
+        {% for link in tracking_links(shipment.tracking) %}
+            <div>{% if link.url %}<a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.carrier.label }} {{ link.number }}</a>{% else %}Tracking {{ link.number }}{% endif %}</div>
+        {% endfor %}
+    </div>
+{% endfor %}
