@@ -405,8 +405,12 @@
   7.4.23 patch releases (config, filesystem, framework-bundle, http-client,
   http-foundation, http-kernel, mime, routing, security-http, serializer,
   validator, yaml and their dependencies) and paragonie/halite 5.1.5. Audit
-  is clean. CI's security check is `continue-on-error`, so it never fails a
-  build: run `composer audit` after dependency changes.
+  is clean.
+- CI security check fails the build (2026-11-12): the static checks run
+  `composer audit --locked --abandoned=report` instead of a
+  `continue-on-error` `symfony security:check`. A new advisory turns every PR
+  red until it's fixed (update the package through staging) or deliberately
+  accepted (its ID and a reason under `config.audit.ignore` in composer.json).
 
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
