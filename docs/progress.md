@@ -529,10 +529,13 @@
   Air on, the three FedEx methods off, the `standard` test method off. Fees
   are still the $15 / $35 / $60 placeholders. Next, the client sets the
   real fees in Sylius admin → Shipping methods, and enables FedEx if they
-  want it (add to the client agenda). Phase 2, once the client has a UPS account: buy labels
-  for cross-dock orders from the warehouse page (UPS REST API, FedEx later
-  behind the same interface; staff enter weight and size). Live checkout
-  rates would need weights on every SKU first.
+  want it. These are on the client agenda doc (updated 2026-11-12): a fee
+  table per service, FedEx yes/no, free shipping over a set total, and
+  whether they have or will open a UPS account. Phase 2, once the client
+  has a UPS account: buy labels for cross-dock orders from the warehouse
+  page (UPS REST API, FedEx later behind the same interface; staff enter
+  weight and size). Live checkout rates would need weights on every SKU
+  first.
 - **Waiting on the client: Postmark** (emails, branding and tracking are
   done). Client is setting up Postmark (sent 2026-10-26). Then follow
   docs/local-setup.md "Emails" → Postmark setup: verify usiscs.com
@@ -641,4 +644,7 @@
     their processors, pricing, volume and priority.
   - One client agenda doc covering every open question (pricing, shipping,
     fulfilment and ORS, payments, launch): https://claude.ai/artifact/GDf5iq1FnYdA7fqjEkdGuy
+    It's a Claude Doc (edit it with the docs tools, not the artifact tools).
+    Shipping section updated 2026-11-12 for the UPS / FedEx flat fees; as-of
+    date moved to 2026-11-12.
 - Dependabot #21 (phpstan 2.3.1) stuck waiting on rebase.
