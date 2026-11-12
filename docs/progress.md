@@ -400,6 +400,14 @@
     doctrine_transaction middleware, so the "failed" row was rolled back.
     The mailer now sends directly (`message_bus: false`).
 
+- Security updates (2026-11-12): `composer audit` found 20 advisories in 13
+  packages. Updated only those packages and what they need: Symfony 7.4.22 /
+  7.4.23 patch releases (config, filesystem, framework-bundle, http-client,
+  http-foundation, http-kernel, mime, routing, security-http, serializer,
+  validator, yaml and their dependencies) and paragonie/halite 5.1.5. Audit
+  is clean. CI's security check is `continue-on-error`, so it never fails a
+  build: run `composer audit` after dependency changes.
+
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
   checked against known breached passwords (Symfony's
