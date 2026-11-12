@@ -7,10 +7,10 @@ permissions:
     contents: read
 
 jobs:
-    # Turns on GitHub auto-merge for Dependabot patch/minor bumps. The merge
-    # itself only happens once main's required status checks pass (branch
-    # protection), so a bump can't land while CI is red. Major bumps are left
-    # for a human to review.
+    # Turns on GitHub auto-merge for Dependabot patch/minor bumps (they target
+    # staging, see .github/dependabot.yml). The merge itself only happens once
+    # staging's required status checks pass (branch protection), so a bump
+    # can't land while CI is red. Major bumps are left for a human to review.
     auto-merge:
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         permissions:
