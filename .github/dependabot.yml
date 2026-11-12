@@ -2,6 +2,8 @@ version: 2
 updates:
 - package-ecosystem: composer
   directory: "/"
+  # Bumps go to staging first, like every change; staging → main is a release.
+  target-branch: staging
   schedule:
     interval: daily
     time: "10:00"
