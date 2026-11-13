@@ -412,6 +412,27 @@
   red until it's fixed (update the package through staging) or deliberately
   accepted (its ID and a reason under `config.audit.ignore` in composer.json).
 
+- Package protection (2026-11-13): an add-on fee at checkout covering loss,
+  damage or theft, priced by cart total; the client pays claims, handled by
+  staff.
+  - Tiers in Backoffice → Package protection (`PackageProtectionTier`): a
+    cart pays the fee of the highest "cart total from" it reaches (items
+    total after discounts, before shipping). Below the lowest tier: not offered.
+  - On/off per channel: Sylius admin → Channels → "Offer package
+    protection" (`sylius_channel.package_protection_enabled`), off by default.
+  - Checkout shipping step: a box, **ticked by default** (opt-out, the
+    client's choice), labelled with the fee. The choice is on the order
+    (`sylius_order.package_protection`, null = ticked).
+  - Charged as an order adjustment (`package_protection`) by
+    `PackageProtectionOrderProcessor` (priority 15: after promotions, before
+    taxes and payment), from the shipping step on. Shown in the checkout
+    totals, the order page, the confirmation email and the Sylius admin
+    order summary (Protected + fee, or Declined).
+  - Stripe Checkout: the plugin only sends items and shipping, so
+    `PackageProtectionLineItemProvider` adds a "Package protection" line item;
+    the Stripe total matches the order total.
+  - Not done: an admin order list filter for protected orders.
+
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
   checked against known breached passwords (Symfony's
@@ -533,6 +554,14 @@
   for cross-dock orders from the warehouse page (UPS REST API, FedEx later
   behind the same interface; staff enter weight and size). Live checkout
   rates would need weights on every SKU first.
+- **Package protection:** built, off on both sites. On staging: add tiers
+  (Backoffice → Package protection), turn on "Offer package protection" for
+  the channel, then check out with Stripe in test mode and confirm the Stripe
+  page shows the line and the charge equals the order total. Client to
+  give: the tier amounts, the checkbox wording, and a protection policy for
+  /terms (what's covered, how to claim, time limit). Opt-out add-on fees
+  are restricted in some states; the client should confirm the ticked
+  default with whoever handles their legal. Add these to the client agenda.
 - **Waiting on the client: Postmark** (emails, branding and tracking are
   done). Client is setting up Postmark (sent 2026-10-26). Then follow
   docs/local-setup.md "Emails" → Postmark setup: verify usiscs.com

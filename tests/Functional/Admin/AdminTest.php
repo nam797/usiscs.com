@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Admin;
 use App\Entity\Contact\ContactMessage;
 use App\Entity\Rfq\RfqLineItem;
 use App\Entity\Rfq\RfqRequest;
+use App\Entity\Shipping\PackageProtectionTier;
 use App\Tests\Functional\FunctionalTestCase;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\User\Repository\UserRepositoryInterface;
@@ -153,6 +154,35 @@ final class AdminTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
         $carriers = $this->client->getCrawler()->filter('select[name$="[carrier]"] option')->each(static fn ($option): string => $option->text());
         self::assertSame(['None', 'UPS', 'FedEx', 'USPS'], $carriers);
+    }
+
+    public function testStaffSetPackageProtectionPricesAndTheChannelSwitch(): void
+    {
+        $this->loginAsAdmin();
+        $entityManager = $this->entityManager();
+        $entityManager->createQuery('DELETE FROM '.PackageProtectionTier::class)->execute();
+
+        $crawler = $this->client->request('GET', '/backoffice/package-protection-tier/new');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('form[name="PackageProtectionTier"]')->form();
+        $form['PackageProtectionTier[minItemsTotal]'] = '100.00';
+        $form['PackageProtectionTier[fee]'] = '4.95';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $tier = $entityManager->getRepository(PackageProtectionTier::class)->findOneBy([]);
+        self::assertInstanceOf(PackageProtectionTier::class, $tier);
+        self::assertSame(10000, $tier->getMinItemsTotal());
+        self::assertSame(495, $tier->getFee());
+        $entityManager->remove($tier);
+        $entityManager->flush();
+
+        $this->client->request('GET', '/admin/channels/');
+        self::assertResponseIsSuccessful();
+        $edit = $this->client->getCrawler()->filter('a[href*="/admin/channels/"][href$="/edit"]')->first()->attr('href');
+        $this->client->request('GET', (string) $edit);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('input[name$="[packageProtectionEnabled]"]');
     }
 
     private function loginAsAdmin(): void

@@ -1,0 +1,10 @@
+{# The package protection box under the shipping methods (PackageProtectionCheckoutExtension); absent when it isn't offered. #}
+{% set form = hookable_metadata.context.form %}
+{% if form.packageProtection is defined %}
+    <div class="card border-0 bg-body-tertiary mb-5" data-test-package-protection>
+        <div class="card-body">
+            {{ form_row(form.packageProtection) }}
+            <div class="form-text">Covers the shipment if it's lost, damaged or stolen in transit. Untick it if you don't want it.</div>
+        </div>
+    </div>
+{% endif %}

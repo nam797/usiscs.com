@@ -41,6 +41,12 @@
         <td colspan="2" align="right" style="padding: 2px 8px;">Shipping</td>
         <td align="right" style="padding: 2px 0; white-space: nowrap;">{{ order.shippingTotal|sylius_format_money(money, localeCode) }}</td>
     </tr>
+    {% if order.packageProtectionTotal is defined and order.packageProtectionTotal != 0 %}
+        <tr>
+            <td colspan="2" align="right" style="padding: 2px 8px;">Package protection</td>
+            <td align="right" style="padding: 2px 0; white-space: nowrap;">{{ order.packageProtectionTotal|sylius_format_money(money, localeCode) }}</td>
+        </tr>
+    {% endif %}
     {% if order.taxTotal != 0 %}
         <tr>
             <td colspan="2" align="right" style="padding: 2px 8px;">Tax</td>
