@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Controller\Admin;
 use App\Controller\Admin\ContactMessageCrudController;
 use App\Controller\Admin\DashboardController;
 use App\Controller\Admin\DistributorSettingCrudController;
+use App\Controller\Admin\PackageProtectionTierCrudController;
 use App\Controller\Admin\PurchaseOrderCrudController;
 use App\Controller\Admin\RfqRequestCrudController;
 use App\Controller\Admin\SentEmailCrudController;
@@ -48,14 +49,15 @@ final class DashboardControllerTest extends TestCase
             $labels[] = $label;
         }
 
-        self::assertSame(['Dashboard', 'RFQ Requests', 'Contact Messages', 'Warehouse', 'Purchase Orders', 'Distributors', 'Sources', 'Emails', 'Sylius Admin (catalog, orders)'], $labels);
+        self::assertSame(['Dashboard', 'RFQ Requests', 'Contact Messages', 'Warehouse', 'Purchase Orders', 'Distributors', 'Sources', 'Package protection', 'Emails', 'Sylius Admin (catalog, orders)'], $labels);
         self::assertSame(RfqRequestCrudController::class, $items[1]->getRouteParameters()['crudControllerFqcn'] ?? null);
         self::assertSame(ContactMessageCrudController::class, $items[2]->getRouteParameters()['crudControllerFqcn'] ?? null);
         self::assertSame(PurchaseOrderCrudController::class, $items[4]->getRouteParameters()['crudControllerFqcn'] ?? null);
         self::assertSame(DistributorSettingCrudController::class, $items[5]->getRouteParameters()['crudControllerFqcn'] ?? null);
         self::assertSame(SupplierItemCrudController::class, $items[6]->getRouteParameters()['crudControllerFqcn'] ?? null);
-        self::assertSame(SentEmailCrudController::class, $items[7]->getRouteParameters()['crudControllerFqcn'] ?? null);
-        self::assertSame('/admin', $items[8]->getLinkUrl());
+        self::assertSame(PackageProtectionTierCrudController::class, $items[7]->getRouteParameters()['crudControllerFqcn'] ?? null);
+        self::assertSame(SentEmailCrudController::class, $items[8]->getRouteParameters()['crudControllerFqcn'] ?? null);
+        self::assertSame('/admin', $items[9]->getLinkUrl());
 
         $warehouse = array_map(static fn ($item) => $item, $items[3]->getSubItems());
         self::assertSame(['Coming in', 'Due in the next 7 days', 'Overdue', 'Received, to ship on', 'All cross-dock'], array_map(static fn ($item): mixed => $item->getLabel(), $warehouse));

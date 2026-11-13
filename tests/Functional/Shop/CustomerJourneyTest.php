@@ -8,6 +8,7 @@ use App\Entity\Addressing\Zone;
 use App\Entity\Channel\Channel;
 use App\Entity\Order\Order;
 use App\Entity\Payment\PaymentMethod;
+use App\Entity\Shipping\PackageProtectionTier;
 use App\Entity\Shipping\ShippingMethod;
 use App\Entity\User\ShopUser;
 use App\Tests\Functional\FunctionalTestCase;
@@ -16,6 +17,7 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\Model\ShippingMethodInterface;
 use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -50,6 +52,64 @@ final class CustomerJourneyTest extends FunctionalTestCase
         $this->ensureOfflinePaymentMethod();
     }
 
+    protected function tearDown(): void
+    {
+        $this->setPackageProtection(false, []);
+        parent::tearDown();
+    }
+
+    public function testPackageProtectionStartsTickedAndIsChargedByCartTotal(): void
+    {
+        $this->setPackageProtection(true, [0 => 295, 2000 => 495]);
+        $this->addToCart('safety-glasses', 2); // 2 × $12.99 = $25.98: the $20+ tier
+
+        $crawler = $this->checkOutToShippingStep('guest-journey@example.test');
+        $box = $crawler->filter('input[name="sylius_shop_checkout_select_shipping[packageProtection]"]');
+        self::assertCount(1, $box);
+        self::assertSame('checked', $box->attr('checked'), 'ticked until the customer unticks it');
+        self::assertSelectorTextContains('[data-test-package-protection]', '$4.95');
+
+        $this->client->submit($crawler->filter('form[name="sylius_shop_checkout_select_shipping"]')->form());
+        self::assertResponseRedirects('/checkout/select-payment');
+        $emails = $this->completeWithOfflinePayment(true);
+
+        $order = $this->latestOrderFor('guest-journey@example.test');
+        self::assertSame(495, $order->getPackageProtectionTotal());
+        self::assertSame(2598 + 1500 + 495, $order->getTotal());
+        self::assertSame($order->getTotal(), $order->getLastPayment()?->getAmount(), 'the customer pays for it');
+
+        $confirmation = null;
+        foreach ($emails as $message) {
+            if (str_contains((string) $message->getSubject(), (string) $order->getNumber())) {
+                $confirmation = $message;
+            }
+        }
+        self::assertNotNull($confirmation, 'order confirmation sent');
+        self::assertStringContainsString('Package protection', (string) $confirmation->getHtmlBody());
+        self::assertStringContainsString('$4.95', (string) $confirmation->getHtmlBody());
+    }
+
+    public function testUntickingPackageProtectionRemovesTheFee(): void
+    {
+        $this->setPackageProtection(true, [0 => 295, 2000 => 495]);
+        $this->addToCart('safety-glasses', 1); // $12.99: the lowest tier
+
+        $crawler = $this->checkOutToShippingStep('guest-journey@example.test');
+        self::assertSelectorTextContains('[data-test-package-protection]', '$2.95');
+        $form = $crawler->filter('form[name="sylius_shop_checkout_select_shipping"]')->form();
+        $box = $form['sylius_shop_checkout_select_shipping[packageProtection]'];
+        self::assertInstanceOf(ChoiceFormField::class, $box);
+        $box->untick();
+        $this->client->submit($form);
+        self::assertResponseRedirects('/checkout/select-payment');
+        $this->completeWithOfflinePayment(false);
+
+        $order = $this->latestOrderFor('guest-journey@example.test');
+        self::assertSame(0, $order->getPackageProtectionTotal());
+        self::assertFalse($order->wantsPackageProtection());
+        self::assertSame(1299 + 1500, $order->getTotal());
+    }
+
     public function testAGuestBuysFromAProductPageToTheThankYouPage(): void
     {
         $this->addToCart('safety-glasses', 2);
@@ -67,6 +127,7 @@ final class CustomerJourneyTest extends FunctionalTestCase
 
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('body', 'Standard');
+        self::assertSelectorNotExists('[data-test-package-protection]', 'not offered while the channel switch is off');
         $this->client->submit($crawler->filter('form[name="sylius_shop_checkout_select_shipping"]')->form());
         self::assertResponseRedirects('/checkout/select-payment');
 
@@ -288,6 +349,54 @@ final class CustomerJourneyTest extends FunctionalTestCase
         self::assertResponseStatusCodeSame(404);
         self::assertSelectorExists('a[href="/"]');
         self::assertSelectorExists('a[href="/contact"]');
+    }
+
+    /** @param array<int, int> $tiers cart total from (cents) => fee (cents) */
+    private function setPackageProtection(bool $enabled, array $tiers): void
+    {
+        $entityManager = $this->entityManager();
+        $entityManager->createQuery('DELETE FROM '.PackageProtectionTier::class)->execute();
+        foreach ($tiers as $from => $fee) {
+            $entityManager->persist(new PackageProtectionTier($from, $fee));
+        }
+        $channel = $entityManager->getRepository(Channel::class)->findOneBy(['code' => 'default']);
+        self::assertInstanceOf(Channel::class, $channel);
+        $channel->setPackageProtectionEnabled($enabled);
+        $entityManager->flush();
+    }
+
+    private function checkOutToShippingStep(string $email): Crawler
+    {
+        $this->client->request('GET', '/checkout/');
+        $crawler = $this->client->followRedirect();
+        $form = $crawler->filter('form[name="sylius_shop_checkout_address"]')->form();
+        $this->client->submit($form, ['sylius_shop_checkout_address[customer][email]' => $email] + self::address('billingAddress'));
+        self::assertResponseRedirects('/checkout/select-shipping');
+
+        return $this->client->followRedirect();
+    }
+
+    /** @return list<Email> the emails sent when the order was placed */
+    private function completeWithOfflinePayment(bool $protected): array
+    {
+        $crawler = $this->client->followRedirect();
+        $form = $crawler->filter('form[name="sylius_shop_checkout_select_payment"]')->form();
+        $form['sylius_shop_checkout_select_payment[payments][0][method]'] = 'e2e_offline';
+        $this->client->submit($form);
+        $crawler = $this->client->followRedirect();
+        if ($protected) {
+            self::assertSelectorTextContains('[data-test-package-protection-total]', 'Package protection', 'on the review page');
+        } else {
+            self::assertSelectorNotExists('[data-test-package-protection-total]');
+        }
+        $this->client->submit($crawler->filter('form[name="sylius_checkout_complete"]')->form());
+        $emails = array_values(array_filter(self::getMailerMessages(), static fn ($message): bool => $message instanceof Email));
+        while ($this->client->getResponse()->isRedirect()) {
+            $this->client->followRedirect();
+        }
+        self::assertSelectorTextContains('body', 'Thank you');
+
+        return $emails;
     }
 
     private function addToCart(string $slug, int $quantity): void

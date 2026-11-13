@@ -67,6 +67,36 @@ sylius_twig_hooks:
                 template: 'shop/order/tracking.html.twig'
                 priority: 50
 
+        # Package protection box on the checkout shipping step, between the
+        # shipping methods (100) and the buttons (0)
+        # (PackageProtectionCheckoutExtension).
+        'sylius_shop.checkout.select_shipping.content.form':
+            package_protection:
+                template: 'shop/checkout/package_protection.html.twig'
+                priority: 50
+
+        # Package protection in the totals, under shipping (200) and above
+        # taxes (100), once it's charged.
+        'sylius_shop.checkout.common.sidebar.summary.total':
+            package_protection:
+                template: 'shop/checkout/package_protection_total.html.twig'
+                priority: 150
+        'sylius_shop.shared.order.show.summary.table_summary':
+            package_protection:
+                template: 'shop/order/package_protection_total.html.twig'
+                priority: 150
+
+        # "Offer package protection" in the money section of the admin
+        # channel form, last (ChannelPackageProtectionExtension).
+        'sylius_admin.channel.create.content.form.sections.money':
+            package_protection:
+                template: 'admin/channel/package_protection.html.twig'
+                priority: -100
+        'sylius_admin.channel.update.content.form.sections.money':
+            package_protection:
+                template: 'admin/channel/package_protection.html.twig'
+                priority: -100
+
         # What makes a password strong enough (App\Validator\StrongPassword),
         # under the new-password field, before its confirmation.
         'sylius_shop.account.register.content.form.credentials':
@@ -121,6 +151,13 @@ sylius_twig_hooks:
             form_errors:
                 template: 'shop/form/form_errors.html.twig'
                 priority: 1000
+
+        # Package protection in the admin order summary, under shipping (100):
+        # protected (and the fee) or declined, for claims.
+        'sylius_admin.order.show.content.sections.summary':
+            package_protection:
+                template: 'admin/order/show/package_protection.html.twig'
+                priority: 50
 
         # Purchase orders to distributors, under Shipments (priority 0) on
         # the admin order page.
