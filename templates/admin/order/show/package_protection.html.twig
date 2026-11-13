@@ -1,0 +1,14 @@
+{# Package protection in the admin order summary, under shipping: whether a lost or damaged shipment is covered (claims are handled by staff). #}
+{% import '@SyliusAdmin/shared/helper/money.html.twig' as money %}
+{% set order = hookable_metadata.context.resource %}
+{% if order.packageProtectionTotal is defined and order.packageProtectionTotal != 0 %}
+    <tr data-test-package-protection>
+        <td><strong>Package protection:</strong></td>
+        <td class="text-end"><span class="badge bg-green-lt me-1">Protected</span>{{ money.format(order.packageProtectionTotal, order.currencyCode) }}</td>
+    </tr>
+{% elseif order.packageProtection is defined and not order.packageProtection %}
+    <tr data-test-package-protection>
+        <td><strong>Package protection:</strong></td>
+        <td class="text-end text-secondary">Declined</td>
+    </tr>
+{% endif %}

@@ -1,0 +1,9 @@
+{# Package protection in the order summary totals (order page, checkout review), under shipping. #}
+{% import "@SyliusShop/shared/macro/money.html.twig" as money %}
+{% set order = hookable_metadata.context.order %}
+{% if order.packageProtectionTotal is defined and order.packageProtectionTotal != 0 %}
+    <tr data-test-package-protection-total>
+        <td class="text-end w-75">Package protection:</td>
+        <td class="text-end">{{ money.convertAndFormat(order.packageProtectionTotal) }}</td>
+    </tr>
+{% endif %}

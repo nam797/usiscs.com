@@ -182,9 +182,14 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', 'Fulfilment is not confirmed');
         self::assertSelectorTextContains('body', 'E2E_PO_GLOVES');
 
+        $declined = $this->entityManager()->find(Order::class, $order->getId());
+        self::assertInstanceOf(Order::class, $declined);
+        $declined->setPackageProtection(false);
+        $this->entityManager()->flush();
         $this->client->request('GET', sprintf('/admin/orders/%d', $order->getId()));
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', (string) $purchaseOrder->getNumber());
+        self::assertSelectorTextContains('[data-test-package-protection]', 'Declined', 'staff see it isn\'t covered');
 
         // Fix the fulfilment in the backoffice, then retry.
         $crawler = $this->client->request('GET', sprintf('/backoffice/purchase-order/%d/edit', $id));

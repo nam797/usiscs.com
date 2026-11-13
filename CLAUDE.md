@@ -32,6 +32,9 @@ GitHub: nam797/usiscs.com
   worker `messenger:consume distributor`; see docs/local-setup.md
 - Shipping: flat-fee UPS / FedEx methods (`app:shipping:setup-methods`),
   carrier on shipping methods and tracking links in `src/Shipping/`
+- Package protection (checkout add-on priced by cart-total tiers):
+  `src/Shipping/PackageProtection/`, tiers in the backoffice, Stripe line
+  item in `src/Payment/Stripe/`
 - Payments: Stripe only (flux-se/sylius-stripe-plugin, set up in the Sylius
   admin; see docs/local-setup.md "Payments (Stripe)")
 - Spam/abuse: `src/RateLimiting/FormSubmissionThrottle.php`
