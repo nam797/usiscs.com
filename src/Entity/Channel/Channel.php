@@ -11,4 +11,17 @@ use Sylius\Component\Core\Model\Channel as BaseChannel;
 #[ORM\Table(name: 'sylius_channel')]
 class Channel extends BaseChannel
 {
+    /** Offer package protection at checkout (priced by PackageProtectionTier). */
+    #[ORM\Column(name: 'package_protection_enabled', type: 'boolean', options: ['default' => false])]
+    private bool $packageProtectionEnabled = false;
+
+    public function isPackageProtectionEnabled(): bool
+    {
+        return $this->packageProtectionEnabled;
+    }
+
+    public function setPackageProtectionEnabled(bool $packageProtectionEnabled): void
+    {
+        $this->packageProtectionEnabled = $packageProtectionEnabled;
+    }
 }
