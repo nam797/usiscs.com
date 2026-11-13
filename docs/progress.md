@@ -432,6 +432,14 @@
     `PackageProtectionLineItemProvider` adds a "Package protection" line item;
     the Stripe total matches the order total.
   - Not done: an admin order list filter for protected orders.
+  - Released to production 2026-11-13 (PR #99), switched off there: no tiers,
+    channel switch off (checked in the database).
+- Releases 2026-11-11 to 2026-11-13, all staging → main and live on both
+  sites, `main` and `staging` identical after each: shipping methods +
+  tracking links (#86), failed-email logging + safer deploy hook (#77 →
+  #89), PHPStan 2.3 + Dependabot targeting staging (#90, #91 → #92),
+  security updates (#93 → #94), CI security check (#95 → #96), package
+  protection + progress notes (#98, #97 → #99).
 
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
@@ -557,11 +565,12 @@
   page (UPS REST API, FedEx later behind the same interface; staff enter
   weight and size). Live checkout rates would need weights on every SKU
   first.
-- **Package protection:** merged into staging (PR #98), switched off; not
-  on production yet. On staging: add tiers (Backoffice → Package
-  protection), turn on "Offer package protection" for the channel, then
-  check out with Stripe in test mode and confirm the Stripe page shows the
-  line and the charge equals the order total. The client's questions are on
+- **Package protection:** live on staging and production, switched off on
+  both. Before turning it on in production: on staging, add tiers
+  (Backoffice → Package protection), turn on "Offer package protection" for
+  the channel, then check out with Stripe in test mode and confirm the
+  Stripe page shows the line and the charge equals the order total. Then
+  the same tiers and switch on production. The client's questions are on
   the agenda doc (section 6, added 2026-11-13): tier amounts, checkbox
   wording, a protection policy for /terms (what's covered, how to claim,
   time limit), reship or refund, and confirming the ticked default with
