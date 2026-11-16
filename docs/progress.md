@@ -12,6 +12,8 @@
   admin), and the client logo replaces Sylius's in the admin sidebar and login.
   All logo uses point at assets/shop/images/logo.png, so a new logo is a one-file
   swap (favicons need regenerating separately; they're static files in public/).
+  Sylius's "Official support" sidebar section (Sylius Plus, plugins,
+  partners) is hidden (`AdminMenuListener`, 2026-11-16).
 
 - Admin dark mode fixed (2026-10-23): the sylius/paypal-plugin 2.1.0 bump had
   silently upgraded Sylius 2.2 -> 2.3.2, but the frontend half of the upgrade
@@ -440,6 +442,9 @@
     on each site: from $0.00 → $5.99, from $500.01 → $8.99, from
     $1,000.01 → $11.99, from $2,000.01 → $20.00 (items total; $500.00
     exactly pays $5.99).
+  - On staging (2026-11-16): those four tiers added and "Offer package
+    protection" switched on for the channel (in the database, read back).
+    Production still off, no tiers.
 - Releases 2026-11-11 to 2026-11-13, all staging → main and live on both
   sites, `main` and `staging` identical after each: shipping methods +
   tracking links (#86), failed-email logging + safer deploy hook (#77 →
@@ -571,13 +576,11 @@
   page (UPS REST API, FedEx later behind the same interface; staff enter
   weight and size). Live checkout rates would need weights on every SKU
   first.
-- **Package protection:** live on staging and production, switched off on
-  both. Tier amounts are in (Done, 2026-11-16). Before turning it on in
-  production: on staging, add those tiers (Backoffice → Package
-  protection), turn on "Offer package protection" for
-  the channel, then check out with Stripe in test mode and confirm the
-  Stripe page shows the line and the charge equals the order total. Then
-  the same tiers and switch on production. The client's questions are on
+- **Package protection:** switched on on staging with the client's tiers
+  (2026-11-16); production still off. Next: on staging, check out with
+  Stripe in test mode and confirm the Stripe page shows the line and the
+  charge equals the order total. Then the same tiers and switch on
+  production. The client's questions are on
   the agenda doc (section 6, added 2026-11-13): checkbox
   wording, a protection policy for /terms (what's covered, how to claim,
   time limit), reship or refund, and confirming the ticked default with
