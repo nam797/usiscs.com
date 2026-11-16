@@ -458,9 +458,8 @@
 - Releases 2026-11-16, staging → main: package protection tier amounts
   (#105 → #106), admin "Official support" hidden (#107 → #108),
   "Administration" hidden + production package protection notes (#109,
-  #110 → #111), Documentation/Slack links hidden (#112 → #113). The rest
-  of the admin Sylius links (#114) and these notes go out in the next
-  release.
+  #110 → #111), Documentation/Slack links hidden (#112 → #113), the rest
+  of the admin Sylius links hidden (#114 → #115).
 
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
