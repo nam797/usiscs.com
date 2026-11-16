@@ -436,6 +436,10 @@
     2026-11-16).
   - Released to production 2026-11-13 (PR #99), switched off there: no tiers,
     channel switch off (checked in the database).
+  - Tier amounts from the client (2026-11-16), to enter in the backoffice
+    on each site: from $0.00 → $5.99, from $500.01 → $8.99, from
+    $1,000.01 → $11.99, from $2,000.01 → $20.00 (items total; $500.00
+    exactly pays $5.99).
 - Releases 2026-11-11 to 2026-11-13, all staging → main and live on both
   sites, `main` and `staging` identical after each: shipping methods +
   tracking links (#86), failed-email logging + safer deploy hook (#77 →
@@ -568,12 +572,13 @@
   weight and size). Live checkout rates would need weights on every SKU
   first.
 - **Package protection:** live on staging and production, switched off on
-  both. Before turning it on in production: on staging, add tiers
-  (Backoffice → Package protection), turn on "Offer package protection" for
+  both. Tier amounts are in (Done, 2026-11-16). Before turning it on in
+  production: on staging, add those tiers (Backoffice → Package
+  protection), turn on "Offer package protection" for
   the channel, then check out with Stripe in test mode and confirm the
   Stripe page shows the line and the charge equals the order total. Then
   the same tiers and switch on production. The client's questions are on
-  the agenda doc (section 6, added 2026-11-13): tier amounts, checkbox
+  the agenda doc (section 6, added 2026-11-13): checkbox
   wording, a protection policy for /terms (what's covered, how to claim,
   time limit), reship or refund, and confirming the ticked default with
   whoever handles their legal (opt-out add-on fees are restricted in some
