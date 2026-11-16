@@ -431,7 +431,9 @@
   - Stripe Checkout: the plugin only sends items and shipping, so
     `PackageProtectionLineItemProvider` adds a "Package protection" line item;
     the Stripe total matches the order total.
-  - Not done: an admin order list filter for protected orders.
+  - Sylius admin order list: a "Package protection" filter, Protected (paid
+    the fee) or Declined (unticked) (`PackageProtectionGridFilter`,
+    2026-11-16).
   - Released to production 2026-11-13 (PR #99), switched off there: no tiers,
     channel switch off (checked in the database).
 - Releases 2026-11-11 to 2026-11-13, all staging → main and live on both

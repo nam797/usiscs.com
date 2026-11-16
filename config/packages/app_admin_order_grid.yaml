@@ -2,6 +2,10 @@
 # warehouse (cross-dock) or both, on the Sylius admin order list: a column
 # and a filter. Set from the order's purchase orders when it's paid
 # (App\Distributor\FulfilmentRoute); empty before that.
+#
+# Package protection: a filter (protected / declined,
+# App\Admin\Filter\PackageProtectionGridFilter), so staff can find the
+# orders a claim is covered on.
 sylius_grid:
     grids:
         sylius_admin_order:
@@ -24,3 +28,10 @@ sylius_grid:
                             'Cross-dock': cross_dock
                             'Mixed': mixed
                             'Not confirmed': unconfirmed
+                packageProtection:
+                    type: app_package_protection
+                    label: 'Package protection'
+                    form_options:
+                        choices:
+                            'Protected': protected
+                            'Declined': declined

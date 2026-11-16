@@ -9,6 +9,7 @@ use App\Distributor\DistributorOrderStatus;
 use App\Distributor\DistributorRegistry;
 use App\Distributor\FulfilmentRoute;
 use App\Distributor\Warehouse\WarehouseStatus;
+use App\Entity\Order\Adjustment;
 use App\Entity\Order\Order;
 use App\Distributor\Fake\FakeDistributor;
 use App\Distributor\Message\SubmitPurchaseOrder;
@@ -22,6 +23,7 @@ use App\Entity\Shipping\ShippingMethod;
 use App\Entity\Procurement\PurchaseOrder;
 use App\Entity\Procurement\PurchaseOrderEvent;
 use App\Entity\Product\ProductVariant;
+use App\Shipping\PackageProtection\PackageProtectionOrderProcessor;
 use App\Tests\Functional\FunctionalTestCase;
 use App\Entity\Payment\PaymentMethod;
 use Sylius\Component\Core\Factory\PaymentMethodFactoryInterface;
@@ -190,6 +192,27 @@ final class PurchaseOrderFlowTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', (string) $purchaseOrder->getNumber());
         self::assertSelectorTextContains('[data-test-package-protection]', 'Declined', 'staff see it isn\'t covered');
+
+        // The order list filters on package protection, for claims.
+        $this->client->request('GET', '/admin/orders/?'.http_build_query(['criteria' => ['packageProtection' => 'declined', 'number' => ['value' => (string) $order->getNumber()]]]));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', '#'.$order->getNumber());
+        $this->client->request('GET', '/admin/orders/?'.http_build_query(['criteria' => ['packageProtection' => 'protected', 'number' => ['value' => (string) $order->getNumber()]]]));
+        self::assertSelectorTextNotContains('body', '#'.$order->getNumber());
+
+        $protected = $this->entityManager()->find(Order::class, $order->getId());
+        self::assertInstanceOf(Order::class, $protected);
+        $protected->setPackageProtection(true);
+        $adjustment = new Adjustment();
+        $adjustment->setType(PackageProtectionOrderProcessor::ADJUSTMENT_TYPE);
+        $adjustment->setLabel(PackageProtectionOrderProcessor::LABEL);
+        $adjustment->setAmount(495);
+        $protected->addAdjustment($adjustment);
+        $this->entityManager()->flush();
+        $this->client->request('GET', '/admin/orders/?'.http_build_query(['criteria' => ['packageProtection' => 'protected', 'number' => ['value' => (string) $order->getNumber()]]]));
+        self::assertSelectorTextContains('body', '#'.$order->getNumber());
+        $this->client->request('GET', '/admin/orders/?'.http_build_query(['criteria' => ['packageProtection' => 'declined', 'number' => ['value' => (string) $order->getNumber()]]]));
+        self::assertSelectorTextNotContains('body', '#'.$order->getNumber());
 
         // Fix the fulfilment in the backoffice, then retry.
         $crawler = $this->client->request('GET', sprintf('/backoffice/purchase-order/%d/edit', $id));
