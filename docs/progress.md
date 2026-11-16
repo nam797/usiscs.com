@@ -13,7 +13,8 @@
   All logo uses point at assets/shop/images/logo.png, so a new logo is a one-file
   swap (favicons need regenerating separately; they're static files in public/).
   Sylius's "Official support" sidebar section (Sylius Plus, plugins,
-  partners) is hidden (`AdminMenuListener`, 2026-11-16).
+  partners) and "Administration" (its only link, Roles, advertises Sylius
+  Plus) are hidden (`AdminMenuListener`, 2026-11-16).
 
 - Admin dark mode fixed (2026-10-23): the sylius/paypal-plugin 2.1.0 bump had
   silently upgraded Sylius 2.2 -> 2.3.2, but the frontend half of the upgrade
