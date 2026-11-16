@@ -38,6 +38,9 @@ final class AdminTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
         self::assertRouteSame('sylius_admin_dashboard');
         self::assertSelectorExists('.navbar-brand img[alt="US Industrial Supply"]');
+        self::assertSelectorTextContains('body', 'Configuration');
+        self::assertSelectorTextNotContains('body', 'Official support');
+        self::assertSelectorTextNotContains('body', 'Sylius Plus');
     }
 
     public function testAWrongPasswordIsRejected(): void
