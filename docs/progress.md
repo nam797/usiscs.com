@@ -455,6 +455,12 @@
   #89), PHPStan 2.3 + Dependabot targeting staging (#90, #91 → #92),
   security updates (#93 → #94), CI security check (#95 → #96), package
   protection + progress notes (#98, #97 → #99).
+- Releases 2026-11-16, staging → main: package protection tier amounts
+  (#105 → #106), admin "Official support" hidden (#107 → #108),
+  "Administration" hidden + production package protection notes (#109,
+  #110 → #111), Documentation/Slack links hidden (#112 → #113). The rest
+  of the admin Sylius links (#114) and these notes go out in the next
+  release.
 
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
@@ -519,9 +525,10 @@
   `upsun ssh -- bin/console sylius:fixtures:load -n` (wipes data; never on prod).
 
 ## Gotchas
-- Tests run with APP_DEBUG=0, so Twig doesn't recompile changed templates
-  in the test env. After editing a template, `rm -rf var/cache/test`
-  before running phpunit, or the tests use the old version.
+- Tests run with APP_DEBUG=0, so neither Twig templates nor the container
+  are rebuilt in the test env. After editing a template or adding a
+  service/listener, `rm -rf var/cache/test` before running phpunit, or the
+  tests use the old version (a new event listener silently doesn't run).
 - Dependency bumps can pull in a Sylius minor upgrade. When sylius/sylius
   changes in composer.lock, read vendor/sylius/sylius/UPGRADE-2.x.md and run
   `npm install && npm run build`.
