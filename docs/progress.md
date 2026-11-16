@@ -13,7 +13,8 @@
   All logo uses point at assets/shop/images/logo.png, so a new logo is a one-file
   swap (favicons need regenerating separately; they're static files in public/).
   Sylius's "Official support" sidebar section (Sylius Plus, plugins,
-  partners) is hidden (`AdminMenuListener`, 2026-11-16).
+  partners) and "Administration" (its only link, Roles, advertises Sylius
+  Plus) are hidden (`AdminMenuListener`, 2026-11-16).
 
 - Admin dark mode fixed (2026-10-23): the sylius/paypal-plugin 2.1.0 bump had
   silently upgraded Sylius 2.2 -> 2.3.2, but the frontend half of the upgrade
@@ -444,7 +445,9 @@
     exactly pays $5.99).
   - On staging (2026-11-16): those four tiers added and "Offer package
     protection" switched on for the channel (in the database, read back).
-    Production still off, no tiers.
+  - Switched on in production (2026-11-16): the same four tiers added and
+    the channel switch on (in the database, read back), at the user's
+    request before the Stripe test-mode checkout on staging was done.
 - Releases 2026-11-11 to 2026-11-13, all staging → main and live on both
   sites, `main` and `staging` identical after each: shipping methods +
   tracking links (#86), failed-email logging + safer deploy hook (#77 →
@@ -576,11 +579,12 @@
   page (UPS REST API, FedEx later behind the same interface; staff enter
   weight and size). Live checkout rates would need weights on every SKU
   first.
-- **Package protection:** switched on on staging with the client's tiers
-  (2026-11-16); production still off. Next: on staging, check out with
-  Stripe in test mode and confirm the Stripe page shows the line and the
-  charge equals the order total. Then the same tiers and switch on
-  production. The client's questions are on
+- **Package protection:** live and switched on on staging and production
+  with the client's tiers (2026-11-16). Still to do: a Stripe test-mode
+  checkout on staging (or the first live order with protection) to confirm
+  the Stripe page shows the line and the charge equals the order total; to
+  turn it off, Sylius admin → Channels → "Offer package protection". The
+  client's open questions are on
   the agenda doc (section 6, added 2026-11-13): checkbox
   wording, a protection policy for /terms (what's covered, how to claim,
   time limit), reship or refund, and confirming the ticked default with
