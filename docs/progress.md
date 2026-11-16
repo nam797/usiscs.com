@@ -14,9 +14,10 @@
   swap (favicons need regenerating separately; they're static files in public/).
   Sylius's "Official support" sidebar section (Sylius Plus, plugins,
   partners) and "Administration" (its only link, Roles, advertises Sylius
-  Plus) are hidden (`AdminMenuListener`, 2026-11-16), and so are Sylius's
-  Documentation and Join Slack links in the admin user menu and footer
-  (template overrides in `templates/bundles/SyliusAdminBundle/shared/`).
+  Plus) are hidden (`AdminMenuListener`, 2026-11-16), and so are all of
+  Sylius's links in the admin user menu (Documentation, Join Slack, Report
+  an issue) and footer (only "Powered by Sylius vX" is left) (template
+  overrides in `templates/bundles/SyliusAdminBundle/shared/`).
 
 - Admin dark mode fixed (2026-10-23): the sylius/paypal-plugin 2.1.0 bump had
   silently upgraded Sylius 2.2 -> 2.3.2, but the frontend half of the upgrade

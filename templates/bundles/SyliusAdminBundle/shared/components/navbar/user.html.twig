@@ -17,8 +17,9 @@
     </div>
 {% endset %}
 
-{# Copy of Sylius's, without its Documentation and Join Slack links (Sylius's
-   own docs and community chat, not for the client's staff). #}
-{% set menu_items = menu_items|filter(item => item.title|default(null) not in ['sylius.ui.documentation', 'sylius.ui.join_slack']) %}
+{# Copy of Sylius's, keeping only My account and Logout: its Documentation,
+   Join Slack and Report an issue links (and the divider above them) go to
+   Sylius's own docs, chat and GitHub, not for the client's staff. #}
+{% set menu_items = menu_items|filter(item => item.title|default(null) in ['sylius.ui.my_account', 'sylius.ui.logout']) %}
 
 {{ dropdown.list({ custom_trigger: dropdown_trigger, direction: 'down-end' }, menu_items) }}
