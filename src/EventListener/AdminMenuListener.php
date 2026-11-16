@@ -9,9 +9,11 @@ use Sylius\Bundle\UiBundle\Menu\Event\MenuBuilderEvent;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
 /**
- * Drops Sylius's "Official support" section (Sylius Plus, plugins,
- * partners, certification) from the admin sidebar: links to Sylius's own
- * sales pages, not needed by the client's staff.
+ * Drops two Sylius sales links from the admin sidebar, not needed by the
+ * client's staff: the "Official support" section (Sylius Plus, plugins,
+ * partners, certification) and "Administration", whose only entry, Roles,
+ * advertises Sylius Plus. Admin users are under Configuration →
+ * Administrators.
  */
 #[AsEventListener(event: EventMenuProvider::EVENT_NAME, method: 'onMainMenu')]
 final class AdminMenuListener
@@ -19,5 +21,6 @@ final class AdminMenuListener
     public function onMainMenu(MenuBuilderEvent $event): void
     {
         $event->getMenu()->removeChild('official_support');
+        $event->getMenu()->removeChild('sylius.ui.administration');
     }
 }

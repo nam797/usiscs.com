@@ -41,6 +41,8 @@ final class AdminTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', 'Configuration');
         self::assertSelectorTextNotContains('body', 'Official support');
         self::assertSelectorTextNotContains('body', 'Sylius Plus');
+        self::assertSelectorTextContains('body', 'Administrators');
+        self::assertSelectorNotExists('a[href*="sylius.com/plus"]');
     }
 
     public function testAWrongPasswordIsRejected(): void
