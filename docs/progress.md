@@ -462,6 +462,16 @@
   "Administration" hidden + production package protection notes (#109,
   #110 → #111), Documentation/Slack links hidden (#112 → #113), the rest
   of the admin Sylius links hidden (#114 → #115).
+- Security updates (2026-11-20; advisories of 2026-11-18 failed CI's
+  `composer audit` on every PR): easycorp/easyadmin-bundle 5.7.0 → 5.10.2
+  (backoffice access-control bypasses, stored XSS), flux-se/sylius-stripe-
+  plugin 2.1.0 → 2.1.1 (Stripe webhook secrets written to the log on failed
+  webhooks), sylius/sylius 2.3.2 → 2.3.3 (admin API image upload
+  validation, gateway config values, Shop API e-mail change
+  re-verification), sylius/theme-bundle 2.5.0 → 2.5.1 (template path
+  traversal). Only those four packages changed. Sylius 2.3.3 now rejects
+  payment method gateway values like `%...%` or `@...`; ours are plain
+  keys entered in the admin, so nothing to change.
 
 ## Decisions
 - Passwords: at least 12 characters and not easy to guess. Not yet
