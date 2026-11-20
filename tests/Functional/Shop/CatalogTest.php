@@ -24,7 +24,7 @@ final class CatalogTest extends FunctionalTestCase
 
     public function testTheHomepageHasATilePerDepartmentAndOneForAnythingElse(): void
     {
-        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'eye_face_protection');
+        $this->ensureProduct('E2E_GOGGLES', 'Splash Goggles', 'splash-goggles', 'eye_face_protection');
 
         $this->client->request('GET', '/');
 
