@@ -11,6 +11,7 @@ use App\Entity\Product\Product;
 use App\Entity\Product\ProductVariant;
 use App\Entity\Taxonomy\Taxon;
 use App\Twig\StructuredDataExtension;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Inventory\Checker\AvailabilityCheckerInterface;
 use Sylius\Component\Inventory\Model\StockableInterface;
@@ -39,16 +40,46 @@ final class StructuredDataExtensionTest extends TestCase
         self::assertArrayNotHasKey('aggregateRating', $data);
     }
 
-    public function testAProductInSeveralSizesHasAPriceRange(): void
+    public function testAProductInSeveralSizesIsAProductGroupWithAnOfferPerSize(): void
     {
-        $data = $this->extension(inStock: false)->product($this->product([1200, 1500, 1350]), $this->channel());
+        $product = $this->product([1200, 1500]);
+        $sizes = ['Small', 'Large'];
+        foreach ($product->getVariants() as $i => $variant) {
+            $variant->setCurrentLocale('en_US');
+            $variant->setFallbackLocale('en_US');
+            $variant->setName($sizes[$i]);
+        }
 
-        self::assertSame('PADS', $data['sku']);
-        $offers = $data['offers'];
-        self::assertIsArray($offers);
-        self::assertSame('AggregateOffer', $offers['@type']);
-        self::assertSame(['12.00', '15.00', 3], [$offers['lowPrice'], $offers['highPrice'], $offers['offerCount']]);
-        self::assertSame('https://schema.org/OutOfStock', $offers['availability']);
+        $data = $this->extension(inStock: false)->product($product, $this->channel());
+
+        self::assertSame('ProductGroup', $data['@type']);
+        self::assertSame('PADS', $data['productGroupID']);
+        self::assertArrayNotHasKey('sku', $data, 'the product code is not an item number');
+        self::assertArrayNotHasKey('offers', $data);
+        $variants = $data['hasVariant'];
+        self::assertIsArray($variants);
+        self::assertCount(2, $variants);
+        self::assertSame(['Respirator Cleaning Pads, Small', 'Respirator Cleaning Pads, Large'], array_column($variants, 'name'));
+        self::assertSame(['PADS-0', 'PADS-1'], array_column($variants, 'sku'));
+        $offers = array_column($variants, 'offers');
+        self::assertSame(['12.00', '15.00'], array_column($offers, 'price'));
+        self::assertSame('https://schema.org/OutOfStock', $offers[0]['availability']);
+        self::assertSame('USD', $offers[1]['priceCurrency']);
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function brands(): iterable
+    {
+        yield 'capitals' => ['JACKSON PROFESSIONAL TOOLS', 'Jackson Professional Tools'];
+        yield 'short words stay' => ['MCR SAFETY', 'MCR Safety'];
+        yield 'mixed case untouched' => ['DeWalt', 'DeWalt'];
+        yield 'trademark' => ['3M™', '3M™'];
+    }
+
+    #[DataProvider('brands')]
+    public function testBrandNamesInCapitalsAreShownInNormalCase(string $stored, string $shown): void
+    {
+        self::assertSame($shown, StructuredDataExtension::brandName($stored));
     }
 
     public function testBreadcrumbsFollowTheCategoryTrail(): void
