@@ -1,11 +1,13 @@
 {# Sylius's category menu, which is also the slide-out the header's
    hamburger button opens on phones/tablets. Changes from Sylius:
 
+   - The site's main menu: the company pages are small links in the logo
+     row on desktop (shop/nav/utility_links.html.twig), and the categories
+     get a heavier style (.category-menu in brand.scss).
    - Always rendered, even with no categories: otherwise the hamburger
      points at nothing and does nothing on a phone.
-   - On phones/tablets the slide-out also lists the main pages (they're
-     hidden from the top row there; see shop/nav/quick_links.html.twig),
-     above the categories.
+   - On phones/tablets the slide-out lists the categories first, then the
+     company pages (hidden from the logo row there).
    - Its title was an <h1> reading "Taxons", a second H1 on every page.
      Now a plain "Menu" title. #}
 <div class="w-100{{ taxons|length > 0 ? ' border-bottom' : ' d-lg-none' }}">
@@ -15,6 +17,13 @@
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#navbarNav" aria-label="{{ 'sylius.ui.close'|trans }}"></button>
         </div>
         <div class="offcanvas-body flex-column flex-lg-row justify-content-lg-center w-full py-0">
+            {% if taxons|length > 0 %}
+                <div class="d-lg-none text-uppercase small fw-semibold text-secondary pt-3">Shop supplies</div>
+                <div class="category-menu navbar-nav my-2 flex-column flex-lg-row gap-lg-4" {{ sylius_test_html_attribute('menu') }}>
+                    {% hook 'menu' with { taxons } %}
+                </div>
+            {% endif %}
+            <div class="d-lg-none text-uppercase small fw-semibold text-secondary{{ taxons|length > 0 ? ' border-top' }} pt-3 mt-1">Company</div>
             <div class="navbar-nav d-lg-none my-2 flex-column">
                 <a class="nav-link" href="{{ path('sylius_shop_homepage') }}">Home</a>
                 <a class="nav-link" href="{{ path('app_shop_services') }}">Services</a>
@@ -22,12 +31,6 @@
                 <a class="nav-link" href="{{ path('app_shop_contact') }}">Contact</a>
                 <a class="nav-link" href="{{ path('app_shop_rfq') }}">Request a Quote</a>
             </div>
-            {% if taxons|length > 0 %}
-                <div class="d-lg-none text-uppercase small fw-semibold text-secondary border-top pt-3 mt-1">Products</div>
-                <div class="navbar-nav my-2 flex-column flex-lg-row gap-lg-4" {{ sylius_test_html_attribute('menu') }}>
-                    {% hook 'menu' with { taxons } %}
-                </div>
-            {% endif %}
         </div>
     </nav>
 </div>

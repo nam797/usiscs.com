@@ -166,14 +166,13 @@ sylius_twig_hooks:
                 template: 'admin/order/show/purchase_orders.html.twig'
                 priority: -100
 
-        # Static Contact / Request a Quote links, shown above the
-        # taxon-driven navbar (which is empty/hidden until there are
-        # taxons). Priority 50 is above the taxon menu's priority 0, so
-        # these show up first while the catalog is still empty.
-        'sylius_shop.base.header.navbar':
-            quick_links:
-                template: 'shop/nav/quick_links.html.twig'
-                priority: 50
+        # Services / About / Contact / Request a Quote as small links in
+        # the logo row, between the logo (300) and account (200), so the
+        # category row below is the main menu (client feedback, 2026-11-20).
+        'sylius_shop.base.header.content':
+            utility_links:
+                template: 'shop/nav/utility_links.html.twig'
+                priority: 250
 
         # Request a Quote alongside the existing informational footer
         # links (About / Terms / Privacy / Contact us). Priority 400 is

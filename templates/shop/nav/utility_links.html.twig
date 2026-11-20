@@ -1,0 +1,16 @@
+{#
+    The company pages as small links beside account and cart, so the
+    category row under the logo is the one menu shoppers see (client
+    feedback, 2026-11-20). Desktop only: on phones these are in the
+    hamburger slide-out, under the categories (see
+    bundles/SyliusShopBundle/.../navbar/menu.html.twig). Hooked in via
+    config/packages/twig_hooks.yaml.
+#}
+<div class="col-auto d-none d-lg-block">
+    <nav class="utility-links navbar-nav flex-row gap-3" aria-label="Company">
+        <a class="nav-link" href="{{ path('app_shop_services') }}">Services</a>
+        <a class="nav-link" href="{{ path('app_shop_about') }}">About</a>
+        <a class="nav-link" href="{{ path('app_shop_contact') }}">Contact</a>
+        <a class="nav-link" href="{{ path('app_shop_rfq') }}">Request a Quote</a>
+    </nav>
+</div>

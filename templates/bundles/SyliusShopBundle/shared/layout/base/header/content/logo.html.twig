@@ -1,0 +1,7 @@
+{# Sylius's header logo at a bigger size (it was 10rem, too small to read
+   the tagline in the logo): see .site-logo in brand.scss. #}
+<div class="col">
+    <a href="{{ path('sylius_shop_homepage') }}" class="site-logo d-inline-block py-lg-2" aria-label="US Industrial Supply home">
+        {% hook 'logo' %}
+    </a>
+</div>

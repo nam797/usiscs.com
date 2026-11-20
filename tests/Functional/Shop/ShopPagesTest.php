@@ -12,7 +12,7 @@ final class ShopPagesTest extends FunctionalTestCase
     /** @return iterable<string, array{string, string}> */
     public static function pages(): iterable
     {
-        yield 'home' => ['/', 'Your Supply Chain Problem Is Our Job.'];
+        yield 'home' => ['/', 'Industrial Supplies, Delivered.'];
         yield 'services' => ['/services', 'Every Service Built Around Your Uptime.'];
         yield 'about' => ['/about', 'Built to Keep Operations Running.'];
         yield 'contact' => ['/contact', 'Get In Touch'];
@@ -125,11 +125,22 @@ final class ShopPagesTest extends FunctionalTestCase
         }
     }
 
-    public function testPhonesGetAFullWidthRequestAQuoteButton(): void
+    public function testTheCompanyPagesAreSmallLinksNotButtonsInTheHeader(): void
     {
-        $this->client->request('GET', '/');
+        $crawler = $this->client->request('GET', '/');
 
-        self::assertSelectorExists('.d-lg-none > a.btn-primary.w-100[href="/quote"]');
+        $hrefs = $crawler->filter('nav[aria-label="Company"] a')->each(static fn ($a): string => (string) $a->attr('href'));
+        self::assertSame(['/services', '/about', '/contact', '/quote'], $hrefs);
+        self::assertSelectorNotExists('#navbarNav a.btn[href="/quote"], nav[aria-label="Company"] a.btn');
+    }
+
+    public function testThePhoneMenuListsTheCategoriesBeforeTheCompanyPages(): void
+    {
+        $crawler = $this->client->request('GET', '/');
+
+        $hrefs = $crawler->filter('#navbarNav a')->each(static fn ($a): string => (string) $a->attr('href'));
+        self::assertSame('/mro-materials', $hrefs[0] ?? null);
+        self::assertGreaterThan(array_search('/fasteners-hardware', $hrefs, true), array_search('/services', $hrefs, true));
     }
 
     public function testTheFooterLinksToTheLegalPages(): void
