@@ -615,9 +615,24 @@
   weight and size). Live checkout rates would need weights on every SKU
   first.
 - **Client sign-off on the new header and homepage** (2026-11-20): show
-  the client staging; the hero copy ("Industrial Supplies, Delivered. MRO
-  materials, safety gear, electrical, fasteners and maintenance supplies,
-  ready to order online.") is new and needs approval. Then staging → main.
+  the client staging (it now has the department menu and tiles too); the
+  hero copy ("Industrial Supplies, Delivered." and "Safety gear, tools,
+  welding, janitorial and shop supplies, ready to order online.") is new
+  and needs approval. Then staging → main and the category commands on
+  production (below).
+- **Waiting on the client: launch pricing / assortment** (2026-11-20).
+  The client's `USISCS 3000 SKU Launch Assortment - 42.5 Percent
+  Ceiling.xlsx` (Downloads), sheet "Launch pricing": column G "US
+  Industrial Supply List Price" is our price per ORS sell unit (formula
+  cells; read the cached values). 3,000 ORS SKUs, gross margin 20–42.5%,
+  none below cost, 2,556 "Provisional / no market match", 2,833 below ORS
+  list. Compared with the site (2,549 SKUs from the older 2,737-SKU feed):
+  702 SKUs on both (column G would lower most, median about 11%), 2,298
+  new (ORS short descriptions only, so they'd need names, grouping and
+  categories), 1,849 on the site but not in the sheet. Client to decide:
+  reprice the 702 only, switch to the 3,000 list, or reprice and add the
+  new SKUs. Nothing changed yet. Supersedes the 2026-10-30
+  ORS-Grainger-Pricing.xlsx rules.
 - **Package protection:** live and switched on on staging and production
   with the client's tiers (2026-11-16). Still to do: a Stripe test-mode
   checkout on staging (or the first live order with protection) to confirm
@@ -683,7 +698,8 @@
   - Still to do: review the 1,684 drafted variant names (some ORS
     abbreviations remain), real categories once the tree is approved.
   - Product images: none in ORS files, so a source is needed.
-  - Selling price = ORS **list** price. The ORS API price is our *cost*.
+  - Selling price = ORS **list** price for now (the client's launch pricing
+    sheet above would replace it). The ORS API price is our *cost*.
 - **ORS sync: built, waiting on ORS credentials.** Get from ORS: OAuth
   client ID/secret + token URL (stock API), and the SOAP account # + 2
   passwords (price service). Then: dry runs against the ORS test endpoints
