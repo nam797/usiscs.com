@@ -44,6 +44,8 @@ final class CategoryClassifierTest extends TestCase
         yield 'electrolyte drink' => ['Medique® Medi-Lyte® Electrolyte Replenishers', 'heat_stress_hydration'];
         yield 'eyewash is first aid, not eye protection' => ['Honeywell Eyesaline Eyewash Wall Stations', 'first_aid_emergency'];
         yield 'insecticide is a chemical' => ['CRC® Wasp and Hornet Killer Plus™ Insecticides', 'adhesives_sealants_chemicals'];
+        yield 'placed by hand (2026-11-20): sand strainers' => ['Anchor Brand Sand Strainers', 'specialty_tools_kits'];
+        yield 'placed by hand (2026-11-20): babbitt metal' => ['Metals Babbits', 'specialty_tools_kits'];
     }
 
     #[DataProvider('products')]
@@ -54,7 +56,7 @@ final class CategoryClassifierTest extends TestCase
 
     public function testUnknownProductsAreLeftForAHuman(): void
     {
-        self::assertNull(CategoryClassifier::classify('Metals Babbits'));
+        self::assertNull(CategoryClassifier::classify('Widget Assembly'));
     }
 
     public function testEveryRulePlacesProductsInALeafOfTheApprovedTree(): void
