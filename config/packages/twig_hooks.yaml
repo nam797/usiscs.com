@@ -120,6 +120,13 @@ sylius_twig_hooks:
         'sylius_shop.product.show.content.info.summary':
             average_rating:
                 enabled: false
+
+        # Item number, manufacturer part number and a "bulk pricing" link
+        # under Add to cart (CRO review, 2026-11-20).
+        'sylius_shop.product.show.content.info.summary.add_to_cart':
+            item_and_bulk_quote:
+                template: 'shop/product/item_and_bulk_quote.html.twig'
+                priority: -50
         'sylius_shop.product.show.content.info.overview.accordion':
             reviews:
                 enabled: false

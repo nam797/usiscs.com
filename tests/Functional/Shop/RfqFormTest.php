@@ -99,6 +99,25 @@ final class RfqFormTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', 'Too many submissions');
     }
 
+    public function testABulkQuoteLinkStartsTheFormWithThatItem(): void
+    {
+        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
+
+        $crawler = $this->client->request('GET', '/quote?item=E2E_SAFETY_GLASSES');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('E2E_SAFETY_GLASSES', $crawler->filter('input[name="rfq_request[lineItems][0][partNumber]"]')->attr('value'));
+        self::assertSame('Safety Glasses', $crawler->filter('input[name="rfq_request[lineItems][0][description]"]')->attr('value'));
+    }
+
+    public function testAnUnknownItemLeavesTheFormEmpty(): void
+    {
+        $crawler = $this->client->request('GET', '/quote?item=NO-SUCH-ITEM');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('input[name="rfq_request[lineItems][0][partNumber]"]'));
+    }
+
     /** @return array<string, string> */
     private static function validValues(): array
     {

@@ -1,0 +1,21 @@
+{# Sylius's related products: the product's associations when it has any,
+   otherwise other products in its category ("More in Storage & Material
+   Handling") instead of the shop's latest products, which were unrelated
+   (wipers under a hose). #}
+{% set product = hookable_metadata.context.product %}
+
+{% for association in product.associations %}
+    {{ component('sylius_shop:product:association', { productAssociation: association, template: '@SyliusShop/product/show/content/product_listing/association.html.twig' }) }}
+{% else %}
+    {% set related = related_products(product) %}
+    {% if related is not empty %}
+        <div class="container mb-6" role="region" aria-labelledby="related-products-heading">
+            <h2 class="mb-5" id="related-products-heading">More in {{ product.mainTaxon.name }}</h2>
+            <div class="products-grid" data-test-related-products>
+                {% for related_product in related %}
+                    <div>{{ component('sylius_shop:product:card', { product: related_product, template: '@SyliusShop/product/common/card.html.twig' }) }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}

@@ -1,0 +1,19 @@
+{# Under "Add to cart": the item number buyers search and reorder by (the
+   selected size's; this sits inside the add-to-cart component, so it
+   follows the size picker), the manufacturer part number when the product
+   has one size, and a way to ask for volume pricing on this item
+   (prefills the quote form, App\Controller\Shop\RfqController). Hooked in
+   via config/packages/twig_hooks.yaml. #}
+{% set form = hookable_metadata.context.form %}
+{% set product = hookable_metadata.context.product %}
+{% set variant = form.cartItem.vars.value.variant ?? product.enabledVariants.first %}
+{% set part_number = product.enabledVariants|length == 1 ? product.getAttributeByCodeAndLocale('part_number', sylius.localeCode) : null %}
+
+{% if variant %}
+    <p class="small text-body-secondary mb-2" data-test-item-number>
+        Item # {{ variant.code }}{% if part_number and part_number.value %} &middot; Mfr part # {{ part_number.value }}{% endif %}
+    </p>
+    <p class="mb-0">
+        Need a bigger quantity? <a href="{{ path('app_shop_rfq', { item: variant.code }) }}">Get bulk pricing &rarr;</a>
+    </p>
+{% endif %}
