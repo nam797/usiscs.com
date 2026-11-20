@@ -32,7 +32,7 @@
         "symfony/flex": "^2.11",
         "symfony/postmark-mailer": "^7.4",
         "symfony/runtime": "^7.4.13",
-        "symfony/webhook": "^7.4",
+        "symfony/webhook": "^8.1",
         "twig/html-extra": "^3.29"
     },
     "require-dev": {
