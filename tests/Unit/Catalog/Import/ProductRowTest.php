@@ -16,7 +16,7 @@ final class ProductRowTest extends TestCase
     /** @return array<string, string> */
     private static function minimal(): array
     {
-        return ['sku' => 'HB-500', 'name' => 'Hex bolt', 'category' => 'Fasteners & Hardware', 'price' => '12.99'];
+        return ['sku' => 'HB-500', 'name' => 'Hex bolt', 'category' => 'Cable Ties & Fasteners', 'price' => '12.99'];
     }
 
     public function testAMinimalRowIsValid(): void
@@ -25,7 +25,7 @@ final class ProductRowTest extends TestCase
 
         self::assertSame('HB-500', $row->sku);
         self::assertSame('Hex bolt', $row->name);
-        self::assertSame('fasteners_hardware', $row->categoryCode);
+        self::assertSame('cable_ties_fasteners', $row->categoryCode);
         self::assertSame(1299, $row->priceInCents);
         self::assertNull($row->description);
         self::assertNull($row->stockQty);
@@ -71,7 +71,7 @@ final class ProductRowTest extends TestCase
         $row = ProductRow::fromArray([
             'sku' => '  HB-500 ',
             'name' => ' Hex bolt ',
-            'category' => ' fasteners_hardware ',
+            'category' => ' cable_ties_fasteners ',
             'price' => ' 12.99 ',
             'description' => '   ',
         ]);
@@ -96,8 +96,8 @@ final class ProductRowTest extends TestCase
         yield 'name' => ['Safety & PPE', 'safety_ppe'];
         yield 'name, any case' => ['SAFETY & ppe', 'safety_ppe'];
         yield 'code' => ['safety_ppe', 'safety_ppe'];
-        yield 'code, any case' => ['MRO_MATERIALS', 'mro_materials'];
-        yield 'hyphenated name' => ['Specialty & Hard-to-Find', 'specialty_hard_to_find'];
+        yield 'code, any case' => ['POWER_TOOLS_BATTERIES', 'power_tools_batteries'];
+        yield 'hyphenated name' => ['Cut-Resistant Gloves', 'cut_resistant_gloves'];
     }
 
     #[DataProvider('categories')]

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Catalog\Import;
 
+use App\Catalog\Category\CategoryTree;
 use App\Catalog\Fulfilment\Fulfilment;
 use App\Entity\Catalog\SupplierItem;
 use App\Catalog\Unit\PackUnit;
-use App\Command\SetupCategoriesCommand;
 
 /**
  * One validated product from the go-live spreadsheet or the supplier feed.
@@ -104,7 +104,7 @@ final class ProductRow
         if (null === $categoryCode) {
             $problems[] = '' === $text('category')
                 ? 'category is required'
-                : sprintf('unknown category "%s" (use one of: %s)', $text('category'), implode(', ', SetupCategoriesCommand::CATEGORIES));
+                : sprintf('unknown category "%s" (use a name or code from the Categories sheet of app:catalog:import-template)', $text('category'));
         }
 
         $price = self::priceInCents($text('price'));
@@ -217,12 +217,12 @@ final class ProductRow
         return in_array($optionalColumn, $this->provided, true);
     }
 
-    /** Accepts a category code or its name, case-insensitively. */
+    /** Accepts the code or name of any category of the tree, case-insensitively. */
     private static function categoryCode(string $value): ?string
     {
         $needle = mb_strtolower($value);
-        foreach (SetupCategoriesCommand::CATEGORIES as $code => $name) {
-            if ($needle === $code || $needle === mb_strtolower($name)) {
+        foreach (CategoryTree::flat() as $code => $category) {
+            if ($needle === $code || $needle === mb_strtolower($category['name'])) {
                 return $code;
             }
         }

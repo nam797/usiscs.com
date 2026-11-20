@@ -32,11 +32,11 @@ final class ExcelProductSourceTest extends TestCase
     {
         $path = $this->xlsx([
             ['Price', 'SKU', 'Name', 'Category'],
-            [12.99, 'HB-500', 'Hex bolt', 'Fasteners & Hardware'],
+            [12.99, 'HB-500', 'Hex bolt', 'Cable Ties & Fasteners'],
         ]);
 
         self::assertSame(
-            [2 => ['price' => '12.99', 'sku' => 'HB-500', 'name' => 'Hex bolt', 'category' => 'Fasteners & Hardware']],
+            [2 => ['price' => '12.99', 'sku' => 'HB-500', 'name' => 'Hex bolt', 'category' => 'Cable Ties & Fasteners']],
             $this->read($path),
         );
     }
@@ -71,7 +71,7 @@ final class ExcelProductSourceTest extends TestCase
 
     public function testAFloatPriceNeverPicksUpRoundingNoise(): void
     {
-        $path = $this->xlsx([['sku', 'name', 'category', 'price'], ['A', 'B', 'mro_materials', 0.1 + 0.2]]);
+        $path = $this->xlsx([['sku', 'name', 'category', 'price'], ['A', 'B', 'power_tools_batteries', 0.1 + 0.2]]);
 
         self::assertSame('0.3', $this->read($path)[2]['price']);
     }
@@ -80,9 +80,9 @@ final class ExcelProductSourceTest extends TestCase
     {
         $path = $this->xlsx([
             ['sku', 'name', 'category', 'price'],
-            ['A', 'First', 'mro_materials', '1'],
+            ['A', 'First', 'power_tools_batteries', '1'],
             ['', '', '', ''],
-            ['B', 'Second', 'mro_materials', '2'],
+            ['B', 'Second', 'power_tools_batteries', '2'],
         ]);
 
         self::assertSame([2, 4], array_keys($this->read($path)));
@@ -92,7 +92,7 @@ final class ExcelProductSourceTest extends TestCase
     {
         $path = $this->xlsx([
             ['sku', 'name', 'category', 'price', 'description'],
-            ['A', 'First', 'mro_materials', '1'],
+            ['A', 'First', 'power_tools_batteries', '1'],
         ]);
 
         self::assertSame('', $this->read($path)[2]['description']);
@@ -104,11 +104,11 @@ final class ExcelProductSourceTest extends TestCase
         $writer = new CsvWriter();
         $writer->openToFile($path);
         $writer->addRow(Row::fromValues(['sku', 'name', 'category', 'price']));
-        $writer->addRow(Row::fromValues(['HB-500', 'Hex bolt, grade 8', 'fasteners_hardware', '1,299.00']));
+        $writer->addRow(Row::fromValues(['HB-500', 'Hex bolt, grade 8', 'cable_ties_fasteners', '1,299.00']));
         $writer->close();
 
         self::assertSame(
-            [2 => ['sku' => 'HB-500', 'name' => 'Hex bolt, grade 8', 'category' => 'fasteners_hardware', 'price' => '1,299.00']],
+            [2 => ['sku' => 'HB-500', 'name' => 'Hex bolt, grade 8', 'category' => 'cable_ties_fasteners', 'price' => '1,299.00']],
             $this->read($path),
         );
     }

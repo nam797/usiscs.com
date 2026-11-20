@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalog\Ors;
 
+use App\Catalog\Category\CategoryClassifier;
 use App\Catalog\Unit\PackUnit;
 use OpenSpout\Reader\XLSX\Reader;
 use Symfony\Component\String\Slugger\AsciiSlugger;
@@ -66,7 +67,8 @@ final class OrsFeedConverter
             $priced[$sku] = [
                 'sku' => $sku,
                 'name' => self::clean($family['family'] ?? (string) preg_replace('/\s*\[ORS [^\]]*\]\s*$/', '', $row['selected product'] ?? $sku)),
-                'category' => InterimCategory::for($row['usiscs segment'] ?? '', $family['family'] ?? ($row['selected product'] ?? '')),
+                // Blank when no rule places it: the import then asks for one.
+                'category' => CategoryClassifier::classify($family['family'] ?? ($row['selected product'] ?? '')) ?? '',
                 'price' => self::cents((string) $list),
                 'manufacturer' => self::clean($family['brand'] ?? '') ?: self::brand($row['ors brand'] ?? ''),
                 'part_number' => $row['vendor part number'] ?? '',

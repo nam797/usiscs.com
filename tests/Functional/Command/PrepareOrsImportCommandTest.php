@@ -53,7 +53,7 @@ final class PrepareOrsImportCommandTest extends FunctionalTestCase
         self::assertSame('Black, Size 10', $gloves['variant_name']);
         self::assertSame('51.85', $gloves['price'], 'ORS list 51.852 rounds to the cent.');
         self::assertSame('12 PR = 1 DZ', $gloves['unit_of_measure']);
-        self::assertSame('Safety & PPE', $gloves['category']);
+        self::assertSame('coated_general_purpose_gloves', $gloves['category']);
         self::assertSame('no', $gloves['go_live']);
         self::assertSame('White, Size 6', $rows['PRP-11-600-6-WH']['variant_name']);
         self::assertSame('ORS direct', $gloves['fulfilment'], 'ORS direct ship? = Yes');

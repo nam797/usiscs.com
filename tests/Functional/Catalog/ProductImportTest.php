@@ -51,7 +51,7 @@ final class ProductImportTest extends FunctionalTestCase
     public function testNewProductsArriveAsHiddenDraftsWithEverything(): void
     {
         $report = $this->import([
-            ['IMP-HB-500', 'Hex bolt', 'Fasteners & Hardware', '12.99', 'Grade 8.', 'Acme', '120', ''],
+            ['IMP-HB-500', 'Hex bolt', 'Cable Ties & Fasteners', '12.99', 'Grade 8.', 'Acme', '120', ''],
         ]);
 
         self::assertSame(1, $report->created);
@@ -60,7 +60,7 @@ final class ProductImportTest extends FunctionalTestCase
         self::assertSame('Hex bolt', $product->getName());
         self::assertSame('hex-bolt', $product->getSlug());
         self::assertSame('Grade 8.', $product->getDescription());
-        self::assertSame('fasteners_hardware', $product->getMainTaxon()?->getCode());
+        self::assertSame('cable_ties_fasteners', $product->getMainTaxon()?->getCode());
         self::assertSame('Acme', $product->getAttributeByCodeAndLocale('manufacturer', 'en_US')?->getValue());
         self::assertSame(['default'], array_map(static fn ($c) => $c->getCode(), $product->getChannels()->toArray()));
 
@@ -245,7 +245,7 @@ final class ProductImportTest extends FunctionalTestCase
     public function testFulfilmentAndShippingNoteAreImportedPerSku(): void
     {
         $path = $this->sheet([
-            ['IMP-FF-1', 'Aerosol cleaner', 'Maintenance Supplies', '9.50', 'cross-dock', 'Aerosol: check carrier and hazmat rules'],
+            ['IMP-FF-1', 'Aerosol cleaner', 'Cleaners, Soaps & Disinfectants', '9.50', 'cross-dock', 'Aerosol: check carrier and hazmat rules'],
             ['IMP-FF-2', 'Gloves', 'Safety & PPE', '9.50', 'ORS direct', ''],
             ['IMP-FF-3', 'Mystery', 'Safety & PPE', '9.50', 'by pigeon', ''],
         ], ['sku', 'name', 'category', 'price', 'fulfilment', 'shipping_note']);
@@ -265,7 +265,7 @@ final class ProductImportTest extends FunctionalTestCase
 
     public function testDraftsStayOffTheStorefrontAndSitemap(): void
     {
-        $this->import([['IMP-DR-1', 'Draft drill', 'MRO Materials', '99', '', '', '', 'no']]);
+        $this->import([['IMP-DR-1', 'Draft drill', 'Power Tools & Batteries', '99', '', '', '', 'no']]);
 
         $this->client->request('GET', '/products/draft-drill');
         self::assertResponseStatusCodeSame(404);
@@ -276,9 +276,9 @@ final class ProductImportTest extends FunctionalTestCase
 
     public function testAReImportUpdatesFieldsNobodyEdited(): void
     {
-        $this->import([['IMP-HB-500', 'Hex bolt', 'Fasteners & Hardware', '12.99', '', 'Acme', '120', '']]);
+        $this->import([['IMP-HB-500', 'Hex bolt', 'Cable Ties & Fasteners', '12.99', '', 'Acme', '120', '']]);
 
-        $report = $this->import([['IMP-HB-500', 'Hex bolt', 'Fasteners & Hardware', '13.49', '', 'Acme Corp', '80', '']]);
+        $report = $this->import([['IMP-HB-500', 'Hex bolt', 'Cable Ties & Fasteners', '13.49', '', 'Acme Corp', '80', '']]);
 
         self::assertSame(1, $report->updated);
         $product = $this->product('IMP-HB-500');
@@ -289,7 +289,7 @@ final class ProductImportTest extends FunctionalTestCase
 
     public function testAnAdminsEditSurvivesEveryReImport(): void
     {
-        $this->import([['IMP-HB-500', 'Hex bolt', 'Fasteners & Hardware', '12.99', '', '', '', '']]);
+        $this->import([['IMP-HB-500', 'Hex bolt', 'Cable Ties & Fasteners', '12.99', '', '', '', '']]);
 
         // An admin renames it and changes the price in the Sylius admin.
         $product = $this->product('IMP-HB-500');
@@ -297,7 +297,7 @@ final class ProductImportTest extends FunctionalTestCase
         $this->pricing($product)->setPrice(1500);
         $this->entityManager()->flush();
 
-        $report = $this->import([['IMP-HB-500', 'HEX BOLT GR8', 'Fasteners & Hardware', '13.49', 'New text', '', '', '']]);
+        $report = $this->import([['IMP-HB-500', 'HEX BOLT GR8', 'Cable Ties & Fasteners', '13.49', 'New text', '', '', '']]);
 
         $product = $this->product('IMP-HB-500');
         self::assertSame('Hex Bolt 1/2" Grade 8', $product->getName(), 'The admin name is kept.');
@@ -306,7 +306,7 @@ final class ProductImportTest extends FunctionalTestCase
         self::assertStringContainsString('kept admin edits to name, price', implode("\n", array_column($report->messages(), 'message')));
 
         // And again on the next import.
-        $this->import([['IMP-HB-500', 'HEX BOLT GR8 v2', 'Fasteners & Hardware', '14.00', 'New text', '', '', '']]);
+        $this->import([['IMP-HB-500', 'HEX BOLT GR8 v2', 'Cable Ties & Fasteners', '14.00', 'New text', '', '', '']]);
         self::assertSame('Hex Bolt 1/2" Grade 8', $this->product('IMP-HB-500')->getName());
     }
 
@@ -324,19 +324,19 @@ final class ProductImportTest extends FunctionalTestCase
 
     public function testChangingTheCategoryMovesTheProduct(): void
     {
-        $this->import([['IMP-MV-1', 'Pump', 'MRO Materials', '250', '', '', '', '']]);
-        $this->import([['IMP-MV-1', 'Pump', 'Maintenance Supplies', '250', '', '', '', '']]);
+        $this->import([['IMP-MV-1', 'Pump', 'Power Tools & Batteries', '250', '', '', '', '']]);
+        $this->import([['IMP-MV-1', 'Pump', 'Storage & Material Handling', '250', '', '', '', '']]);
 
         $product = $this->product('IMP-MV-1');
-        self::assertSame('maintenance_supplies', $product->getMainTaxon()?->getCode());
-        self::assertSame(['maintenance_supplies'], array_values(array_map(static fn ($pt) => $pt->getTaxon()?->getCode(), $product->getProductTaxons()->toArray())));
+        self::assertSame('storage_material_handling', $product->getMainTaxon()?->getCode());
+        self::assertSame(['storage_material_handling'], array_values(array_map(static fn ($pt) => $pt->getTaxon()?->getCode(), $product->getProductTaxons()->toArray())));
     }
 
     public function testAProductMadeByHandWithTheSameSkuIsLeftAlone(): void
     {
-        $this->ensureProduct('IMP-HAND-1', 'Hand made', 'hand-made', 'mro_materials');
+        $this->ensureProduct('IMP-HAND-1', 'Hand made', 'hand-made', 'power_tools_batteries');
 
-        $report = $this->import([['IMP-HAND-1', 'Imported name', 'MRO Materials', '1', '', '', '', '']]);
+        $report = $this->import([['IMP-HAND-1', 'Imported name', 'Power Tools & Batteries', '1', '', '', '', '']]);
 
         self::assertSame(1, $report->untouched);
         self::assertSame('Hand made', $this->product('IMP-HAND-1')->getName());
@@ -345,11 +345,11 @@ final class ProductImportTest extends FunctionalTestCase
     public function testBadRowsAreReportedAndTheRestStillImport(): void
     {
         $report = $this->import([
-            ['IMP-OK-1', 'Good one', 'MRO Materials', '1.00', '', '', '', ''],
-            ['IMP-BAD-1', 'Bad price', 'MRO Materials', 'call us', '', '', '', ''],
+            ['IMP-OK-1', 'Good one', 'Power Tools & Batteries', '1.00', '', '', '', ''],
+            ['IMP-BAD-1', 'Bad price', 'Power Tools & Batteries', 'call us', '', '', '', ''],
             ['IMP-BAD-2', 'Bad category', 'Toys', '1', '', '', '', ''],
-            ['IMP-OK-1', 'Duplicate', 'MRO Materials', '1', '', '', '', ''],
-            ['IMP-OK-2', 'Good two', 'MRO Materials', '2', '', '', '', ''],
+            ['IMP-OK-1', 'Duplicate', 'Power Tools & Batteries', '1', '', '', '', ''],
+            ['IMP-OK-2', 'Good two', 'Power Tools & Batteries', '2', '', '', '', ''],
         ]);
 
         self::assertSame(2, $report->created);
@@ -385,7 +385,7 @@ final class ProductImportTest extends FunctionalTestCase
         $writer->openToFile($path);
         $writer->addRow(Row::fromValues(['sku', 'name', 'category', 'price', 'image_url']));
         // A private address: refused before any request is made.
-        $writer->addRow(Row::fromValues(['IMP-IMG-1', 'Pictured part', 'MRO Materials', '5', 'http://127.0.0.1/part.png']));
+        $writer->addRow(Row::fromValues(['IMP-IMG-1', 'Pictured part', 'Power Tools & Batteries', '5', 'http://127.0.0.1/part.png']));
         $writer->close();
 
         $report = $this->importer()->import(new ExcelProductSource($path));
@@ -399,7 +399,7 @@ final class ProductImportTest extends FunctionalTestCase
 
     public function testADryRunReportsButSavesNothing(): void
     {
-        $report = $this->import([['IMP-DRY-1', 'Dry', 'MRO Materials', '1', '', 'Acme', '', 'yes']], dryRun: true);
+        $report = $this->import([['IMP-DRY-1', 'Dry', 'Power Tools & Batteries', '1', '', 'Acme', '', 'yes']], dryRun: true);
 
         self::assertTrue($report->dryRun);
         self::assertSame(1, $report->created);
@@ -411,8 +411,8 @@ final class ProductImportTest extends FunctionalTestCase
     public function testTheCommandPrintsASummaryAndFailsWhenRowsAreSkipped(): void
     {
         $path = $this->sheet([
-            ['IMP-CMD-1', 'Command one', 'MRO Materials', '1', '', '', '', ''],
-            ['IMP-CMD-2', 'No price', 'MRO Materials', '', '', '', '', ''],
+            ['IMP-CMD-1', 'Command one', 'Power Tools & Batteries', '1', '', '', '', ''],
+            ['IMP-CMD-2', 'No price', 'Power Tools & Batteries', '', '', '', '', ''],
         ]);
         $tester = new CommandTester((new Application(self::$kernel ?? self::bootKernel()))->find('app:catalog:import'));
 
