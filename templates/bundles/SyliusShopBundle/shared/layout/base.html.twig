@@ -70,13 +70,21 @@
     </head>
 
     <body data-route="{{ app.request.attributes.get('_route') }}">
+        {# Keyboard users skip the 13 header and menu links (the first Tab
+           shows this link). #}
+        <a class="visually-hidden-focusable skip-link" href="#main">Skip to content</a>
         {% block body %}
             <div class="{% apply escape %}{% hook '#body_classes' with { _prefixes: prefixes } %}{% endapply %}">
                 {% block header %}
-                    {% hook 'header' with { _prefixes: prefixes } %}
+                    <header>
+                        {% hook 'header' with { _prefixes: prefixes } %}
+                    </header>
                 {% endblock %}
 
-                {% block content %}{% endblock %}
+                {# The page's main landmark, for screen readers and the skip link. #}
+                <main id="main" tabindex="-1">
+                    {% block content %}{% endblock %}
+                </main>
 
                 {% block footer %}
                     {% hook 'footer' with { _prefixes: prefixes } %}

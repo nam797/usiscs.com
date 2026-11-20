@@ -1,0 +1,13 @@
+{# Sylius's Register link, without role="menuitem": it isn't inside a menu,
+   so screen readers announced a broken menu (axe aria-required-parent). #}
+{% import '@SyliusShop/shared/buttons.html.twig' as buttons %}
+
+<small aria-hidden="true" role="presentation" class="text-black px-1">|</small>
+{{ buttons.transparent(
+    path('sylius_shop_register'),
+    'sylius.ui.register'|trans,
+    'register-page-button',
+    null,
+    null,
+    { 'aria-label': 'sylius.ui.register'|trans }
+) }}

@@ -1,0 +1,7 @@
+{# Sylius's "Payment #1" title as an h2 (styled as before), so headings
+   don't jump from the page's h1 to h5. #}
+{% set index = hookable_metadata.context.index %}
+
+<h2 class="h5 mb-4">
+    {{ 'sylius.ui.payment'|trans }} #{{ index }}
+</h2>

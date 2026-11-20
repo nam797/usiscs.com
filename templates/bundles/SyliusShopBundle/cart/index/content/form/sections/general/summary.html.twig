@@ -1,0 +1,14 @@
+{# Sylius's cart summary box, with an h2 (it was an h3 straight after the
+   page's h1). #}
+{# Rendered with \Sylius\Bundle\ShopBundle\Twig\Component\Cart\SummaryComponent #}
+
+{% import '@SyliusShop/shared/macro/loader.html.twig' as loader %}
+
+<div class="position-relative" {{ attributes }}>
+    {{ loader.render() }}
+    <div class="p-4 bg-light mb-4 rounded-3">
+        <h2 class="h3 mb-4">{{ 'sylius.ui.summary'|trans }}</h2>
+        {% hook 'summary' with {cart} %}
+    </div>
+</div>
+

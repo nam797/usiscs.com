@@ -56,6 +56,16 @@ abstract class FunctionalTestCase extends WebTestCase
         // Every test starts with empty lead queues (RFQ line items cascade).
         $this->entityManager()->createQuery('DELETE FROM '.RfqRequest::class)->execute();
         $this->entityManager()->createQuery('DELETE FROM '.ContactMessage::class)->execute();
+
+        // US states, as on staging and production (migration
+        // Version20261120120000). CI loads the US from fixtures after the
+        // migrations ran, so the test database would otherwise have none and
+        // checkout would ask for a free-text state that production doesn't.
+        $this->entityManager()->getConnection()->executeStatement(
+            "INSERT INTO sylius_province (country_id, code, name, abbreviation)
+             SELECT c.id, 'US-IL', 'Illinois', 'IL' FROM sylius_country c
+             WHERE c.code = 'US' AND NOT EXISTS (SELECT 1 FROM sylius_province p WHERE p.code = 'US-IL')",
+        );
     }
 
     protected function entityManager(): EntityManagerInterface

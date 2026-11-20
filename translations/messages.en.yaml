@@ -1,0 +1,7 @@
+# The shop sells to US buyers only: US address wording in checkout and the
+# account address book (Sylius says Province / Postcode).
+sylius:
+    form:
+        address:
+            province: State
+            postcode: ZIP code

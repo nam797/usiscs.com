@@ -1,0 +1,8 @@
+{# Sylius's cart quantity field, with an accessible name (the column header
+   is the only label, and the field has none of its own). #}
+{% set form = hookable_metadata.context.form %}
+{% set item = hookable_metadata.context.item|default(null) %}
+
+<td>
+    {{ form_row(form.quantity, sylius_test_form_attribute('cart-item-quantity')|sylius_merge_recursive({label: false, row_attr: {'class': 'mt-3'}, attr: {'aria-label': 'Quantity of ' ~ (item ? item.productName : 'item')}})) }}
+</td>

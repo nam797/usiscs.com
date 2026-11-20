@@ -1,0 +1,44 @@
+{# Sylius's checkout layout, with landmarks (it had none): the header, the
+   step's form as <main> and the order summary as <aside>. #}
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% set prefixes = prefixes|default([])|merge(['sylius_shop.checkout.common']) %}
+
+{% block body %}
+    {% set prefixes = prefixes|filter(hook => hook != generic_hook) %}
+    <div class="d-flex flex-column min-vh-100 overflow-hidden">
+        <header class="bg-white border-bottom py-4">
+            <div class="container">
+                <div class="row align-items-center">
+                    {% if active_step|default(null) is not null %}
+                        {% set hooks = [ active_step ~ '.header'] %}
+                    {% endif %}
+                    {% hook hooks|default([])|merge(['header']) with { _prefixes: prefixes, order } %}
+                </div>
+            </div>
+        </header>
+        <div class="flex-grow-1 d-flex align-items-stretch">
+            <div class="container">
+                <div class="row h-100">
+                    <main id="main" class="col pt-4 pb-5" tabindex="-1">
+                        {# The shipping and payment steps have no title of their own
+                           ("Shipment #1" is small print); one for screen readers. #}
+                        {% if active_step|default(null) in ['select_shipping', 'select_payment'] %}
+                            <h1 class="visually-hidden">{{ active_step == 'select_shipping' ? 'Shipping' : 'Payment' }}</h1>
+                        {% endif %}
+                        {% block content %}
+                        {% endblock %}
+                    </main>
+                    {% block sidebar %}
+                        <aside class="col-12 col-lg-5 py-5 ps-lg-6 position-relative checkout-sidebar" aria-label="Order summary">
+                            {% if active_step|default(null) is not null %}
+                                {% set hooks = [ active_step ~ '.sidebar'] %}
+                            {% endif %}
+                            {% hook hooks|default([])|merge(['sidebar']) with { _prefixes: prefixes, order } %}
+                        </aside>
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
