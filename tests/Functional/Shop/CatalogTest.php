@@ -123,6 +123,29 @@ final class CatalogTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', '$12.99');
     }
 
+    public function testAProductPageShowsTheItemNumberAndABulkQuoteLinkNotTheSlug(): void
+    {
+        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
+
+        $this->client->request('GET', '/products/safety-glasses');
+
+        self::assertSelectorTextContains('[data-test-item-number]', 'Item # E2E_SAFETY_GLASSES');
+        self::assertSelectorExists('a[href="/quote?item=E2E_SAFETY_GLASSES"]');
+        self::assertSelectorTextNotContains('body', 'safety-glasses');
+    }
+
+    public function testAProductPageSuggestsOthersFromItsCategory(): void
+    {
+        $this->ensureProduct('E2E_GOGGLES', 'Splash Goggles', 'splash-goggles', 'eye_face_protection');
+        $this->ensureProduct('E2E_FACE_SHIELD', 'Face Shield', 'face-shield', 'eye_face_protection');
+
+        $this->client->request('GET', '/products/splash-goggles');
+
+        self::assertSelectorTextContains('#related-products-heading', 'More in Eye & Face Protection');
+        self::assertSelectorTextContains('[data-test-related-products]', 'Face Shield');
+        self::assertSelectorTextNotContains('[data-test-related-products]', 'Splash Goggles');
+    }
+
     public function testADisabledProductIsNotFound(): void
     {
         $this->ensureProduct('E2E_HIDDEN_HARD_HAT', 'Discontinued Hard Hat', 'discontinued-hard-hat', 'safety_ppe', enabled: false);

@@ -1,0 +1,8 @@
+{# Sylius's short description, without the product code under it: on this
+   shop that's the URL slug, which read as a glitch. The item number is
+   shown under "Add to cart" instead (shop/product/item_and_bulk_quote.html.twig). #}
+{% set product = hookable_metadata.context.product %}
+
+{% if product.shortDescription is not empty %}
+    <div class="mb-3">{{ product.shortDescription }}</div>
+{% endif %}

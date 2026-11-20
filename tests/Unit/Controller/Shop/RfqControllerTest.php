@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Product\Repository\ProductVariantRepositoryInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -233,7 +234,7 @@ final class RfqControllerTest extends ControllerTestCase
         });
 
         $notifier = new LeadNotifier($mailer, $channelContext, new TeamEmailBuilder($this->recordingTwig()), $logger, 'no-reply@usiscs.example');
-        $controller = new RfqController($entityManager, $notifier, $this->throttle);
+        $controller = new RfqController($entityManager, $notifier, $this->throttle, $this->createStub(ProductVariantRepositoryInterface::class));
         $this->wire($controller, $request);
 
         return $controller->index($request);

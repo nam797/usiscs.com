@@ -1,0 +1,7 @@
+{# Sylius's "Attributes" section, named for what buyers look for and open
+   by default: it's usually the only detail on the page. #}
+{% embed '@SyliusShop/shared/accordion/accordion_item_title.html.twig' with { accordion_item_id: 'attributes', expanded: true } %}
+    {% block accordion_item_title %}
+        <span {{ sylius_test_html_attribute('tab', 'attributes') }}>Specifications</span>
+    {% endblock %}
+{% endembed %}

@@ -480,3 +480,17 @@ $brand-chevron: "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' vi
 #main-image {
   aspect-ratio: 4 / 3;
 }
+
+// Product page size picker: Sylius marks the selected row .table-success,
+// a pale mint that clashes with the dark theme. A panel with a red edge.
+tr.table-success {
+  --bs-table-bg: var(--bs-tertiary-bg) !important;
+  --bs-table-color: var(--bs-body-color) !important;
+  --bs-table-bg-state: var(--bs-tertiary-bg) !important;
+  --bs-table-color-state: var(--bs-body-color) !important;
+  --bs-table-border-color: var(--bs-border-color) !important;
+
+  > :first-child {
+    box-shadow: inset 3px 0 0 #{$brand-accent} !important;
+  }
+}

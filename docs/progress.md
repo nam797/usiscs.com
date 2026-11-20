@@ -478,6 +478,17 @@
     Then stats, four What We Do cards, closing CTA. Ticker, value banner,
     Why US Industrial and USISCS Difference dropped (on /services and
     /about). Category icons are local Tabler SVGs in `assets/icons/category/`.
+- Product page quick wins (2026-11-20, from a CRO review of the staging
+  hose page): under Add to cart, "Item # <variant code>" (follows the size
+  picker; plus "Mfr part #" on one-size products) and "Need a bigger
+  quantity? Get bulk pricing →", which opens /quote with that item as the
+  first line (`/quote?item=<code>`, RfqController). The product code (the
+  URL slug) is no longer printed under the description. "Attributes" is
+  now "Specifications", open by default. "Latest products" became "More in
+  <category>" (`related_products()`). The selected size row is a dark
+  panel with a red edge instead of Sylius's mint. Still open from the
+  review: product images, a spec table from ORS data, a stock/shipping
+  line, site-wide search, tidying ORS size names.
 - Security updates (2026-11-20; advisories of 2026-11-18 failed CI's
   `composer audit` on every PR): easycorp/easyadmin-bundle 5.7.0 → 5.10.2
   (backoffice access-control bypasses, stored XSS), flux-se/sylius-stripe-
