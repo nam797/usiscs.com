@@ -17,9 +17,12 @@ use Twig\TwigFunction;
 /**
  * schema.org structured data (JSON-LD) for search engines:
  *
- *  - ld_product(): Product with its Offer (price, currency, availability),
- *    or an AggregateOffer for a product sold in several sizes/colours;
- *    brand and part number from the import's attributes.
+ *  - ld_product(): a one-size product is a Product with its Offer (price,
+ *    currency, availability), SKU = the item number and MPN = the
+ *    manufacturer part number. A product sold in several sizes/colours is
+ *    a ProductGroup with one Product per size (its own item number, price
+ *    and availability), as Google asks for variants. Brand from the
+ *    import's attribute, shown in normal case when ORS sent it in capitals.
  *  - ld_breadcrumbs(): BreadcrumbList matching the page's breadcrumbs.
  *  - ld_organization() / ld_website(): who runs the site, on the homepage.
  *  - json_ld(): one <script type="application/ld+json"> tag, with "<", ">"
@@ -79,18 +82,15 @@ final class StructuredDataExtension extends AbstractExtension
             }
         }
 
-        $data = ['@context' => self::CONTEXT, '@type' => 'Product', 'name' => (string) $product->getName(), 'url' => $url];
+        $name = (string) $product->getName();
+        $data = ['@context' => self::CONTEXT, '@type' => 1 < \count($variants) ? 'ProductGroup' : 'Product', 'name' => $name, 'url' => $url];
 
         $description = SeoExtension::plain($product->getDescription() ?? $product->getShortDescription());
         if ('' !== $description) {
             $data['description'] = $description;
         }
-        $data['sku'] = 1 === \count($variants) ? (string) $variants[0]->getCode() : (string) $product->getCode();
-        if (null !== $partNumber = self::attribute($product, 'part_number')) {
-            $data['mpn'] = $partNumber;
-        }
         if (null !== $brand = self::attribute($product, 'manufacturer')) {
-            $data['brand'] = ['@type' => 'Brand', 'name' => $brand];
+            $data['brand'] = ['@type' => 'Brand', 'name' => self::brandName($brand)];
         }
         $images = [];
         foreach ($product->getImages() as $image) {
@@ -103,35 +103,39 @@ final class StructuredDataExtension extends AbstractExtension
         }
 
         if ([] === $variants) {
+            $data['sku'] = (string) $product->getCode();
+
             return $data;
         }
 
-        $currency = (string) $channel->getBaseCurrency()?->getCode();
-        $seller = ['@type' => 'Organization', 'name' => (string) $channel->getName()];
-        $prices = array_map(static fn (ProductVariantInterface $v): int => (int) $v->getChannelPricingForChannel($channel)?->getPrice(), $variants);
-        $inStock = [] !== array_filter($variants, fn (ProductVariantInterface $v): bool => $this->availability->isStockAvailable($v));
+        if (1 === \count($variants)) {
+            $data['sku'] = (string) $variants[0]->getCode();
+            // The part number is stored per product, from the import's first
+            // row: only certain for a product with one item.
+            if (null !== $partNumber = self::attribute($product, 'part_number')) {
+                $data['mpn'] = $partNumber;
+            }
+            $data['offers'] = $this->offer($variants[0], $channel, $url);
 
-        $data['offers'] = 1 === \count($variants)
-            ? [
-                '@type' => 'Offer',
+            return $data;
+        }
+
+        $data['productGroupID'] = (string) $product->getCode();
+        $data['hasVariant'] = [];
+        foreach ($variants as $variant) {
+            $variantName = trim((string) $variant->getName());
+            $item = [
+                '@type' => 'Product',
+                'name' => '' === $variantName ? $name : $name.', '.$variantName,
+                'sku' => (string) $variant->getCode(),
                 'url' => $url,
-                'price' => self::money($prices[0]),
-                'priceCurrency' => $currency,
-                'availability' => self::CONTEXT.($inStock ? '/InStock' : '/OutOfStock'),
-                'itemCondition' => self::CONTEXT.'/NewCondition',
-                'seller' => $seller,
-            ]
-            : [
-                '@type' => 'AggregateOffer',
-                'url' => $url,
-                'lowPrice' => self::money(min($prices)),
-                'highPrice' => self::money(max($prices)),
-                'offerCount' => \count($variants),
-                'priceCurrency' => $currency,
-                'availability' => self::CONTEXT.($inStock ? '/InStock' : '/OutOfStock'),
-                'itemCondition' => self::CONTEXT.'/NewCondition',
-                'seller' => $seller,
             ];
+            if ([] !== $images) {
+                $item['image'] = $images;
+            }
+            $item['offers'] = $this->offer($variant, $channel, $url);
+            $data['hasVariant'][] = $item;
+        }
 
         return $data;
     }
@@ -191,6 +195,37 @@ final class StructuredDataExtension extends AbstractExtension
             'name' => (string) $channel->getName(),
             'url' => $this->urls->generate('sylius_shop_homepage', [], UrlGeneratorInterface::ABSOLUTE_URL),
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function offer(ProductVariantInterface $variant, ChannelInterface $channel, string $url): array
+    {
+        return [
+            '@type' => 'Offer',
+            'url' => $url,
+            'price' => self::money((int) $variant->getChannelPricingForChannel($channel)?->getPrice()),
+            'priceCurrency' => (string) $channel->getBaseCurrency()?->getCode(),
+            'availability' => self::CONTEXT.($this->availability->isStockAvailable($variant) ? '/InStock' : '/OutOfStock'),
+            'itemCondition' => self::CONTEXT.'/NewCondition',
+            'seller' => ['@type' => 'Organization', 'name' => (string) $channel->getName()],
+        ];
+    }
+
+    /**
+     * "JACKSON PROFESSIONAL TOOLS" -> "Jackson Professional Tools": ORS
+     * sends some brands in capitals. Mixed-case names are left alone, and so
+     * are words of up to 3 letters ("MCR Safety", "3M", "MSA").
+     */
+    public static function brandName(string $brand): string
+    {
+        if ($brand !== mb_strtoupper($brand)) {
+            return $brand;
+        }
+
+        return implode(' ', array_map(
+            static fn (string $word): string => mb_strlen($word) <= 3 ? $word : mb_convert_case($word, \MB_CASE_TITLE),
+            explode(' ', $brand),
+        ));
     }
 
     private static function attribute(ProductInterface $product, string $code): ?string

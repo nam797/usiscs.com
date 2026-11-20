@@ -478,6 +478,18 @@
     Then stats, four What We Do cards, closing CTA. Ticker, value banner,
     Why US Industrial and USISCS Difference dropped (on /services and
     /about). Category icons are local Tabler SVGs in `assets/icons/category/`.
+- Product structured data (2026-11-20, from an on-page SEO audit of
+  staging): one-size products are a Product with SKU = item number, MPN =
+  part number and an Offer; products sold in sizes are a ProductGroup
+  (productGroupID = product code) with one Product per size, each with its
+  item number, price and availability (was one AggregateOffer with the URL
+  slug as SKU). Brands ORS sent in capitals show in normal case in the
+  markup (`StructuredDataExtension::brandName`; "MCR Safety", "3M" kept).
+  Still missing for product rich results: `image` (no product photos yet)
+  and `description`; `gtin` could come from the client's 3000-SKU sheet's
+  UPC column. Other SEO audit items not done yet: homepage title and meta
+  description, category intros and H1s, related-category links, product
+  meta description repeating the brand, brand capitals in the data itself.
 - UX audit fixes (2026-11-20; audit report with screenshots was local, ux-audit
   skill, verdict Fail on axe-core critical/serious and the phone cart):
   axe-core now clean on home, category, department, product, cart, quote,
