@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Catalog\Category\CategoryTree;
 use App\Catalog\Import\ProductRow;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
@@ -67,15 +68,20 @@ final class ImportTemplateCommand extends Command
         $writer->getCurrentSheet()->setName('Products');
         $writer->addRow(Row::fromValuesWithStyle($columns, $bold));
         $writer->addRow(Row::fromValues([
-            'HB-500', 'Hex bolt 1/2"-13 x 2", grade 8', 'Fasteners & Hardware', '12.99',
+            'HB-500', 'Hex bolt 1/2"-13 x 2", grade 8', 'Cable Ties & Fasteners', '12.99',
             'Grade 8 zinc-plated hex cap screw.', 'Grade 8 hex bolt', 'Acme Fastener', 'AC-12-13-2',
             'box of 50', '120', '', 'no',
         ]));
 
         $writer->addNewSheetAndMakeItCurrent()->setName('Categories');
-        $writer->addRow(Row::fromValuesWithStyle(['category (use either column)', 'code'], $bold));
-        foreach (SetupCategoriesCommand::CATEGORIES as $code => $name) {
-            $writer->addRow(Row::fromValues([$name, $code]));
+        $writer->addRow(Row::fromValuesWithStyle(['category (use either column)', 'code', 'department'], $bold));
+        foreach (CategoryTree::flat() as $code => $category) {
+            // Products go in the most specific category: a department or a
+            // category with subcategories would list them only one level up.
+            if ($category['leaf']) {
+                $department = CategoryTree::path($code)[0];
+                $writer->addRow(Row::fromValues([$category['name'], $code, CategoryTree::flat()[$department]['name']]));
+            }
         }
 
         $writer->addNewSheetAndMakeItCurrent()->setName('Column guide');

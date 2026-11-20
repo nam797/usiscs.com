@@ -377,14 +377,31 @@ Locally, forward webhooks with the Stripe CLI:
 
 ## Catalog categories
 
-The category tree (the six categories on /services) is created by an
-idempotent command. Run it once per environment, e.g. after a fresh install
-or on Upsun via `upsun ssh`. It is not in the deploy hook on purpose: a
-category deleted in the admin would come back on every deploy.
+The category tree the client approved (7 departments, 31 categories, a third
+level under Hand Protection and Hand Tools; `src/Catalog/Category/CategoryTree.php`)
+is created by an idempotent command. Run it once per environment, e.g. after a
+fresh install or on Upsun via `upsun ssh`. It is not in the deploy hook on
+purpose: a category deleted in the admin would come back on every deploy.
 
 ```bash
 php -d memory_limit=-1 bin/console app:catalog:setup-categories
 ```
+
+Products are sorted into it by name (`CategoryClassifier`). The dry run
+reports the counts per category and what no rule places; `--apply` moves
+them (main and only category), then removes the six launch placeholder
+categories once nothing uses them. Products no rule places stay where they
+are; place them in the admin, then run setup-categories again to remove the
+last placeholders (until then they're hidden from the shop).
+
+```bash
+php -d memory_limit=-1 bin/console app:catalog:categorize --csv=categories.csv
+php -d memory_limit=-1 bin/console app:catalog:categorize --apply
+php -d memory_limit=-1 bin/console app:catalog:setup-categories
+```
+
+The old category pages (/mro-materials, ...) redirect to their replacements
+(`CategoryTree::RETIRED`).
 
 PHPStan runs at **level 9** and is currently clean. It picks up
 `phpstan.dist.neon` automatically; create a gitignored `phpstan.neon` only if

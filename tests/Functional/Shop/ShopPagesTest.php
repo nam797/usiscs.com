@@ -138,9 +138,10 @@ final class ShopPagesTest extends FunctionalTestCase
     {
         $crawler = $this->client->request('GET', '/');
 
-        $hrefs = $crawler->filter('#navbarNav a')->each(static fn ($a): string => (string) $a->attr('href'));
-        self::assertSame('/mro-materials', $hrefs[0] ?? null);
-        self::assertGreaterThan(array_search('/fasteners-hardware', $hrefs, true), array_search('/services', $hrefs, true));
+        // Without the department toggles (href "#"), which only open their dropdown.
+        $hrefs = array_values(array_filter($crawler->filter('#navbarNav a')->each(static fn ($a): string => (string) $a->attr('href')), static fn (string $href): bool => '#' !== $href));
+        self::assertSame('/safety-ppe', $hrefs[0] ?? null);
+        self::assertGreaterThan(array_search('/abrasives', $hrefs, true), array_search('/services', $hrefs, true));
     }
 
     public function testTheFooterLinksToTheLegalPages(): void

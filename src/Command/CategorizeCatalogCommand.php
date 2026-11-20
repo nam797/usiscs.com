@@ -6,7 +6,11 @@ namespace App\Command;
 
 use App\Catalog\Category\CategoryClassifier;
 use App\Catalog\Category\CategoryTree;
+use App\Catalog\Category\CategoryTreeBuilder;
+use App\Entity\Product\Product;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Sylius\Component\Core\Model\ProductInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -15,29 +19,38 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Dry run of moving the catalog into the approved category tree: sorts
- * every product with CategoryClassifier and reports how many products (and
- * SKUs, to compare with the draft's SKU counts) each category would get,
- * which categories come out thin, and which products no rule places.
- * --csv writes the full product list for review. Changes nothing.
+ * Moves the catalog into the approved category tree: sorts every product
+ * with CategoryClassifier and reports how many products (and SKUs, to
+ * compare with the draft's SKU counts) each category gets, which
+ * categories come out thin, and which products no rule places. --csv
+ * writes the full product list for review.
+ *
+ * A dry run unless --apply: then each placed product gets its new category
+ * as its main and only one (products no rule places are left alone), and
+ * the launch placeholder categories nothing uses any more are removed.
+ * Run app:catalog:setup-categories first so the categories exist.
  */
 #[AsCommand(
     name: 'app:catalog:categorize',
-    description: 'Dry run: sort every product into the approved category tree and report the counts (changes nothing).',
+    description: 'Sort every product into the approved category tree (dry run unless --apply).',
 )]
 final class CategorizeCatalogCommand extends Command
 {
     /** The draft's rule: a category page with fewer products helps no one. */
     private const THIN = 10;
 
-    public function __construct(private readonly Connection $connection)
-    {
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly CategoryTreeBuilder $builder,
+        private readonly EntityManagerInterface $entityManager,
+    ) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
         $this->addOption('csv', null, InputOption::VALUE_REQUIRED, 'Write every product with its new category to this CSV file');
+        $this->addOption('apply', null, InputOption::VALUE_NONE, 'Move the products (otherwise only report)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -86,7 +99,8 @@ final class CategorizeCatalogCommand extends Command
                 $thin[] = sprintf('%s (%d)', $node['name'], $counts[$code]['products']);
             }
         }
-        $io->title('Approved category tree: dry run (nothing changed)');
+        $apply = (bool) $input->getOption('apply');
+        $io->title($apply ? 'Approved category tree: moving products' : 'Approved category tree: dry run (nothing changed)');
         $io->table(['Category', 'Products', 'SKUs', 'Draft SKUs'], $table);
 
         $placed = count($products) - count($unplaced);
@@ -97,6 +111,10 @@ final class CategorizeCatalogCommand extends Command
         if ([] !== $unplaced) {
             $io->section('No rule places these');
             $io->listing(array_map(static fn (array $p): string => sprintf('%s (%s)', $p['name'], $p['code']), $unplaced));
+        }
+
+        if ($apply && Command::SUCCESS !== $this->apply($io)) {
+            return Command::FAILURE;
         }
 
         $csv = $input->getOption('csv');
@@ -117,6 +135,41 @@ final class CategorizeCatalogCommand extends Command
             }
             fclose($handle);
             $io->success(sprintf('Wrote %d products to %s.', count($rows), $csv));
+        }
+
+        return Command::SUCCESS;
+    }
+
+    private function apply(SymfonyStyle $io): int
+    {
+        $moved = 0;
+        $done = 0;
+        foreach ($this->entityManager->getRepository(Product::class)->findAll() as $product) {
+            if (!$product instanceof ProductInterface) {
+                continue;
+            }
+            $product->setCurrentLocale('en_US');
+            $code = CategoryClassifier::classify((string) $product->getName());
+            if (null === $code) {
+                continue;
+            }
+            try {
+                $moved += $this->builder->moveProduct($product, $code) ? 1 : 0;
+            } catch (\RuntimeException $e) {
+                $io->error($e->getMessage());
+
+                return Command::FAILURE;
+            }
+            if (0 === ++$done % 200) {
+                $this->entityManager->flush();
+            }
+        }
+        $this->entityManager->flush();
+
+        $retired = $this->builder->retirePlaceholders();
+        $io->success(sprintf('Moved %d products.%s', $moved, [] === $retired['removed'] ? '' : sprintf(' Removed the old categories: %s.', implode(', ', $retired['removed']))));
+        if ([] !== $retired['hidden']) {
+            $io->warning(sprintf('Still holding products (hidden from the shop): %s. Place those by hand in the admin, then run app:catalog:setup-categories.', implode(', ', $retired['hidden'])));
         }
 
         return Command::SUCCESS;

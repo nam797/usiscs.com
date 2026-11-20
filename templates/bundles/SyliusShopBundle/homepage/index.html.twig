@@ -27,14 +27,16 @@
 {% endblock %}
 
 {% block content %}
-{# Icon per category code (local SVGs in assets/icons/category, Tabler
-   icons); any other category gets the cube. #}
+{# Icon per department code (local SVGs in assets/icons/category, Tabler
+   icons); any other department gets the cube. #}
 {% set category_icons = {
-    mro_materials: 'category:tool',
-    electrical_controls: 'tabler:plug',
-    maintenance_supplies: 'category:spray',
     safety_ppe: 'category:helmet',
-    fasteners_hardware: 'category:nut',
+    tools: 'category:tool',
+    janitorial_facility: 'category:spray',
+    welding: 'category:flame',
+    lubricants_chemicals_paint: 'category:droplet',
+    fasteners_tape_material_handling: 'category:nut',
+    abrasives: 'category:disc',
 } %}
 <div class="container py-5">
 
@@ -43,8 +45,8 @@
         <div class="col-lg-9 mx-auto text-center">
             <h1 class="display-5 mb-3">Industrial Supplies, Delivered.</h1>
             <p class="text-secondary mb-4 fs-5">
-                MRO materials, safety gear, electrical, fasteners and maintenance supplies,
-                ready to order online.
+                Safety gear, tools, welding, janitorial and shop supplies, ready to order
+                online.
             </p>
             <div class="d-flex gap-3 justify-content-center align-items-center flex-wrap">
                 <a href="#categories" class="btn btn-primary">Shop Supplies</a>
@@ -53,14 +55,15 @@
         </div>
     </div>
 
-    {# Categories: the main thing on the page. A category with nothing in
-       it yet (Specialty & Hard-to-Find) asks for a quote instead. #}
+    {# Departments: the main thing on the page. One with nothing in it yet
+       asks for a quote instead, and the last tile is for anything not
+       listed (what "Specialty & Hard-to-Find" was). #}
     <section id="categories" class="mb-5" aria-labelledby="categories-heading">
         <h2 id="categories-heading" class="visually-hidden">Shop by category</h2>
         <div class="row g-3">
             {% for category in shop_categories() %}
                 {% set taxon = category.taxon %}
-                <div class="col-6 col-lg-4">
+                <div class="col-6 col-lg-3">
                     {% if category.products > 0 %}
                         <a class="category-tile" href="{{ path('sylius_shop_product_index', { slug: taxon.slug, _locale: taxon.translation.locale }) }}">
                             {{ ux_icon(category_icons[taxon.code] ?? 'tabler:cube', { class: 'category-tile__icon', 'aria-hidden': 'true' }) }}
@@ -76,6 +79,13 @@
                     {% endif %}
                 </div>
             {% endfor %}
+            <div class="col-6 col-lg-3">
+                <a class="category-tile category-tile--ask" href="{{ path('app_shop_rfq') }}">
+                    {{ ux_icon('category:zoom-question', { class: 'category-tile__icon', 'aria-hidden': 'true' }) }}
+                    <span class="category-tile__name">Specialty &amp; Hard-to-Find</span>
+                    <span class="category-tile__count">Can't find it? Ask us &rarr;</span>
+                </a>
+            </div>
         </div>
     </section>
 

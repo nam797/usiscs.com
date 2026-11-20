@@ -4,35 +4,55 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Shop;
 
-use App\Command\SetupCategoriesCommand;
+use App\Catalog\Category\CategoryTree;
 use App\Tests\Functional\FunctionalTestCase;
-use Symfony\Component\String\Slugger\AsciiSlugger;
 
 final class CatalogTest extends FunctionalTestCase
 {
-    public function testTheShopMenuListsTheSixCategoriesInOrder(): void
+    public function testTheShopMenuListsTheSevenDepartmentsInOrderEachWithItsCategories(): void
     {
         $crawler = $this->client->request('GET', '/');
 
-        $slugger = new AsciiSlugger();
-        $categoryHrefs = array_map(static fn (string $name): string => '/'.$slugger->slug($name)->lower(), SetupCategoriesCommand::CATEGORIES);
-        $menu = $crawler->filter('nav a')->each(static fn ($a): ?string => in_array($a->attr('href'), $categoryHrefs, true) ? trim($a->text()) : null);
+        $departments = $crawler->filter('#navbarNav [data-bs-toggle="dropdown"]')->each(static fn ($a): string => trim($a->text()));
+        self::assertSame(array_map(static fn (array $node): string => $node[0], array_values(CategoryTree::TREE)), $departments);
 
-        self::assertSame(array_values(SetupCategoriesCommand::CATEGORIES), array_values(array_filter($menu)));
+        $tools = $crawler->filter('#navbarNav .dropdown-menu a')->each(static fn ($a): string => (string) $a->attr('href'));
+        self::assertContains('/tools', $tools, 'Each dropdown starts with a link to the department itself.');
+        self::assertContains('/tools/hand-tools', $tools);
+        self::assertContains('/safety-ppe/hand-protection', $tools);
     }
 
-    public function testTheHomepageHasATilePerCategoryAndEmptyOnesAskForAQuote(): void
+    public function testTheHomepageHasATilePerDepartmentAndOneForAnythingElse(): void
     {
-        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
+        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'eye_face_protection');
 
-        $crawler = $this->client->request('GET', '/');
+        $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(count(SetupCategoriesCommand::CATEGORIES), '#categories .category-tile');
-        self::assertSelectorExists('#categories a.category-tile[href="/safety-ppe"]');
+        self::assertSelectorCount(count(CategoryTree::TREE) + 1, '#categories .category-tile');
         self::assertSelectorTextContains('#categories a.category-tile[href="/safety-ppe"]', 'products');
-        $askTiles = $crawler->filter('#categories a.category-tile--ask[href="/quote"]')->each(static fn ($a): string => $a->text());
-        self::assertNotEmpty(array_filter($askTiles, static fn (string $text): bool => str_contains($text, 'Specialty & Hard-to-Find')));
+        self::assertSelectorTextContains('#categories .col-6:last-child a.category-tile--ask[href="/quote"]', 'Specialty & Hard-to-Find');
+    }
+
+    public function testAThirdLevelCategoryPageListsItsProductsAndTheDepartmentShowsThemToo(): void
+    {
+        $this->ensureProduct('E2E_CUT_GLOVES', 'Cut Gloves', 'cut-gloves', 'cut_resistant_gloves');
+
+        $this->client->request('GET', '/safety-ppe/hand-protection/cut-resistant-gloves');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Cut-Resistant Gloves');
+        self::assertSelectorTextContains('body', 'Cut Gloves');
+
+        $this->client->request('GET', '/safety-ppe');
+        self::assertSelectorTextContains('body', 'Cut Gloves');
+    }
+
+    public function testTheOldCategoryPagesRedirectToTheirReplacements(): void
+    {
+        foreach (CategoryTree::RETIRED as [$oldSlug, $newPath]) {
+            $this->client->request('GET', '/'.$oldSlug.'?page=2');
+            self::assertResponseRedirects($newPath.'?page=2', 301);
+        }
     }
 
     public function testACategoryPageListsItsProducts(): void
@@ -85,10 +105,10 @@ final class CatalogTest extends FunctionalTestCase
 
     public function testAnEmptyCategoryPageStillLoads(): void
     {
-        $this->client->request('GET', '/specialty-hard-to-find');
+        $this->client->request('GET', '/abrasives/grinding-cutting-finishing');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Specialty & Hard-to-Find');
+        self::assertSelectorTextContains('h1', 'Grinding, Cutting & Finishing');
     }
 
     public function testAProductPageShowsTheProductAndItsPrice(): void

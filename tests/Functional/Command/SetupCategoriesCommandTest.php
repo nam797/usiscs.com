@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Command;
 
+use App\Catalog\Category\CategoryTree;
 use App\Command\SetupCategoriesCommand;
 use App\Entity\Channel\Channel;
 use App\Entity\Taxonomy\Taxon;
@@ -15,7 +16,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 final class SetupCategoriesCommandTest extends FunctionalTestCase
 {
-    public function testItLeavesTheFullTreeInPlaceAndAttachedToTheMenu(): void
+    public function testItLeavesTheApprovedTreeInPlaceAndAttachedToTheMenu(): void
     {
         $tester = $this->runCommand();
 
@@ -24,11 +25,21 @@ final class SetupCategoriesCommandTest extends FunctionalTestCase
         $root = $this->taxon(SetupCategoriesCommand::ROOT_CODE);
         self::assertInstanceOf(TaxonInterface::class, $root);
 
-        $children = [];
+        $departments = [];
         foreach ($root->getChildren() as $child) {
-            $children[(string) $child->getCode()] = (string) $child->getName();
+            if ($child->isEnabled()) {
+                $departments[] = (string) $child->getCode();
+            }
         }
-        self::assertSame(SetupCategoriesCommand::CATEGORIES, $children);
+        self::assertSame(array_keys(CategoryTree::TREE), $departments);
+
+        foreach (CategoryTree::flat() as $code => $category) {
+            $taxon = $this->taxon($code);
+            self::assertNotNull($taxon, sprintf('%s is missing.', $code));
+            self::assertSame($category['name'], $taxon->getName());
+            self::assertSame($category['parent'] ?? SetupCategoriesCommand::ROOT_CODE, $taxon->getParent()?->getCode());
+        }
+        self::assertSame('safety-ppe/hand-protection/cut-resistant-gloves', $this->taxon('cut_resistant_gloves')?->getSlug());
 
         $channel = $this->entityManager()->getRepository(Channel::class)->findOneBy(['code' => 'default']);
         self::assertInstanceOf(ChannelInterface::class, $channel);
@@ -48,42 +59,59 @@ final class SetupCategoriesCommandTest extends FunctionalTestCase
     {
         $this->runCommand();
         $entityManager = $this->entityManager();
-        $missing = $this->taxon('specialty_hard_to_find');
+        $missing = $this->taxon('footwear');
         self::assertNotNull($missing);
         $entityManager->remove($missing);
         $entityManager->flush();
 
         $tester = $this->runCommand();
 
-        self::assertStringContainsString('Specialty & Hard-to-Find', $tester->getDisplay());
+        self::assertStringContainsString('Footwear', $tester->getDisplay());
         self::assertStringContainsString('Created 1 category.', $tester->getDisplay());
-        self::assertSame('specialty-hard-to-find', $this->taxon('specialty_hard_to_find')?->getSlug());
+        self::assertSame('safety-ppe/footwear', $this->taxon('footwear')?->getSlug());
     }
 
     public function testItNeverOverwritesAnAdminsChanges(): void
     {
         $this->runCommand();
         $entityManager = $this->entityManager();
-        $renamed = $this->taxon('fasteners_hardware');
+        $renamed = $this->taxon('tape');
         self::assertNotNull($renamed);
         $renamed->setCurrentLocale('en_US');
-        $renamed->setName('Fasteners, Anchors & Hardware');
+        $renamed->setName('Tape & Adhesive Tape');
         $entityManager->flush();
 
         try {
             $this->runCommand();
 
-            $taxon = $this->taxon('fasteners_hardware');
-            self::assertNotNull($taxon);
-            $taxon->setCurrentLocale('en_US');
-            self::assertSame('Fasteners, Anchors & Hardware', $taxon->getName());
+            self::assertSame('Tape & Adhesive Tape', $this->taxon('tape')?->getName());
         } finally {
-            $taxon = $this->taxon('fasteners_hardware');
+            $taxon = $this->taxon('tape');
             self::assertNotNull($taxon);
-            $taxon->setCurrentLocale('en_US');
-            $taxon->setName(SetupCategoriesCommand::CATEGORIES['fasteners_hardware']);
+            $taxon->setName('Tape');
             $this->entityManager()->flush();
         }
+    }
+
+    public function testItRemovesAnEmptyLaunchPlaceholder(): void
+    {
+        $this->runCommand();
+        $root = $this->taxon(SetupCategoriesCommand::ROOT_CODE);
+        self::assertNotNull($root);
+        $placeholder = new Taxon();
+        $placeholder->setCode('specialty_hard_to_find');
+        $placeholder->setCurrentLocale('en_US');
+        $placeholder->setFallbackLocale('en_US');
+        $placeholder->setName('Specialty & Hard-to-Find');
+        $placeholder->setSlug('specialty-hard-to-find');
+        $root->addChild($placeholder);
+        $this->entityManager()->persist($placeholder);
+        $this->entityManager()->flush();
+
+        $tester = $this->runCommand();
+
+        self::assertStringContainsString('Removed the old categories: Specialty & Hard-to-Find.', $tester->getDisplay());
+        self::assertNull($this->taxon('specialty_hard_to_find'));
     }
 
     private function runCommand(): CommandTester

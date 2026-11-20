@@ -79,6 +79,19 @@ final class CategoryTree
     ];
 
     /**
+     * The six placeholder categories the shop launched with, and where their
+     * old pages now send visitors. Specialty & Hard-to-Find stops being a
+     * category: buyers are sent to Request a Quote for items not listed.
+     */
+    public const RETIRED = [
+        'mro_materials' => ['mro-materials', '/tools'],
+        'electrical_controls' => ['electrical-controls', '/tools/electrical-tools-testers'],
+        'maintenance_supplies' => ['maintenance-supplies', '/janitorial-facility'],
+        'fasteners_hardware' => ['fasteners-hardware', '/fasteners-tape-material-handling'],
+        'specialty_hard_to_find' => ['specialty-hard-to-find', '/quote'],
+    ];
+
+    /**
      * Every category with its place in the tree, depth first.
      *
      * @return array<string, array{name: string, draft: int, parent: ?string, depth: int, leaf: bool}>

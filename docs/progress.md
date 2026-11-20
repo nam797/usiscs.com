@@ -655,11 +655,20 @@
     (Anchor Brand Sand Strainers, Metals Babbits: by hand), and per-category
     SKU counts are close to the draft's. Under 10 products: Specialty Tools
     & Kits (9), Clamps & Vises (7), Wire, Rods & Electrodes (7).
-  - Next: review the dry run's CSV, then create the tree (replace
-    setup-categories' 6 placeholders, redirects from the old category
-    URLs), re-file products (staging, then production), department menu
-    with dropdowns, homepage tiles per department. Later: brand pages,
-    filters, per-category SEO title/description/intro.
+  - CSV reviewed, all good (2026-11-20). Built: setup-categories creates
+    the tree (`CategoryTreeBuilder`) and removes empty launch placeholders;
+    `categorize --apply` moves products; old category URLs redirect
+    (`RetiredCategoryRedirectController`); the menu shows the 7
+    departments, each dropdown starting with "All <department>"; homepage
+    tiles per department plus a "Specialty & Hard-to-Find → quote" tile;
+    the import sheet takes any category name/code of the tree and
+    prepare-ors-import fills it with the classifier (InterimCategory
+    removed). Checked on the local catalog: 1,390 moved, MRO Materials and
+    Fasteners & Hardware kept hidden for the 2 unplaced products.
+  - Next: run the three commands on staging, then production (see
+    docs/local-setup.md "Catalog categories"), and place the 2 products by
+    hand. Later: brand pages, filters, per-category SEO
+    title/description/intro.
 - **Full catalog load (2,737 ORS SKUs)** from the "ORS price feed" sheet in
   `USISCS_ORS_vs_Grainger_Price_Comparison.xlsx` (list price, cost, brand,
   part #, pack/UOM), mapped onto the approved tree.

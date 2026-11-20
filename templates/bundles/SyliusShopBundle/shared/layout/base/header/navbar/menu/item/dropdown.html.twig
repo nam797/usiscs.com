@@ -1,0 +1,15 @@
+{# Sylius's department dropdown, starting with a link to the department
+   itself: Sylius's toggle only opens the menu, so the department page
+   (everything in it) was otherwise unreachable from the menu. #}
+{% set taxon = hookable_metadata.context.taxon %}
+
+<div class="dropdown-menu">
+    <a class="nav-link fw-semibold" href="{{ path('sylius_shop_product_index', {'slug': taxon.slug, '_locale': taxon.translation.locale}) }}">
+        All {{ taxon.name }}
+    </a>
+    {% for child_taxon in taxon.enabledChildren %}
+        <a class="nav-link" href="{{ path('sylius_shop_product_index', {'slug': child_taxon.slug, '_locale': child_taxon.translation.locale}) }}" title="{{ child_taxon.name|e('html_attr') }}" {{ sylius_test_html_attribute('menu-item', child_taxon.name) }}>
+            {{ child_taxon.name }}
+        </a>
+    {% endfor %}
+</div>

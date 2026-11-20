@@ -128,7 +128,7 @@ final class ProductGoLiveTest extends FunctionalTestCase
 
     public function testTakeOfflineHidesProductsFromTheShop(): void
     {
-        $live = $this->ensureProduct('GL-LIVE', 'Live drill', 'live-drill', 'mro_materials');
+        $live = $this->ensureProduct('GL-LIVE', 'Live drill', 'live-drill', 'power_tools_batteries');
         $this->loginAsAdmin();
         $token = $this->tokenFromProductList();
 
@@ -174,12 +174,12 @@ final class ProductGoLiveTest extends FunctionalTestCase
 
     private function draft(string $code, string $name, string $slug, Fulfilment $fulfilment = Fulfilment::CrossDock): ProductInterface
     {
-        $product = $this->ensureProduct($code, $name, $slug, 'mro_materials', enabled: false);
+        $product = $this->ensureProduct($code, $name, $slug, 'power_tools_batteries', enabled: false);
         if (null === $this->firstPricing($product)) {
             // ensureProduct() reuses an existing product; restore its price.
             $this->entityManager()->remove($product);
             $this->entityManager()->flush();
-            $product = $this->ensureProduct($code, $name, $slug, 'mro_materials', enabled: false);
+            $product = $this->ensureProduct($code, $name, $slug, 'power_tools_batteries', enabled: false);
         }
         $variant = $product->getVariants()->first();
         self::assertInstanceOf(ProductVariant::class, $variant);
@@ -221,7 +221,7 @@ final class ProductGoLiveTest extends FunctionalTestCase
     /** Sylius hides bulk actions on an empty list, so tests can't rely on earlier tests' data. */
     private function ensureListHasAProduct(): void
     {
-        $this->ensureProduct('GL-LISTED', 'Listed drill', 'listed-drill', 'mro_materials', enabled: false);
+        $this->ensureProduct('GL-LISTED', 'Listed drill', 'listed-drill', 'power_tools_batteries', enabled: false);
     }
 
     private function tokenFromProductList(): string
