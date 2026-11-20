@@ -28,7 +28,7 @@
         "flux-se/sylius-stripe-plugin": "^2.0.2",
         "openspout/openspout": "^5.12",
         "sylius/sylius": "^2.2.6",
-        "symfony/dotenv": "^7.4.11",
+        "symfony/dotenv": "^8.1.6",
         "symfony/flex": "^2.11",
         "symfony/postmark-mailer": "^7.4",
         "symfony/runtime": "^7.4.13",
