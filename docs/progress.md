@@ -642,9 +642,24 @@
   - Staging can't send anything until it has its own `MAILER_DSN` (Upsun's
     relay is off there).
 - **ORS sync: merged (PR #37)**, waiting on ORS credentials (see below).
-- **Client review of the category tree** (link above). Then build it:
-  replace the 6 placeholder categories (setup-categories), brand pages and
-  filters, per-category SEO title/description/intro.
+- **Category tree: approved by the client (2026-11-20)**, as drafted (link
+  above; PDF copy "Category tree.pdf"): 7 departments, 31 categories, third
+  level under Hand Protection (5) and Hand Tools (9). Defaults taken on the
+  draft's open questions: welding helmets/gloves under Welding, Heat Stress
+  & Hydration under Safety & PPE, Specialty & Hard-to-Find becomes a
+  Request a Quote page.
+  - Done: the tree in code (`src/Catalog/Category/CategoryTree.php`) and a
+    name-based sorter (`CategoryClassifier`), with a dry run:
+    `app:catalog:categorize [--csv=file]` (changes nothing). On the local
+    catalog (same 1,390 products as production) it places all but 2
+    (Anchor Brand Sand Strainers, Metals Babbits: by hand), and per-category
+    SKU counts are close to the draft's. Under 10 products: Specialty Tools
+    & Kits (9), Clamps & Vises (7), Wire, Rods & Electrodes (7).
+  - Next: review the dry run's CSV, then create the tree (replace
+    setup-categories' 6 placeholders, redirects from the old category
+    URLs), re-file products (staging, then production), department menu
+    with dropdowns, homepage tiles per department. Later: brand pages,
+    filters, per-category SEO title/description/intro.
 - **Full catalog load (2,737 ORS SKUs)** from the "ORS price feed" sheet in
   `USISCS_ORS_vs_Grainger_Price_Comparison.xlsx` (list price, cost, brand,
   part #, pack/UOM), mapped onto the approved tree.
