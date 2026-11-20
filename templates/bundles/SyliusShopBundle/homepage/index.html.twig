@@ -7,12 +7,10 @@
     /contact rather than fighting the hook system for content that isn't
     catalog-related.
 
-    Copy is carried over from the live site. One thing still flagged as
-    NOT captured from the live page and needing a real asset file:
-    - Hero / value-banner background images: the live page's image paths
-      (airo-assets/images/pages/home/...) have no file extension and
-      aren't fetchable from here -- sections below use a plain dark
-      panel instead of a photo until real asset files are supplied.
+    Supplies first (client feedback, 2026-11-20): a short hero, then a tile
+    per category, then a shortened version of the services marketing
+    carried over from the old live site (the full story is on /services
+    and /about). Hero copy is new and still needs the client's sign-off.
     Stats bar figures (500+ / 48hr / 100% / 1 Call) were confirmed by
     watching the live page's JS count-up animation finish in a browser
     (2026-10-21), not inferred.
@@ -29,25 +27,59 @@
 {% endblock %}
 
 {% block content %}
+{# Icon per category code (local SVGs in assets/icons/category, Tabler
+   icons); any other category gets the cube. #}
+{% set category_icons = {
+    mro_materials: 'category:tool',
+    electrical_controls: 'tabler:plug',
+    maintenance_supplies: 'category:spray',
+    safety_ppe: 'category:helmet',
+    fasteners_hardware: 'category:nut',
+} %}
 <div class="container py-5">
 
     {# Hero #}
-    <div class="row mb-5">
+    <div class="row mb-4">
         <div class="col-lg-9 mx-auto text-center">
-            <span class="eyebrow">US Industrial Supply Chain Solutions</span>
-            <h1 class="display-5 mb-3">Your Supply Chain Problem Is Our Job.</h1>
+            <h1 class="display-5 mb-3">Industrial Supplies, Delivered.</h1>
             <p class="text-secondary mb-4 fs-5">
-                We deliver the industrial supplies you need, on time, every time -- and we solve
-                supply failures before they cost you uptime.
+                MRO materials, safety gear, electrical, fasteners and maintenance supplies,
+                ready to order online.
             </p>
-            <div class="d-flex gap-3 justify-content-center flex-wrap">
-                <a href="{{ path('app_shop_rfq') }}" class="btn btn-primary">Request a Quote</a>
-                <a href="{{ path('app_shop_services') }}" class="btn btn-outline-secondary">Our Services</a>
+            <div class="d-flex gap-3 justify-content-center align-items-center flex-wrap">
+                <a href="#categories" class="btn btn-primary">Shop Supplies</a>
+                <a href="{{ path('app_shop_rfq') }}" class="btn btn-link">Need a quote?</a>
             </div>
         </div>
     </div>
 
-    {# Stats bar -- see template-level comment above re: unverified figures #}
+    {# Categories: the main thing on the page. A category with nothing in
+       it yet (Specialty & Hard-to-Find) asks for a quote instead. #}
+    <section id="categories" class="mb-5" aria-labelledby="categories-heading">
+        <h2 id="categories-heading" class="visually-hidden">Shop by category</h2>
+        <div class="row g-3">
+            {% for category in shop_categories() %}
+                {% set taxon = category.taxon %}
+                <div class="col-6 col-lg-4">
+                    {% if category.products > 0 %}
+                        <a class="category-tile" href="{{ path('sylius_shop_product_index', { slug: taxon.slug, _locale: taxon.translation.locale }) }}">
+                            {{ ux_icon(category_icons[taxon.code] ?? 'tabler:cube', { class: 'category-tile__icon', 'aria-hidden': 'true' }) }}
+                            <span class="category-tile__name">{{ taxon.name }}</span>
+                            <span class="category-tile__count">{{ category.products|number_format }} products</span>
+                        </a>
+                    {% else %}
+                        <a class="category-tile category-tile--ask" href="{{ path('app_shop_rfq') }}">
+                            {{ ux_icon('category:zoom-question', { class: 'category-tile__icon', 'aria-hidden': 'true' }) }}
+                            <span class="category-tile__name">{{ taxon.name }}</span>
+                            <span class="category-tile__count">Can't find it? Ask us &rarr;</span>
+                        </a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# Stats bar #}
     <div class="row text-center mb-5 py-4" style="border-top: 1px solid var(--bs-border-color); border-bottom: 1px solid var(--bs-border-color);">
         <div class="col-6 col-md-3 mb-3 mb-md-0">
             <div class="h2 font-display mb-0">500+</div>
@@ -67,32 +99,7 @@
         </div>
     </div>
 
-</div>
-
-{# Ticker -- full-bleed, so it breaks out of the .container above and
-   reopens one below. Two back-to-back copies of the same item list,
-   scrolled left by exactly one copy's width (see .ticker__track's
-   animation in brand.scss), so the loop has no visible seam. #}
-{% set ticker_items = [
-    'Protecting Customer Uptime',
-    'Just-In-Time Industrial Supply',
-    '500+ Vendor Partners',
-    'One Call. Any Problem.',
-] %}
-<div class="ticker">
-    <div class="ticker__track">
-        {% for copy in 1..2 %}
-            {% for item in ticker_items %}
-                <span class="ticker__item">{{ item|upper }}</span>
-                <span class="ticker__sep">&middot;</span>
-            {% endfor %}
-        {% endfor %}
-    </div>
-</div>
-
-<div class="container py-5">
-
-    {# What We Do #}
+    {# What We Do, shortened: the full list is on /services #}
     <div class="row mb-4">
         <div class="col-lg-8 mx-auto text-center">
             <span class="eyebrow">What We Do</span>
@@ -104,11 +111,7 @@
             { title: 'Just-in-Time Industrial Supply', body: 'MRO materials, consumables, tools, safety products, and replacement parts delivered when needed.' },
             { title: 'Supply Problem Solving', body: 'Sourcing hard-to-find items and approved substitutes through our vendor network.' },
             { title: 'Dedicated Account Support', body: 'A named team for quoting, communication, escalation, and billing.' },
-            { title: 'Supply Chain Ecosystem Support', body: 'Vendor coordination, delivery, substitutions, documentation, and billing.' },
-            { title: 'Small Engine Repair', body: 'Generators, compressors, pumps, and power tools.' },
-            { title: 'Heavy Equipment Repair', body: 'Hydraulics, drivetrain, electrical, and structural work, on-site or in-shop.' },
-            { title: 'Preventative Maintenance', body: 'Custom PM schedules, parts pre-staging, and technician dispatch.' },
-            { title: 'Supply Chain Consulting', body: 'Vulnerability analysis, cost reduction, vendor consolidation, and inventory optimization.' },
+            { title: 'Equipment Repair & Maintenance', body: 'Small engines, heavy equipment and preventative maintenance, on-site or in-shop.' },
         ] %}
             <div class="col-md-6 col-lg-3">
                 <div class="content-card">
@@ -124,67 +127,12 @@
         </div>
     </div>
 
-    {# Value banner -- no photo yet, see template-level comment #}
-    <div class="row mb-5">
-        <div class="col-12">
-            <div class="content-banner">
-                <h2 class="h3 mb-0">When your supply chain fails, we're already solving it.</h2>
-            </div>
-        </div>
-    </div>
-
-    {# Why US Industrial #}
-    <div class="row mb-4">
-        <div class="col-lg-8 mx-auto text-center">
-            <span class="eyebrow">Why US Industrial</span>
-            <h2 class="mb-0">We Solve Problems Others Can't.</h2>
-        </div>
-    </div>
-    <div class="row mb-5">
-        <div class="col-lg-8 mx-auto">
-            <ul class="list-unstyled text-secondary">
-                {% for point in [
-                    'Protect Your Uptime, Not Just Fill Orders',
-                    'Flexible Sourcing From 500+ Vendor Partners',
-                    'One Call Solves Any Supply Problem',
-                    'A Team That Knows Your Operation',
-                    'Built for Construction & Industrial Contractors',
-                ] %}
-                    <li class="mb-2">&mdash; {{ point }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
-    {# The USISCS Difference #}
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="content-card">
-                <h3 class="h5">Protect Uptime</h3>
-                <p class="text-secondary small mb-0">Every decision is judged by whether it keeps you running.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="content-card">
-                <h3 class="h5">Solve the Problem</h3>
-                <p class="text-secondary small mb-0">Alternate sources, approved substitutes, or emergency delivery.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="content-card">
-                <h3 class="h5">Own the Outcome</h3>
-                <p class="text-secondary small mb-0">We own issues from first call through delivery.</p>
-            </div>
-        </div>
-    </div>
-
     {# Closing CTA #}
     <div class="row">
         <div class="col-lg-8 mx-auto text-center">
             <h2 class="mb-3">One Call. Any Supply Problem. Solved.</h2>
             <p class="text-secondary mb-4">
-                Tell us what you need -- we'll source it, get it delivered, and make sure it
-                doesn't happen again.
+                Can't find what you need in the shop? Tell us -- we'll source it and get it delivered.
             </p>
             <div class="d-flex gap-3 justify-content-center flex-wrap">
                 <a href="{{ path('app_shop_rfq') }}" class="btn btn-primary">Request a Quote</a>

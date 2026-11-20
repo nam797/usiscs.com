@@ -21,6 +21,20 @@ final class CatalogTest extends FunctionalTestCase
         self::assertSame(array_values(SetupCategoriesCommand::CATEGORIES), array_values(array_filter($menu)));
     }
 
+    public function testTheHomepageHasATilePerCategoryAndEmptyOnesAskForAQuote(): void
+    {
+        $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');
+
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(count(SetupCategoriesCommand::CATEGORIES), '#categories .category-tile');
+        self::assertSelectorExists('#categories a.category-tile[href="/safety-ppe"]');
+        self::assertSelectorTextContains('#categories a.category-tile[href="/safety-ppe"]', 'products');
+        $askTiles = $crawler->filter('#categories a.category-tile--ask[href="/quote"]')->each(static fn ($a): string => $a->text());
+        self::assertNotEmpty(array_filter($askTiles, static fn (string $text): bool => str_contains($text, 'Specialty & Hard-to-Find')));
+    }
+
     public function testACategoryPageListsItsProducts(): void
     {
         $this->ensureProduct('E2E_SAFETY_GLASSES', 'Safety Glasses', 'safety-glasses', 'safety_ppe');

@@ -462,6 +462,22 @@
   "Administration" hidden + production package protection notes (#109,
   #110 → #111), Documentation/Slack links hidden (#112 → #113), the rest
   of the admin Sylius links hidden (#114 → #115).
+- Supplies-first header and homepage (2026-11-20, client feedback: bigger
+  logo, send shoppers to the supplies, Services/Quote/Contact were
+  distracting):
+  - Header is one row: logo at 18rem (13rem on phones; `.site-logo`), the
+    company pages as small links beside account/cart
+    (`shop/nav/utility_links.html.twig`, desktop only), then the category
+    row as the main menu (bold). The old Home/Services/About/Contact/red
+    Request a Quote row and the phone Request a Quote bar are gone.
+  - Phone slide-out: "Shop supplies" categories first, then "Company" pages.
+  - Homepage: short hero ("Industrial Supplies, Delivered." + Shop Supplies
+    button), then a tile per category with its product count
+    (`shop_categories()`, `src/Twig/ShopCategoriesExtension.php`); a
+    category with no products (Specialty & Hard-to-Find) links to /quote.
+    Then stats, four What We Do cards, closing CTA. Ticker, value banner,
+    Why US Industrial and USISCS Difference dropped (on /services and
+    /about). Category icons are local Tabler SVGs in `assets/icons/category/`.
 - Security updates (2026-11-20; advisories of 2026-11-18 failed CI's
   `composer audit` on every PR): easycorp/easyadmin-bundle 5.7.0 → 5.10.2
   (backoffice access-control bypasses, stored XSS), flux-se/sylius-stripe-
@@ -598,6 +614,10 @@
   page (UPS REST API, FedEx later behind the same interface; staff enter
   weight and size). Live checkout rates would need weights on every SKU
   first.
+- **Client sign-off on the new header and homepage** (2026-11-20): show
+  the client staging; the hero copy ("Industrial Supplies, Delivered. MRO
+  materials, safety gear, electrical, fasteners and maintenance supplies,
+  ready to order online.") is new and needs approval. Then staging → main.
 - **Package protection:** live and switched on on staging and production
   with the client's tiers (2026-11-16). Still to do: a Stripe test-mode
   checkout on staging (or the first live order with protection) to confirm

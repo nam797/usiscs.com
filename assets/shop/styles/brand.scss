@@ -127,49 +127,6 @@ h1, h2,
   text-align: center;
 }
 
-// Scrolling ticker strip, carried over from the live homepage (the band
-// of repeating taglines below the stats bar). CSS-only infinite marquee
-// -- two copies of the same track placed back to back and shifted left
-// by exactly one track width, so the loop has no visible seam.
-.ticker {
-  background-color: #141b26;
-  border-top: 1px solid var(--bs-border-color);
-  border-bottom: 1px solid var(--bs-border-color);
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.ticker__track {
-  display: inline-flex;
-  width: max-content;
-  animation: ticker-scroll 28s linear infinite;
-}
-
-.ticker__item {
-  display: inline-block;
-  padding: 0.85rem 0;
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 1.1rem;
-  letter-spacing: 0.04em;
-  color: #F5F5F5;
-}
-
-.ticker__sep {
-  color: #C0392B;
-  padding: 0 1.25rem;
-}
-
-@keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ticker__track {
-    animation: none;
-  }
-}
-
 // --- Replace Sylius teal with the brand reds -------------------------
 // Sylius compiles its own $primary (#22B99A teal) into the core shop CSS,
 // and Bootstrap bakes it into each component's own variables
@@ -363,6 +320,104 @@ $brand-chevron: "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' vi
 // The logo PNG has a white background, so it sits in a white box.
 .logo-panel {
   background-color: #fff;
+}
+
+// --- Header (client feedback 2026-11-20: bigger logo, categories first) --
+
+// Header logo: Sylius's was 10rem, too small to read the logo's tagline.
+.site-logo {
+  width: 13rem;
+  max-width: 100%;
+
+  @media (min-width: 992px) {
+    width: 18rem;
+  }
+}
+
+// Company pages beside account/cart: small and muted, so they don't
+// compete with the category menu.
+// (Selectors outweigh the generic .navbar .navbar-nav .nav-link rule above.)
+.utility-links.navbar-nav .nav-link.nav-link {
+  font-size: 0.875rem;
+  color: #8A9BB0 !important; // muted nav token
+
+  &:hover,
+  &:focus {
+    color: #{$brand-accent} !important;
+  }
+}
+
+// The category row is the main menu: brighter and heavier than other links.
+@media (min-width: 992px) {
+  .navbar .category-menu.navbar-nav .nav-link {
+    color: #F5F5F5 !important;
+    font-weight: 600;
+    white-space: nowrap;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+
+    &:hover,
+    &:focus {
+      color: #{$brand-accent} !important;
+    }
+  }
+}
+
+// Small desktops (992-1199px): six bold categories don't fit in one row at
+// full size and gap, so they'd wrap onto two lines each.
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .navbar .category-menu.navbar-nav {
+    column-gap: 1rem !important;
+  }
+
+  .navbar .category-menu.navbar-nav .nav-link {
+    font-size: 0.875rem;
+  }
+}
+
+// --- Homepage category tiles ---------------------------------------------
+
+.category-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  height: 100%;
+  padding: 1.5rem;
+  background-color: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+  color: var(--bs-body-color);
+  text-decoration: none;
+  transition: border-color 0.15s ease-in-out;
+
+  &:hover,
+  &:focus {
+    border-color: #{$brand-accent};
+    color: var(--bs-body-color);
+  }
+}
+
+.category-tile__icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.5rem;
+  color: #{$brand-accent};
+}
+
+.category-tile__name {
+  font-family: 'Bebas Neue', 'InterVariable', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.category-tile__count {
+  font-size: 0.875rem;
+  color: var(--bs-secondary-color);
+}
+
+.category-tile--ask {
+  border-style: dashed;
 }
 
 // Light-only utilities: Sylius uses Bootstrap's fixed light classes in a few
