@@ -665,10 +665,15 @@
     prepare-ors-import fills it with the classifier (InterimCategory
     removed). Checked on the local catalog: 1,390 moved, MRO Materials and
     Fasteners & Hardware kept hidden for the 2 unplaced products.
-  - Next: run the three commands on staging, then production (see
-    docs/local-setup.md "Catalog categories"), and place the 2 products by
-    hand. Later: brand pages, filters, per-category SEO
-    title/description/intro.
+  - Staging (2026-11-20): setup-categories, categorize --apply,
+    setup-categories run; 51 categories created, 1,390 products moved. The
+    2 unplaced products (Anchor Brand Sand Strainers, Metals Babbits) went
+    into Specialty Tools & Kits by hand (user's call) and the classifier
+    now places them there too, so production needs no hand placement. All
+    six placeholders are gone on staging; old URLs redirect.
+  - Next: production, after the client approves the new header/homepage
+    (staging → main, then the same three commands). Later: brand pages,
+    filters, per-category SEO title/description/intro.
 - **Full catalog load (2,737 ORS SKUs)** from the "ORS price feed" sheet in
   `USISCS_ORS_vs_Grainger_Price_Comparison.xlsx` (list price, cost, brand,
   part #, pack/UOM), mapped onto the approved tree.

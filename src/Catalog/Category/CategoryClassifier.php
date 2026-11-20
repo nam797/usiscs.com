@@ -82,7 +82,7 @@ final class CategoryClassifier
         ['pipe_plumbing_tools', '/pipe|threader|threading|tub(e|ing) cutter|tube bender|benders|groover|flaring|vises?(?![-\w])|die head|\bdies\b|reamer|\btaps\b|tapping tool|strap wrench|chain wrench|cutter (head|wheel)|beveller|strut|rapwrench|rapidgrip|model 700/'],
         ['cutting_tools_knives_saws', '/knife|knives|blades?\b|snips|shears|hacksaw|bolt cutter|scraper/'],
         ['screwdrivers_sockets_ratchets', '/screwdriver|nut driver|socket|\bratchets?\b/'],
-        ['specialty_tools_kits', '/tool (set|kit)|tool kits|mechanics tool|extractor|mirror|staple gun|caulking gun|sight glass|packing hook/'],
+        ['specialty_tools_kits', '/tool (set|kit)|tool kits|mechanics tool|extractor|mirror|staple gun|caulking gun|sight glass|packing hook|sand strainer|babbit/'],
         ['wrenches', '/wrench|hex key/'],
         ['hammers_bars_striking_tools', '/hammer|sledge|crowbar|\bbars\b|bull[- ]?pins?/'],
         ['shovels_site_tools', '/shovel|scoop|wheelbarrow|sprayer/'],
