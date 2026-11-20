@@ -1,0 +1,22 @@
+{#
+    "You may also like" on the cart: products from the category of the
+    first item in the cart, leaving out what's already in it. Replaces
+    Sylius's latest products, which were unrelated (paper towels under
+    respirator pads). Hooked in via config/packages/twig_hooks.yaml.
+#}
+{% set cart = hookable_metadata.context.cart %}
+{% set first_item = cart.items.first %}
+{% if first_item %}
+    {% set in_cart = cart.items|map(item => item.variant.product.id) %}
+    {% set suggestions = related_products(first_item.variant.product, 8)|filter(product => product.id not in in_cart)|slice(0, 4) %}
+    {% if suggestions is not empty %}
+        <div class="container mb-6" role="region" aria-labelledby="cart-suggestions-heading">
+            <h2 class="mb-5" id="cart-suggestions-heading">{{ 'sylius.ui.you_may_also_like'|trans }}</h2>
+            <div class="products-grid" data-test-cart-suggestions>
+                {% for product in suggestions %}
+                    <div>{{ component('sylius_shop:product:card', { product: product, template: '@SyliusShop/product/common/card.html.twig' }) }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+{% endif %}

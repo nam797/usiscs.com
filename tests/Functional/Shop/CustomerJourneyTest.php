@@ -58,6 +58,20 @@ final class CustomerJourneyTest extends FunctionalTestCase
         parent::tearDown();
     }
 
+    public function testTheCartNamesItsControlsAndSuggestsFromTheSameCategory(): void
+    {
+        $this->ensureProduct('E2E_GOGGLES', 'Splash Goggles', 'splash-goggles', 'eye_face_protection');
+        $this->ensureProduct('E2E_FACE_SHIELD', 'Face Shield', 'face-shield', 'eye_face_protection');
+        $this->addToCart('splash-goggles', 1);
+
+        $this->client->request('GET', '/cart/');
+
+        self::assertSelectorExists('button[aria-label="Remove Splash Goggles from cart"]');
+        self::assertSelectorExists('input[aria-label="Quantity of Splash Goggles"]');
+        self::assertSelectorTextContains('[data-test-cart-suggestions]', 'Face Shield');
+        self::assertSelectorTextNotContains('[data-test-cart-suggestions]', 'Splash Goggles');
+    }
+
     public function testPackageProtectionStartsTickedAndIsChargedByCartTotal(): void
     {
         $this->setPackageProtection(true, [0 => 295, 2000 => 495]);
@@ -415,7 +429,7 @@ final class CustomerJourneyTest extends FunctionalTestCase
     private static function address(string $which): array
     {
         $values = [];
-        foreach (['firstName' => 'Pat', 'lastName' => 'Tester', 'street' => '1 Main St', 'city' => 'Springfield', 'postcode' => '62701', 'countryCode' => 'US'] as $field => $value) {
+        foreach (['firstName' => 'Pat', 'lastName' => 'Tester', 'street' => '1 Main St', 'city' => 'Springfield', 'postcode' => '62701', 'countryCode' => 'US', 'provinceCode' => 'US-IL'] as $field => $value) {
             $values[sprintf('sylius_shop_checkout_address[%s][%s]', $which, $field)] = $value;
         }
 

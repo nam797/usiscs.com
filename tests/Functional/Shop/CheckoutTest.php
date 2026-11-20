@@ -54,6 +54,7 @@ final class CheckoutTest extends FunctionalTestCase
             'city' => 'Springfield',
             'postcode' => '62701',
             'countryCode' => 'US',
+            'provinceCode' => 'US-IL',
         ];
         foreach ($address as $field => $value) {
             $form[sprintf('sylius_shop_checkout_address[billingAddress][%s]', $field)] = $value;
@@ -61,6 +62,22 @@ final class CheckoutTest extends FunctionalTestCase
         $this->client->submit($form);
 
         self::assertResponseRedirects('/checkout/select-shipping');
+    }
+
+    public function testTheAddressFormUsesUsWording(): void
+    {
+        $this->client->loginUser($this->customerWithACart(), 'shop');
+
+        $crawler = $this->client->request('GET', '/checkout/address');
+
+        self::assertSelectorExists('h1');
+        self::assertSelectorExists('main#main');
+        $labels = $crawler->filter('label')->each(static fn ($label): string => trim($label->text()));
+        self::assertContains('ZIP code', $labels);
+        self::assertContains('State', $labels);
+        self::assertNotContains('Province', $labels);
+        self::assertNotContains('Postcode', $labels);
+        self::assertSelectorExists('select[name="sylius_shop_checkout_address[billingAddress][provinceCode]"] option[value="US-IL"]');
     }
 
     private function customerWithACart(): ShopUser

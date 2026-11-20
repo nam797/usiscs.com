@@ -38,10 +38,13 @@
   --bs-primary: #8B1A1A !important;
   --bs-primary-rgb: 139, 26, 26 !important;
 
-  --bs-link-color: #C0392B !important;
-  --bs-link-color-rgb: 192, 57, 43 !important;
-  --bs-link-hover-color: #d9503f !important; // not in brand spec — lightened accent for hover
-  --bs-link-hover-color-rgb: 217, 80, 63 !important;
+  // Text links one step lighter than the accent red: #C0392B is 3.5:1 on
+  // the dark background, under the 4.5:1 minimum for text (UX audit
+  // 2026-11-20). Buttons keep the brand reds.
+  --bs-link-color: #E2604F !important; // 5.4:1
+  --bs-link-color-rgb: 226, 96, 79 !important;
+  --bs-link-hover-color: #F07060 !important; // 6.5:1
+  --bs-link-hover-color-rgb: 240, 112, 96 !important;
 
   // Sharp corners, brand-wide.
   --bs-border-radius: 0 !important;
@@ -104,7 +107,7 @@ h1, h2,
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--bs-primary);
+  color: #E2604F; // link red: the CTA red was 2:1 as small text
   margin-bottom: 0.5rem;
 }
 
@@ -492,5 +495,82 @@ tr.table-success {
 
   > :first-child {
     box-shadow: inset 3px 0 0 #{$brand-accent} !important;
+  }
+}
+
+// --- Readability and accessibility (UX audit 2026-11-20) -----------------
+
+// Bootstrap's .text-secondary / .text-body-tertiary are compiled greys
+// (#6c757d, 4.0:1; #767a7f, 4.4:1) that the --bs-secondary-color override
+// above never reaches. The brand muted grey is 6.7:1.
+:root[data-bs-theme='dark'] {
+  .text-secondary,
+  .text-body-tertiary {
+    color: #8A9BB0 !important;
+  }
+}
+
+// Outline buttons ("Contact Us", "Our Services") and pagination links
+// compile to Bootstrap's grey (#6c757d, 4.0:1). Brand muted grey instead.
+.btn-outline-secondary {
+  --bs-btn-color: #8A9BB0 !important;
+  --bs-btn-border-color: #8A9BB0 !important;
+  --bs-btn-hover-color: #0D1117 !important;
+  --bs-btn-hover-bg: #8A9BB0 !important;
+  --bs-btn-hover-border-color: #8A9BB0 !important;
+  --bs-btn-active-color: #0D1117 !important;
+  --bs-btn-active-bg: #8A9BB0 !important;
+}
+
+.pagination {
+  --bs-pagination-color: #E2604F !important;
+}
+
+// "Skip to content", shown when it gets keyboard focus.
+.skip-link:focus {
+  position: fixed !important;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2000;
+  padding: 0.5rem 1rem;
+  background: #{$brand-cta};
+  color: #fff;
+}
+
+// Cart on phones: the items table squeezed product names into a column of
+// a few letters and pushed Qty and Total behind a sideways scroll. Below
+// 576px each item becomes a small card: name across the top, price and
+// total under it, quantity last.
+@media (max-width: 575.98px) {
+  body[data-route='sylius_shop_cart_summary'] .table-responsive table {
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+
+    tbody tr {
+      display: grid;
+      grid-template-columns: 2.5rem 1fr auto;
+      align-items: center;
+      border-bottom: 1px solid var(--bs-border-color);
+      padding: 0.5rem 0;
+    }
+
+    tbody td {
+      border: 0;
+      padding: 0.25rem 0.5rem;
+      width: auto !important;
+    }
+
+    tbody td:nth-child(1) { grid-row: 1 / span 3; align-self: start; }
+    tbody td:nth-child(2) { grid-column: 2 / 4; }
+    tbody td:nth-child(3) { grid-column: 2; text-align: start !important; }
+    tbody td:nth-child(3)::before { content: 'Unit price '; color: var(--bs-secondary-color); }
+    tbody td:nth-child(5) { grid-column: 3; grid-row: 2; }
+    tbody td:nth-child(4) { grid-column: 2 / 4; grid-row: 3; text-align: start !important; }
+    tbody td:nth-child(4) input { max-width: 6rem; }
   }
 }

@@ -100,6 +100,17 @@ final class ShopPagesTest extends FunctionalTestCase
         self::assertResponseRedirects('/contact', 301);
     }
 
+    public function testKeyboardUsersCanSkipTheMenuToTheMainContent(): void
+    {
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertSame('Skip to content', trim($crawler->filter('body > a')->first()->text()));
+        self::assertSame('#main', $crawler->filter('body > a')->first()->attr('href'));
+        self::assertSelectorCount(1, 'main#main');
+        self::assertSelectorExists('header #navbarNav');
+        self::assertSelectorNotExists('[role="menuitem"]');
+    }
+
     public function testTheNavigationLinksToEveryMainPage(): void
     {
         $crawler = $this->client->request('GET', '/');

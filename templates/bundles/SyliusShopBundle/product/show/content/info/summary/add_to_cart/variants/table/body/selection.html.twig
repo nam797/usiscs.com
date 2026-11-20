@@ -1,0 +1,7 @@
+{# Sylius's size radio, with an accessible name: the variant's name is in
+   another cell, so screen readers announced an unlabelled radio. #}
+{% set variant = hookable_metadata.context.variant %}
+
+<td>
+    {{ form_widget(hookable_metadata.context.form.cartItem.variant[hookable_metadata.context.key], {'label': false, 'attr': {'aria-label': 'Choose ' ~ (variant.name ?: variant.descriptor)}}) }}
+</td>

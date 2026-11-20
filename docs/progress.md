@@ -478,6 +478,29 @@
     Then stats, four What We Do cards, closing CTA. Ticker, value banner,
     Why US Industrial and USISCS Difference dropped (on /services and
     /about). Category icons are local Tabler SVGs in `assets/icons/category/`.
+- UX audit fixes (2026-11-20; audit report with screenshots was local, ux-audit
+  skill, verdict Fail on axe-core critical/serious and the phone cart):
+  axe-core now clean on home, category, department, product, cart, quote,
+  contact, services, about, login, register and all checkout steps.
+  - Accessibility: header Register link lost its stray role="menuitem";
+    size radios, cart quantity and remove buttons have accessible names;
+    empty table headers named; flash close is a real button; `<header>`,
+    `<main id="main">` (+ checkout `<aside>`) landmarks and a "Skip to
+    content" link; checkout steps have an h1 and no heading jumps.
+  - Contrast: text links #E2604F (was #C0392B, 3.5:1), `.text-secondary` /
+    `.text-body-tertiary` / outline buttons / pagination use the brand
+    muted #8A9BB0 (Bootstrap's grey was 4.0:1), eyebrow labels in link red.
+  - Phone cart: below 576px each item is a card (name, unit price, total,
+    quantity) instead of a squeezed table with Qty/Total off-screen.
+  - US checkout: the 50 states + DC as US provinces (migration
+    Version20261120120000, runs on deploy) so State is a dropdown; labels
+    "State" / "ZIP code" (`translations/messages.en.yaml`, also in the
+    admin). Functional tests seed Illinois (FunctionalTestCase) since CI
+    loads the US after migrations.
+  - Cart "You may also like": products from the first item's category,
+    minus what's in the cart (`shop/cart/related_products.html.twig`).
+  - Not run in the audit: slow network, returning user, heavy data, roles,
+    backoffice.
 - Product page quick wins (2026-11-20, from a CRO review of the staging
   hose page): under Add to cart, "Item # <variant code>" (follows the size
   picker; plus "Mfr part #" on one-size products) and "Need a bigger

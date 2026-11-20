@@ -121,6 +121,15 @@ sylius_twig_hooks:
             average_rating:
                 enabled: false
 
+        # Cart suggestions from the cart's own category instead of the
+        # shop's latest products (UX audit 2026-11-20).
+        'sylius_shop.cart.index.content':
+            suggested_products:
+                enabled: false
+            related_products:
+                template: 'shop/cart/related_products.html.twig'
+                priority: 0
+
         # Item number, manufacturer part number and a "bulk pricing" link
         # under Add to cart (CRO review, 2026-11-20).
         'sylius_shop.product.show.content.info.summary.add_to_cart':
